@@ -67,7 +67,12 @@ export type PermissionKey =
   // Append-only addition of new invitees/agenda items to an existing
   // meeting — deliberately separate from EDIT_MEETING, which this feature
   // does not use or imply (existing meeting data stays read-only).
-  | 'APPEND_MEETING_CONTENT';
+  | 'APPEND_MEETING_CONTENT'
+  // Final approval of a Meeting Confirmation (پس از تبدیل پیشنهاد توسط
+  // مسئول دفتر) — held by «دبیر جلسه», deliberately separate from the CEO's
+  // own initial-approval permission so the two review stages stay
+  // independent actors.
+  | 'APPROVE_MEETING_CONFIRMATION';
 
 export interface User {
   id: string;
@@ -129,7 +134,11 @@ export type ProposalStatus =
   | 'RESUBMITTED'            // اصلاح و مجدداً برای مدیرعامل ارسال شده
   | 'NO_BOARD_REQUIRED'      // عدم نیاز به طرح در هیأت‌مدیره
   | 'CEO_ORDER_ISSUED'       // تبدیل به دستور مستقیم مدیرعامل
-  | 'CONFIRMED_FOR_MEETING'  // تایید جلسه شده (ارائه‌دهنده مشخص شد)، آماده افزودن به یک جلسه
+  // مسئول دفتر آن را به «تایید جلسه» تبدیل کرده، در انتظار تأیید نهایی دبیر
+  // جلسه است (نه مدیرعامل) — تأیید اولیه مدیرعامل بالاتر (APPROVED) جدا و
+  // دست‌نخورده می‌ماند.
+  | 'PENDING_SECRETARY_CONFIRMATION'
+  | 'CONFIRMED_FOR_MEETING'  // تأیید نهایی دبیر جلسه انجام شد، آماده افزودن به یک جلسه
   | 'CONVERTED_TO_AGENDA';   // تبدیل شده به بند دستور یک جلسه مشخص
 
 export interface WorkflowHistoryEntry {
@@ -274,6 +283,11 @@ export interface AgendaItem {
   outcomeNotes?: string;
   isRemoved?: boolean;
   removalReason?: string;
+  // Files attached to this specific agenda item only — never the meeting's
+  // own top-level attachments array (Meeting.attachments). Kept here as
+  // plain Attachment metadata (no real upload backend yet) so the shape is
+  // ready for a future .NET API to persist the same way.
+  attachments?: Attachment[];
 }
 
 export interface MeetingGuest {

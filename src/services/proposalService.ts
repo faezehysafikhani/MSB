@@ -1,7 +1,7 @@
-import { Proposal, ApiResponse, ApiFilterParams, PagedResult, User } from '../types';
-import { mockProposals } from '../mock/data';
+import { Proposal, ApiResponse, ApiFilterParams, PagedResult, User, AppNotification } from '../types';
+import { mockProposals, mockUsers, mockNotifications } from '../mock/data';
 import { apiClient } from './api/apiClient';
-import { loadLocalValue, saveLocalValue } from './localStore';
+import { loadLocalValue, saveLocalValue, loadLocalCollection, saveLocalCollection } from './localStore';
 import { toPersianDigits } from '../utils/formatters';
 import { smsService } from './smsService';
 
@@ -59,7 +59,12 @@ export interface IProposalService {
   resubmitProposal(id: string, updates: ResubmitProposalUpdates, actor: User): Promise<ApiResponse<Proposal>>;
   decideWithoutBoard(id: string, decision: 'NO_BOARD_REQUIRED' | 'CEO_ORDER_ISSUED', notes: string, actor: User, order?: Proposal['ceoOrder']): Promise<ApiResponse<Proposal>>;
   updateCeoOrderStatus(id: string, status: 'IN_PROGRESS' | 'COMPLETED', actor: User, completionNotes?: string): Promise<ApiResponse<Proposal>>;
-  confirmForMeeting(id: string): Promise<ApiResponse<Proposal>>;
+  confirmForMeeting(id: string, actor: User): Promise<ApiResponse<Proposal>>;
+  // Final approval of a Meeting Confirmation — actor is «دبیر جلسه»
+  // (APPROVE_MEETING_CONFIRMATION permission), not the CEO. Reuses the same
+  // three outcomes the CEO's own initial review already has (approve /
+  // reject / return for revision); only the actor and recipient changed.
+  finalizeMeetingConfirmation(id: string, decision: 'APPROVED' | 'REJECTED' | 'RETURNED_FOR_REVISION', notes: string | undefined, actor: User): Promise<ApiResponse<Proposal>>;
   markConvertedToAgenda(id: string, meetingId: string, meetingTitle: string, relatedUsers?: Proposal['relatedUsers']): Promise<ApiResponse<Proposal>>;
 }
 
@@ -93,6 +98,30 @@ class MockProposalService implements IProposalService {
       },
     ];
     proposal.updatedAt = new Date().toISOString();
+  }
+
+  // Notifies every user currently holding APPROVE_MEETING_CONFIRMATION (the
+  // دبیر جلسه persona) that a new item landed in their final-approval
+  // cartable — mirrors the same notifications collection AppContext already
+  // writes PERMISSION_ASSIGNED notices to, so it shows up in the same bell
+  // without a new notification system.
+  private notifyMeetingSecretaries(proposal: Proposal) {
+    const users = loadLocalCollection('users', mockUsers);
+    const recipients = users.filter((user) => user.role !== 'ADMIN' && (user.permissions || []).includes('APPROVE_MEETING_CONFIRMATION'));
+    if (recipients.length === 0) return;
+    const notifications = loadLocalCollection('notifications', mockNotifications);
+    const newOnes: AppNotification[] = recipients.map((user) => ({
+      id: `notif-secretary-confirm-${Date.now()}-${user.id}`,
+      recipientUserId: user.id,
+      title: 'تأیید نهایی جلسه',
+      message: `یک مورد جدید («${proposal.title}») برای تأیید نهایی جلسه در کارتابل شما قرار گرفت.`,
+      dateJalali: getJalaliDate(),
+      timeString: getCurrentTimeString(),
+      isRead: false,
+      type: 'APPROVAL_REQUEST',
+      targetRoute: 'proposals',
+    }));
+    saveLocalCollection('notifications', [...newOnes, ...notifications]);
   }
 
   public async getProposals(params?: ApiFilterParams): Promise<ApiResponse<PagedResult<Proposal>>> {
@@ -256,16 +285,42 @@ class MockProposalService implements IProposalService {
     return apiClient.simulateNetwork(proposal, 120);
   }
 
-  public async confirmForMeeting(id: string): Promise<ApiResponse<Proposal>> {
+  public async confirmForMeeting(id: string, actor: User): Promise<ApiResponse<Proposal>> {
     const proposals = this.getData();
     const proposal = proposals.find((p) => p.id === id);
     if (!proposal) throw new Error('مصوبه پیشنهادی یافت نشد');
     if (proposal.status !== 'APPROVED') throw new Error('فقط موارد تایید شده توسط مدیرعامل قابل تبدیل به تایید جلسه هستند');
-    proposal.status = 'CONFIRMED_FOR_MEETING';
+    const previousStatus = proposal.status;
+    // No longer goes straight to the usable CONFIRMED_FOR_MEETING state —
+    // it now waits for دبیر جلسه's own final approval below.
+    proposal.status = 'PENDING_SECRETARY_CONFIRMATION';
     proposal.confirmedPresenterId = proposal.presenterUserId;
     proposal.confirmedPresenterName = proposal.presenterName;
     proposal.confirmedDateJalali = getJalaliDate();
     proposal.confirmedTimeString = getCurrentTimeString();
+    this.addHistory(proposal, actor, 'تبدیل به تایید جلسه و ارسال برای تأیید نهایی دبیر جلسه', previousStatus);
+    this.saveData(proposals);
+    this.notifyMeetingSecretaries(proposal);
+    return apiClient.simulateNetwork(proposal, 120);
+  }
+
+  public async finalizeMeetingConfirmation(id: string, decision: 'APPROVED' | 'REJECTED' | 'RETURNED_FOR_REVISION', notes: string | undefined, actor: User): Promise<ApiResponse<Proposal>> {
+    // Permission-gated, not role-hardcoded, so any role granted
+    // APPROVE_MEETING_CONFIRMATION later can act here too — ADMIN keeps its
+    // usual implicit-superuser access, matching every other permission
+    // check across the app.
+    const canFinalize = actor.role === 'ADMIN' || (actor.permissions || []).includes('APPROVE_MEETING_CONFIRMATION');
+    if (!canFinalize) throw new Error('شما مجاز به تأیید نهایی تایید جلسه نیستید.');
+    if (decision === 'RETURNED_FOR_REVISION' && !notes?.trim()) throw new Error('ثبت دلیل برگشت الزامی است');
+    const proposals = this.getData();
+    const proposal = proposals.find((item) => item.id === id);
+    if (!proposal) throw new Error('پیشنهاد یافت نشد');
+    if (proposal.status !== 'PENDING_SECRETARY_CONFIRMATION') throw new Error('این پیشنهاد در کارتابل تأیید نهایی دبیر جلسه نیست');
+    const previousStatus = proposal.status;
+    proposal.status = decision;
+    if (notes?.trim()) proposal.managementDecisionNotes = notes.trim();
+    const labels = { APPROVED: 'تأیید نهایی تایید جلسه توسط دبیر جلسه', REJECTED: 'رد تایید جلسه توسط دبیر جلسه', RETURNED_FOR_REVISION: 'برگشت تایید جلسه توسط دبیر جلسه جهت اصلاح' };
+    this.addHistory(proposal, actor, labels[decision], previousStatus, notes?.trim());
     this.saveData(proposals);
     return apiClient.simulateNetwork(proposal, 120);
   }
