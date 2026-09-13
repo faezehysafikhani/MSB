@@ -20,6 +20,14 @@ export interface CreateMeetingDto {
   attachments: Meeting['attachments'];
 }
 
+export interface AppendToMeetingDto {
+  // Built by the caller the same way CreateMeetingModal already builds
+  // Meeting['members'] — this service only appends, it never resolves user
+  // records itself.
+  newMembers?: Meeting['members'];
+  newAgendaItem?: AgendaItem;
+}
+
 export interface IMeetingService {
   getMeetings(params?: ApiFilterParams & { participantUserId?: string }): Promise<ApiResponse<PagedResult<Meeting>>>;
   getMeetingById(id: string): Promise<ApiResponse<Meeting | null>>;
@@ -37,6 +45,10 @@ export interface IMeetingService {
   markInvitationViewed(id: string, recipientId: string, actor: User): Promise<ApiResponse<Meeting>>;
   recordAgendaOutcome(id: string, agendaItemId: string, outcomeStatus: NonNullable<AgendaItem['outcomeStatus']>, notes: string, actor: User): Promise<ApiResponse<Meeting>>;
   getOutcomeLetters(meetingId: string): Promise<ApiResponse<MeetingOutcomeLetter[]>>;
+  // Append-only: adds new invitees (existing platform users) and/or a new
+  // agenda item to an already-created meeting, without touching anything
+  // that already exists on it (see AppendToMeetingModal).
+  appendToMeeting(id: string, additions: AppendToMeetingDto, actor: User): Promise<ApiResponse<Meeting>>;
 }
 
 class MockMeetingService implements IMeetingService {
@@ -280,6 +292,48 @@ class MockMeetingService implements IMeetingService {
     this.addHistory(meeting, actor, `ثبت مدعو: ${guest.fullName}`, meeting.status, guest.agendaItemTitle);
     this.saveMeetingsData(meetings);
     return apiClient.simulateNetwork(meeting, 120);
+  }
+
+  public async appendToMeeting(id: string, additions: AppendToMeetingDto, actor: User): Promise<ApiResponse<Meeting>> {
+    // Deliberately gated by the Permission System (never a hardcoded role
+    // check) so any role granted APPEND_MEETING_CONTENT later can use this
+    // too — ADMIN keeps its usual implicit-superuser access, matching every
+    // other permission check across the app.
+    const canAppend = actor.role === 'ADMIN' || (actor.permissions || []).includes('APPEND_MEETING_CONTENT');
+    if (!canAppend) throw new Error('شما مجاز به افزودن مدعو یا دستور کار جدید به این جلسه نیستید.');
+
+    const meetings = this.getMeetingsData();
+    const meeting = meetings.find((item) => item.id === id);
+    if (!meeting) throw new Error('جلسه یافت نشد');
+    // Appending is only meaningful before the meeting is fully concluded —
+    // no new lifecycle is introduced, this simply reuses the existing HELD
+    // / CANCELLED terminal statuses already defined on Meeting.
+    if (meeting.status === 'HELD' || meeting.status === 'CANCELLED') {
+      throw new Error('این جلسه خاتمه یا لغو شده است و امکان افزودن مدعو یا دستور کار جدید به آن وجود ندارد.');
+    }
+
+    const existingMemberIds = new Set(meeting.members.map((member) => member.userId));
+    const newMembers = (additions.newMembers || []).filter((member) => !existingMemberIds.has(member.userId));
+    const newAgendaItem = additions.newAgendaItem;
+
+    if (newMembers.length === 0 && !newAgendaItem) {
+      throw new Error('هیچ مدعو یا دستور کار جدیدی برای افزودن انتخاب نشده است.');
+    }
+
+    // Append-only: existing members/agendaItems arrays are always spread
+    // first and never replaced, so nothing already on the meeting can be
+    // dropped by this action.
+    if (newMembers.length > 0) {
+      meeting.members = [...meeting.members, ...newMembers];
+      this.addHistory(meeting, actor, `افزودن ${newMembers.length} مدعو جدید به جلسه`, meeting.status, newMembers.map((member) => member.fullName).join('، '));
+    }
+    if (newAgendaItem) {
+      meeting.agendaItems = [...meeting.agendaItems, newAgendaItem];
+      this.addHistory(meeting, actor, 'افزودن دستور کار جدید به جلسه', meeting.status, newAgendaItem.title);
+    }
+
+    this.saveMeetingsData(meetings);
+    return apiClient.simulateNetwork(meeting, 150);
   }
 
   public async sendInvitations(id: string, actor: User): Promise<ApiResponse<Meeting>> {

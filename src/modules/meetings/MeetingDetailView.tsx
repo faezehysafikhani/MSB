@@ -24,12 +24,14 @@ import {
   ArrowUp,
   ArrowDown,
   RotateCcw,
-  Mail
+  Mail,
+  UserPlus
 } from 'lucide-react';
 import { toPersianDigits, getMeetingTypeLabel, getMeetingStatusMeta, getResolutionExecutionMeta, getPriorityMeta } from '../../utils/formatters';
 import { AttachmentList } from '../../components/common/AttachmentList';
 import { TimelineView } from '../../components/common/TimelineView';
 import { exportHtmlToPdf } from '../../utils/pdfExport';
+import { AppendToMeetingModal } from './AppendToMeetingModal';
 
 interface MeetingDetailViewProps {
   meetingId: string;
@@ -55,6 +57,7 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
   const [boardMinutes, setBoardMinutes] = useState<BoardMinutes | null>(null);
   const [minutesContent, setMinutesContent] = useState('');
   const [notices, setNotices] = useState<ResolutionNotice[]>([]);
+  const [isAppendModalOpen, setIsAppendModalOpen] = useState(false);
   const [outcomeLetters, setOutcomeLetters] = useState<MeetingOutcomeLetter[]>([]);
   const printableRef = useRef<HTMLDivElement>(null);
   const canCreateResolution = hasPermission('CREATE_RESOLUTION');
@@ -211,6 +214,10 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
   const isCeo = currentUser.role === 'CEO' || currentUser.role === 'ADMIN';
   const isSecretariat = currentUser.id === meeting.secretaryId || currentUser.role === 'SECRETARY' || currentUser.role === 'ADMIN';
   const canArrangeAgenda = (isCeo || isSecretariat) && ['WAITING_FOR_CEO_APPROVAL', 'AGENDA_RETURNED'].includes(meeting.status);
+  // Append-only addition of new invitees/agenda items to an already-created
+  // meeting — gated purely by the Permission System (never hardcoded to a
+  // role) and only meaningful before the meeting has concluded.
+  const canAppendToMeeting = hasPermission('APPEND_MEETING_CONTENT') && !['HELD', 'CANCELLED'].includes(meeting.status);
 
   return (
     <div className="space-y-5 pb-16">
@@ -225,6 +232,15 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
         </button>
 
         <div className="flex flex-wrap items-center gap-2">
+          {canAppendToMeeting && (
+            <button
+              onClick={() => setIsAppendModalOpen(true)}
+              className="flex items-center gap-1.5 bg-teal-800 hover:bg-teal-700 text-white font-bold text-xs py-2 px-4 rounded-xl shadow-xs transition-colors cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>افزودن مدعو / دستور کار</span>
+            </button>
+          )}
           {isSecretariat && meeting.status === 'AGENDA_RETURNED' && <button onClick={async () => { await meetingService.submitAgenda(meeting.id, currentUser); triggerRefresh(); }} className="flex items-center gap-1.5 bg-orange-600 text-white font-bold text-xs py-2 px-4 rounded-xl"><RotateCcw className="w-4 h-4" />ارسال مجدد دستورکار</button>}
           {(isCeo || isSecretariat) && meeting.status === 'IN_PROGRESS' && (
             <button
@@ -721,6 +737,14 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
           </div>
           </div>
         </div>
+      )}
+
+      {isAppendModalOpen && (
+        <AppendToMeetingModal
+          meeting={meeting}
+          onClose={() => setIsAppendModalOpen(false)}
+          onAppended={triggerRefresh}
+        />
       )}
     </div>
   );

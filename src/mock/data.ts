@@ -222,6 +222,7 @@ export const mockUsers: User[] = [
       'VIEW_ORGANIZATION_ARCHIVE',
       'MANAGE_ARCHIVE_FOLDERS',
       'SIGN_RESOLUTION',
+      'APPEND_MEETING_CONTENT',
     ],
   },
   {
@@ -386,6 +387,7 @@ export const mockUsers: User[] = [
       'VIEW_ORGANIZATION_ARCHIVE',
       'MANAGE_ARCHIVE_FOLDERS',
       'SIGN_RESOLUTION',
+      'APPEND_MEETING_CONTENT',
     ],
   }
 ];
