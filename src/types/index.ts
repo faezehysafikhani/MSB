@@ -63,7 +63,11 @@ export type PermissionKey =
   | 'IMPORT_PROPOSALS_FROM_EXCEL'
   | 'VIEW_ORGANIZATION_ARCHIVE'
   | 'MANAGE_ARCHIVE_FOLDERS'
-  | 'SIGN_RESOLUTION';
+  | 'SIGN_RESOLUTION'
+  // Append-only addition of new invitees/agenda items to an existing
+  // meeting — deliberately separate from EDIT_MEETING, which this feature
+  // does not use or imply (existing meeting data stays read-only).
+  | 'APPEND_MEETING_CONTENT';
 
 export interface User {
   id: string;
