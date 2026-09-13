@@ -6,8 +6,9 @@ import { mockDepartments } from '../../mock/data';
 import { PersianDatePicker } from '../../components/common/PersianDatePicker';
 import { PersianTimePicker } from '../../components/common/PersianTimePicker';
 import { SearchableUserMultiSelect } from '../../components/common/SearchableUserMultiSelect';
+import { AttachmentList } from '../../components/common/AttachmentList';
 import { X, Plus, Trash2, Calendar, Clock, MapPin, Users, FileText, UserCheck, Lightbulb } from 'lucide-react';
-import { MeetingType, MeetingMember, AgendaItem, Proposal } from '../../types';
+import { MeetingType, MeetingMember, AgendaItem, Proposal, Attachment } from '../../types';
 
 const toEnglishDigits = (value: string): string =>
   value.replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)));
@@ -90,6 +91,8 @@ export const CreateMeetingModal: React.FC = () => {
       setConsumedProposalIds([]);
       setSelectedProposalId('');
       setProposalRelatedUserIds([]);
+      setNewAgendaAttachments([]);
+      setProposalAgendaAttachments([]);
       setAgendaError(null);
     }
   }, [isCreateMeetingOpen, createMeetingInitialDate]);
@@ -101,6 +104,10 @@ export const CreateMeetingModal: React.FC = () => {
   const [proposalStartTime, setProposalStartTime] = useState('09:00');
   const [proposalEndTime, setProposalEndTime] = useState('09:30');
   const [proposalRelatedUserIds, setProposalRelatedUserIds] = useState<string[]>([]);
+  // Files attached to this specific agenda item — kept separate per add-flow
+  // (confirmed-proposal vs brand-new) and moved onto the AgendaItem itself
+  // once added, never onto the meeting's own top-level attachments.
+  const [proposalAgendaAttachments, setProposalAgendaAttachments] = useState<Attachment[]>([]);
 
   useEffect(() => {
     if (isCreateMeetingOpen) {
@@ -117,6 +124,7 @@ export const CreateMeetingModal: React.FC = () => {
   const [newAgendaPresenterId, setNewAgendaPresenterId] = useState('');
   const [newAgendaStartTime, setNewAgendaStartTime] = useState('09:00');
   const [newAgendaEndTime, setNewAgendaEndTime] = useState('09:30');
+  const [newAgendaAttachments, setNewAgendaAttachments] = useState<Attachment[]>([]);
 
   // Selected members
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
@@ -158,12 +166,14 @@ export const CreateMeetingModal: React.FC = () => {
       allocatedMinutes: minutes,
       isDiscussed: false,
       status: 'PENDING',
+      attachments: newAgendaAttachments,
     };
     setAgendas([...agendas, newAg]);
     setNewAgendaTitle('');
     setNewAgendaPresenterId('');
     setNewAgendaStartTime('09:00');
     setNewAgendaEndTime('09:30');
+    setNewAgendaAttachments([]);
   };
 
   const handleAddFromProposal = () => {
@@ -199,6 +209,7 @@ export const CreateMeetingModal: React.FC = () => {
       status: 'PENDING',
       sourceProposalId: proposal.id,
       relatedUsers,
+      attachments: proposalAgendaAttachments,
     };
     setAgendas([...agendas, newAg]);
     setConfirmedProposals((prev) => prev.filter((p) => p.id !== proposal.id));
@@ -207,6 +218,7 @@ export const CreateMeetingModal: React.FC = () => {
     setProposalStartTime('09:00');
     setProposalEndTime('09:30');
     setProposalRelatedUserIds([]);
+    setProposalAgendaAttachments([]);
   };
 
   const handleRemoveAgenda = (id: string) => {
@@ -455,7 +467,7 @@ export const CreateMeetingModal: React.FC = () => {
                   <div className="sm:col-span-6">
                     <select
                       value={selectedProposalId}
-                      onChange={(e) => { setSelectedProposalId(e.target.value); setProposalRelatedUserIds([]); }}
+                      onChange={(e) => { setSelectedProposalId(e.target.value); setProposalRelatedUserIds([]); setProposalAgendaAttachments([]); }}
                       className="w-full text-xs p-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium"
                     >
                       <option value="">انتخاب تایید جلسه...</option>
@@ -481,13 +493,22 @@ export const CreateMeetingModal: React.FC = () => {
                   </div>
                 </div>
                 {selectedProposalId && (
-                  <div className="p-3 bg-white/80 border border-blue-100 rounded-xl">
+                  <div className="p-3 bg-white/80 border border-blue-100 rounded-xl space-y-3">
                     <SearchableUserMultiSelect
                       users={availableUsers}
                       selectedIds={proposalRelatedUserIds}
                       onChange={setProposalRelatedUserIds}
                       label="افراد مرتبط با این موضوع"
                     />
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">پیوست‌های این دستور کار</label>
+                      <AttachmentList
+                        attachments={proposalAgendaAttachments}
+                        canUpload
+                        onAddFiles={(files) => setProposalAgendaAttachments((prev) => [...prev, ...files])}
+                        onDelete={(id) => setProposalAgendaAttachments((prev) => prev.filter((a) => a.id !== id))}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -534,6 +555,16 @@ export const CreateMeetingModal: React.FC = () => {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">پیوست‌های این دستور کار</label>
+                <AttachmentList
+                  attachments={newAgendaAttachments}
+                  canUpload
+                  onAddFiles={(files) => setNewAgendaAttachments((prev) => [...prev, ...files])}
+                  onDelete={(id) => setNewAgendaAttachments((prev) => prev.filter((a) => a.id !== id))}
+                />
+              </div>
+
               <button
                 type="button"
                 onClick={handleAddAgenda}
@@ -563,6 +594,9 @@ export const CreateMeetingModal: React.FC = () => {
                       </div>
                       {ag.relatedUsers && ag.relatedUsers.length > 0 && (
                         <div className="text-[10px] text-blue-700 mt-1">افراد مرتبط: {ag.relatedUsers.map((user) => user.fullName).join('، ')}</div>
+                      )}
+                      {ag.attachments && ag.attachments.length > 0 && (
+                        <div className="text-[10px] text-teal-700 mt-1">پیوست‌ها ({ag.attachments.length}): {ag.attachments.map((a) => a.fileName).join('، ')}</div>
                       )}
                     </div>
                   </div>

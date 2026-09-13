@@ -12,8 +12,8 @@ import { ExcelImportModal } from './ExcelImportModal';
 import { PersianDatePicker } from '../../components/common/PersianDatePicker';
 import { downloadProposalExcelTemplate, parseProposalExcelFile, ProposalImportParseResult } from '../../services/proposalExcelImportService';
 
-type ProposalTab = 'OFFICE' | 'CEO' | 'MINE';
-type OfficeStatusFilter = 'APPROVED' | 'CONFIRMED_FOR_MEETING' | 'CONVERTED_TO_AGENDA' | 'NO_BOARD_REQUIRED' | 'ALL';
+type ProposalTab = 'OFFICE' | 'CEO' | 'SECRETARY_APPROVAL' | 'MINE';
+type OfficeStatusFilter = 'APPROVED' | 'PENDING_SECRETARY_CONFIRMATION' | 'CONFIRMED_FOR_MEETING' | 'CONVERTED_TO_AGENDA' | 'NO_BOARD_REQUIRED' | 'ALL';
 
 const STATUS_META: Record<ProposalStatus, { label: string; bg: string }> = {
   PENDING_OFFICE_REVIEW: { label: 'در انتظار بررسی مسئول دفتر', bg: 'bg-sky-50 text-sky-700 border-sky-200' },
@@ -24,6 +24,7 @@ const STATUS_META: Record<ProposalStatus, { label: string; bg: string }> = {
   NO_BOARD_REQUIRED: { label: 'عدم نیاز به طرح در هیأت‌مدیره', bg: 'bg-slate-50 text-slate-700 border-slate-200' },
   CEO_ORDER_ISSUED: { label: 'دستور مدیرعامل صادر شد', bg: 'bg-purple-50 text-purple-700 border-purple-200' },
   APPROVED: { label: 'تایید جلسات تایید نشده', bg: 'bg-blue-50 text-blue-700 border-blue-200' },
+  PENDING_SECRETARY_CONFIRMATION: { label: 'در انتظار تأیید دبیر جلسه', bg: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
   CONFIRMED_FOR_MEETING: { label: 'تایید جلسه شده', bg: 'bg-violet-50 text-violet-700 border-violet-200' },
   CONVERTED_TO_AGENDA: { label: 'تبدیل شده به بند دستور جلسه', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
 };
@@ -33,6 +34,7 @@ const getStatusMeta = (status: ProposalStatus) => STATUS_META[status] || DEFAULT
 
 const OFFICE_FILTERS: { id: OfficeStatusFilter; label: string }[] = [
   { id: 'APPROVED', label: 'تایید جلسات تایید نشده' },
+  { id: 'PENDING_SECRETARY_CONFIRMATION', label: 'در انتظار تأیید دبیر جلسه' },
   { id: 'CONFIRMED_FOR_MEETING', label: 'تایید جلسه شده' },
   { id: 'CONVERTED_TO_AGENDA', label: 'تبدیل شده به جلسه' },
   { id: 'NO_BOARD_REQUIRED', label: 'عدم نیاز به طرح (قابل بازیافت)' },
@@ -46,8 +48,11 @@ export const ProposalsView: React.FC = () => {
   const isCeo = currentUser.role === 'ADMIN' || currentUser.role === 'CEO';
   const isRegularUser = !isOfficeManager && !isCeo;
   const canImportFromExcel = hasPermission('IMPORT_PROPOSALS_FROM_EXCEL');
+  // Final approval of Meeting Confirmation — a دبیر جلسه permission,
+  // deliberately independent of isOfficeManager/isCeo above.
+  const isMeetingSecretaryApprover = hasPermission('APPROVE_MEETING_CONFIRMATION');
 
-  const [tab, setTab] = useState<ProposalTab>(isOfficeManager ? 'OFFICE' : isCeo ? 'CEO' : 'MINE');
+  const [tab, setTab] = useState<ProposalTab>(isOfficeManager ? 'OFFICE' : isCeo ? 'CEO' : isMeetingSecretaryApprover ? 'SECRETARY_APPROVAL' : 'MINE');
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [officeFilter, setOfficeFilter] = useState<OfficeStatusFilter>('APPROVED');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -237,10 +242,20 @@ export const ProposalsView: React.FC = () => {
 
   const handleConfirmForMeeting = async () => {
     if (!confirmingProposal) return;
-    await proposalService.confirmForMeeting(confirmingProposal.id);
-    showToast('تایید جلسه', `«${confirmingProposal.title}» به تایید جلسه تبدیل شد.`, 'success');
+    await proposalService.confirmForMeeting(confirmingProposal.id, currentUser);
+    showToast('تایید جلسه', `«${confirmingProposal.title}» ثبت شد و برای تأیید نهایی به کارتابل دبیر جلسه ارسال شد.`, 'success');
     setConfirmingProposal(null);
     triggerRefresh();
+  };
+
+  const handleSecretaryFinalize = async (proposal: Proposal, decision: 'APPROVED' | 'REJECTED' | 'RETURNED_FOR_REVISION') => {
+    try {
+      await proposalService.finalizeMeetingConfirmation(proposal.id, decision, decisionNotes[proposal.id], currentUser);
+      showToast('تأیید نهایی تایید جلسه', 'تصمیم دبیر جلسه ثبت و در سابقه پیشنهاد نگهداری شد.', 'success');
+      triggerRefresh();
+    } catch (error) {
+      showToast('خطا', error instanceof Error ? error.message : 'ثبت تصمیم انجام نشد.', 'error');
+    }
   };
 
   const ceoQueue = proposals.filter((p) => ['PENDING_CEO_REVIEW', 'RESUBMITTED'].includes(p.status));
@@ -251,13 +266,18 @@ export const ProposalsView: React.FC = () => {
   const CEO_ORDER_STATUS_LABEL: Record<'PENDING' | 'IN_PROGRESS' | 'COMPLETED', string> = {
     PENDING: 'در انتظار اقدام', IN_PROGRESS: 'در حال اقدام', COMPLETED: 'انجام‌شده',
   };
-  const officeEligibleStatuses: ProposalStatus[] = ['APPROVED', 'CONFIRMED_FOR_MEETING', 'CONVERTED_TO_AGENDA', 'RETURNED_FOR_REVISION', 'RESUBMITTED', 'NO_BOARD_REQUIRED', 'CEO_ORDER_ISSUED', 'REJECTED'];
+  const officeEligibleStatuses: ProposalStatus[] = ['APPROVED', 'PENDING_SECRETARY_CONFIRMATION', 'CONFIRMED_FOR_MEETING', 'CONVERTED_TO_AGENDA', 'RETURNED_FOR_REVISION', 'RESUBMITTED', 'NO_BOARD_REQUIRED', 'CEO_ORDER_ISSUED', 'REJECTED'];
   const officeItems = proposals.filter((p) => officeEligibleStatuses.includes(p.status) && (officeFilter === 'ALL' || p.status === officeFilter));
   const myProposals = proposals.filter((p) => p.proposerUserId === currentUser.id || p.ceoOrder?.assigneeUserId === currentUser.id);
+  // Final Meeting Confirmation approval queue — دبیر جلسه's own cartable,
+  // reusing the same list/card rendering pattern as ceoQueue below rather
+  // than a separate Inbox component.
+  const secretaryQueue = proposals.filter((p) => p.status === 'PENDING_SECRETARY_CONFIRMATION');
 
   const visibleTabs: { id: ProposalTab; label: string; count: number; icon: React.ElementType }[] = [
     ...(isOfficeManager ? [{ id: 'OFFICE' as ProposalTab, label: 'مسئول دفتر', count: proposals.filter((p) => p.status === 'APPROVED').length, icon: Lightbulb }] : []),
     ...(isCeo ? [{ id: 'CEO' as ProposalTab, label: 'کارتابل مدیرعامل', count: ceoQueue.length, icon: Inbox }] : []),
+    ...(isMeetingSecretaryApprover ? [{ id: 'SECRETARY_APPROVAL' as ProposalTab, label: 'دبیر جلسه', count: secretaryQueue.length, icon: ClipboardCheck }] : []),
     ...(isRegularUser ? [{ id: 'MINE' as ProposalTab, label: 'پیشنهادها و دستورات من', count: myProposals.length, icon: Lightbulb }] : []),
   ];
 
@@ -603,6 +623,48 @@ export const ProposalsView: React.FC = () => {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {tab === 'SECRETARY_APPROVAL' && isMeetingSecretaryApprover && (
+        <div className="space-y-3">
+          {secretaryQueue.length === 0 ? (
+            <div className="bg-white rounded-2xl p-10 text-center border border-slate-100 shadow-xs text-xs text-slate-400">
+              موردی در انتظار تأیید نهایی نیست.
+            </div>
+          ) : secretaryQueue.map((p) => (
+            <div key={p.id} className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100 space-y-2.5">
+              <h4 className="text-sm font-bold text-slate-800">{p.title}</h4>
+              <div className="text-[10px] font-bold text-teal-700">{p.proposalNumber}</div>
+              <p className="text-xs text-slate-600">{p.description}</p>
+              <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-slate-500">
+                <span>پیشنهاددهنده: {p.proposerName} — {p.proposerDepartmentName}</span>
+                <span>ارائه‌دهنده: {p.confirmedPresenterName || p.presenterName || '—'}</span>
+                <span>تاریخ تبدیل به تایید جلسه: {toPersianDigits(p.confirmedDateJalali || '—')}</span>
+              </div>
+              <input
+                type="text"
+                value={decisionNotes[p.id] || ''}
+                onChange={(e) => setDecisionNotes((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                placeholder="توضیحات تصمیم / دلیل برگشت"
+                className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+              />
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button onClick={() => handleSecretaryFinalize(p, 'APPROVED')} className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3.5 rounded-xl cursor-pointer">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>تأیید نهایی</span>
+                </button>
+                <button onClick={() => handleSecretaryFinalize(p, 'REJECTED')} className="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold py-2 px-3.5 rounded-xl cursor-pointer">
+                  <XCircle className="w-3.5 h-3.5" />
+                  <span>رد</span>
+                </button>
+                <button onClick={() => handleSecretaryFinalize(p, 'RETURNED_FOR_REVISION')} className="flex items-center gap-1.5 bg-orange-50 text-orange-700 border border-orange-200 text-xs font-bold py-2 px-3 rounded-xl cursor-pointer">
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>برگشت جهت اصلاح</span>
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

@@ -168,8 +168,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // user's own tasks, since a deadline notification only belongs to the
     // person it's actually about.
     const tasks = allTasks.filter((task) => task.assignedToUserId === currentUser.id && !['CLOSED', 'COMPLETED', 'PENDING_APPROVAL'].includes(task.status));
-    setAllNotifications((previous) => {
-      const next = [...previous];
+    setAllNotifications(() => {
+      // Read the current truth from storage rather than the possibly-stale
+      // `previous` React state — a service (e.g. proposalService) may have
+      // written a notification directly to this same collection since this
+      // component mounted, and rebuilding from stale state here would
+      // silently drop that write when this effect saves back.
+      const next = [...loadLocalCollection('notifications', mockNotifications)];
       tasks.forEach((task) => {
         const deadline = toComparableDate(task.deadlineJalali); const overdue = deadline > 0 && deadline < todayValue; const near = !overdue && Math.floor(deadline / 100) === Math.floor(todayValue / 100) && deadline - todayValue <= 7;
         if (!overdue && !near) return;

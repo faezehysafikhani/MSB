@@ -25,20 +25,25 @@ export const AttachmentList: React.FC<AttachmentListProps> = ({
 
   const handleMockUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
-    const file = e.target.files[0];
-    const newAttachment: Attachment = {
-      id: `att-${Date.now()}`,
+    const files: File[] = Array.from(e.target.files);
+    const newAttachments: Attachment[] = files.map((file, index) => ({
+      id: `att-${Date.now()}-${index}`,
       fileName: file.name,
       fileSizeBytes: file.size || 1024 * 500,
       fileExtension: file.name.split('.').pop() || 'pdf',
       uploadDate: '۱۴۰۳/۰۶/۲۸',
       uploadedBy: 'کاربر جاری',
       downloadUrl: '#',
-    };
+    }));
     if (onAddFiles) {
-      onAddFiles([newAttachment]);
+      onAddFiles(newAttachments);
     }
-    showToast('بارگذاری پیوست', `فایل "${file.name}" با موفقیت پیوست شد.`, 'success');
+    showToast(
+      'بارگذاری پیوست',
+      files.length === 1 ? `فایل "${files[0].name}" با موفقیت پیوست شد.` : `${files.length} فایل با موفقیت پیوست شدند.`,
+      'success'
+    );
+    e.target.value = '';
   };
 
   return (
@@ -56,7 +61,7 @@ export const AttachmentList: React.FC<AttachmentListProps> = ({
           </div>
           <label className="bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold py-1.5 px-3.5 rounded-xl cursor-pointer transition-colors">
             انتخاب فایل
-            <input type="file" className="hidden" onChange={handleMockUpload} />
+            <input type="file" multiple className="hidden" onChange={handleMockUpload} />
           </label>
         </div>
       )}

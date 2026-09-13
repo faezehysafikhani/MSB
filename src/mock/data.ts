@@ -223,6 +223,7 @@ export const mockUsers: User[] = [
       'MANAGE_ARCHIVE_FOLDERS',
       'SIGN_RESOLUTION',
       'APPEND_MEETING_CONTENT',
+      'APPROVE_MEETING_CONFIRMATION',
     ],
   },
   {

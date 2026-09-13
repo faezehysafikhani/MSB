@@ -21,6 +21,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   MANAGE_ARCHIVE_FOLDERS: 'ایجاد و مدیریت پوشه‌های بایگانی سازمانی',
   SIGN_RESOLUTION: 'امضای دیجیتال مصوبات',
   APPEND_MEETING_CONTENT: 'افزودن مدعو/دستور کار جدید به جلسه موجود',
+  APPROVE_MEETING_CONFIRMATION: 'تأیید نهایی تایید جلسه (دبیر جلسه)',
 };
 
 export const getPermissionLabel = (key: string): string => PERMISSION_LABELS[key as PermissionKey] || key;

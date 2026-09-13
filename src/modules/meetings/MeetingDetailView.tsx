@@ -451,6 +451,12 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
                             افراد مرتبط با این موضوع: {ag.relatedUsers.map((user) => user.fullName).join('، ')}
                           </div>
                         )}
+                        {ag.attachments && ag.attachments.length > 0 && (
+                          <div className="mt-2 max-w-md">
+                            <p className="text-[10px] font-bold text-slate-500 mb-1">پیوست‌های این دستور کار ({toPersianDigits(ag.attachments.length)}):</p>
+                            <AttachmentList attachments={ag.attachments} />
+                          </div>
+                        )}
                       </div>
                     </div>
 
