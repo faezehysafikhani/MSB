@@ -14,7 +14,8 @@ import {
   Settings,
   Lightbulb,
   Archive,
-  PieChart
+  PieChart,
+  Send
 } from 'lucide-react';
 import { useApp, AppRoute } from '../../context/AppContext';
 import { toPersianDigits } from '../../utils/formatters';
@@ -46,21 +47,24 @@ export const Sidebar: React.FC = () => {
     refreshTrigger
   } = useApp();
 
-  const [counts, setCounts] = useState({ meetings: 0, resolutions: 0, tasks: 0, approvals: 0 });
+  const [counts, setCounts] = useState({ meetings: 0, resolutions: 0, tasks: 0, approvals: 0, notifyPending: 0 });
 
   useEffect(() => {
     const isAdmin = currentUser.role === 'ADMIN';
+    const canNotify = hasPermission('NOTIFY_RESOLUTION');
     Promise.all([
       meetingService.getMeetings({ pageSize: 1, participantUserId: hasOrgWideMeetingAccess(currentUser.role) ? undefined : currentUser.id }),
       resolutionService.getResolutions({ pageSize: 1, relatedUserId: isAdmin ? undefined : currentUser.id }),
       taskService.getMyTasks(currentUser.id, { pageSize: 1 }),
       approvalService.getMyApprovals(currentUser.id, { pageSize: 1, status: 'PENDING' }),
-    ]).then(([meetingsRes, resRes, taskRes, apprRes]) => {
+      canNotify ? resolutionService.getResolutions({ pageSize: 1, executionStatus: 'WAITING_NOTIFICATION' }) : Promise.resolve(null),
+    ]).then(([meetingsRes, resRes, taskRes, apprRes, notifyRes]) => {
       setCounts({
         meetings: meetingsRes.isSuccess ? meetingsRes.data.totalCount : 0,
         resolutions: resRes.isSuccess ? resRes.data.totalCount : 0,
         tasks: taskRes.isSuccess ? taskRes.data.totalCount : 0,
         approvals: apprRes.isSuccess ? apprRes.data.totalCount : 0,
+        notifyPending: notifyRes?.isSuccess ? notifyRes.data.totalCount : 0,
       });
     });
   }, [currentUser.id, refreshTrigger]);
@@ -130,6 +134,17 @@ export const Sidebar: React.FC = () => {
                 icon: ShieldCheck,
                 badge: counts.approvals,
                 badgeColor: 'bg-teal-50 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800',
+              },
+            ]
+          : []),
+        ...(hasPermission('NOTIFY_RESOLUTION')
+          ? [
+              {
+                route: 'notification-inbox' as AppRoute,
+                title: 'کارتابل ابلاغ',
+                icon: Send,
+                badge: counts.notifyPending,
+                badgeColor: 'bg-fuchsia-50 dark:bg-fuchsia-950 text-fuchsia-800 dark:text-fuchsia-300 border border-fuchsia-200 dark:border-fuchsia-800',
               },
             ]
           : []),

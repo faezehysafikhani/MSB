@@ -1,17 +1,20 @@
-import { 
-  Resolution, 
-  ResolutionApprovalStatus, 
-  ResolutionExecutionStatus, 
-  PriorityLevel, 
-  VerificationConfig, 
-  ResolutionReferral, 
-  ActivityLog, 
-  ApiResponse, 
-  ApiFilterParams, 
-  PagedResult 
+import {
+  Resolution,
+  ResolutionApprovalStatus,
+  ResolutionExecutionStatus,
+  PriorityLevel,
+  VerificationConfig,
+  ResolutionReferral,
+  ActivityLog,
+  ApiResponse,
+  ApiFilterParams,
+  PagedResult,
+  User,
+  ResolutionNotice,
+  AppNotification,
 } from '../types';
 import type { ResolutionProgressReport } from '../types';
-import { mockResolutions, mockActivityLogs, mockTasks, mockApprovals } from '../mock/data';
+import { mockResolutions, mockActivityLogs, mockTasks, mockApprovals, mockMeetings, mockNotifications } from '../mock/data';
 import { apiClient } from './api/apiClient';
 import { mockUsers } from '../mock/data';
 import { isResolutionRelatedToUser } from './userScope';
@@ -59,6 +62,12 @@ export interface IResolutionService {
   updateExecutionProgress(resolutionId: string, report: ResolutionProgressReport): Promise<ApiResponse<Resolution>>;
   markMeetingMinutesFinalized(meetingId: string): Promise<ApiResponse<number>>;
   releaseMeetingResolutionsForExecution(meetingId: string): Promise<ApiResponse<number>>;
+  // Records the independent ابلاغ (official notification) step for a
+  // resolution whose three main signatures are already complete — the one
+  // real transition that unlocks execution. Called from both the کارتابل
+  // ابلاغ inbox and the resolution's own detail form; never a second,
+  // parallel notification path.
+  notifyResolution(resolutionId: string, notificationDateJalali: string, actor: User): Promise<ApiResponse<Resolution>>;
 }
 
 class MockResolutionService implements IResolutionService {
@@ -312,19 +321,24 @@ class MockResolutionService implements IResolutionService {
       resolution.executionStatus = resolution.signatureWorkflow.status;
     } else {
       resolution.signatureWorkflow.status = 'COMPLETED';
-      resolution.executionStatus = 'WAITING_MINUTES_SIGNATURE';
+      // ابلاغ is now its own independent, explicitly-triggered step (see
+      // notifyResolution) rather than something the old collective-minutes
+      // signature chain used to gate — a resolution reaches «در انتظار
+      // ابلاغ» the instant its three main signatures finish, full stop.
+      resolution.executionStatus = 'WAITING_NOTIFICATION';
       this.activityLogs.unshift({
         id: `log-${Date.now()}-execution`,
         targetType: 'RESOLUTION',
         targetId: resolution.id,
-        action: 'تکمیل امضاهای مصوبه و انتظار برای صورت‌جلسه تجمیعی',
+        action: 'تکمیل امضاهای اصلی مصوبه و انتظار ابلاغ',
         actorName: currentStep.signerName,
         actorRole: currentStep.signerTitle,
         timestampJalali: currentStep.signedDateJalali,
         timeString: currentStep.signedTimeString,
-        details: 'هر سه امضای مصوبه تکمیل شد؛ اجرای آن پس از نهایی‌شدن صورت‌جلسه تجمیعی و صدور ابلاغیه آغاز می‌شود.',
+        details: 'هر سه امضای اصلی مصوبه تکمیل شد؛ مصوبه در کارتابل ابلاغ مسئول دفتر منتظر است.',
         badgeColor: 'blue',
       });
+      this.notifyOfficeManagersReadyForNotification(resolution);
     }
 
     this.persist();
@@ -388,6 +402,103 @@ class MockResolutionService implements IResolutionService {
     });
     this.persist();
     return apiClient.simulateNetwork(eligible.length, 120);
+  }
+
+  // Notifies every user currently holding NOTIFY_RESOLUTION (the office
+  // manager persona) that a resolution just reached «در انتظار ابلاغ» —
+  // mirrors the same notifications collection AppContext/proposalService
+  // already write to, so it shows up in the same bell without a new
+  // notification system.
+  private notifyOfficeManagersReadyForNotification(resolution: Resolution) {
+    const users = loadLocalCollection('users', mockUsers);
+    const recipients = users.filter((user) => user.role !== 'ADMIN' && (user.permissions || []).includes('NOTIFY_RESOLUTION'));
+    if (recipients.length === 0) return;
+    const now = new Date();
+    const dateJalali = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(now).replace(/[‎‏]/g, '');
+    const timeString = now.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+    const notifications = loadLocalCollection('notifications', mockNotifications);
+    const newOnes: AppNotification[] = recipients.map((user) => ({
+      id: `notif-notify-resolution-${Date.now()}-${user.id}`,
+      recipientUserId: user.id,
+      title: 'آماده ابلاغ',
+      message: `مصوبه شماره «${resolution.resolutionNumber}» (${resolution.topicTitle}) آماده ابلاغ است.`,
+      dateJalali,
+      timeString,
+      isRead: false,
+      type: 'APPROVAL_REQUEST',
+      targetRoute: 'notification-inbox',
+    }));
+    saveLocalCollection('notifications', [...newOnes, ...notifications]);
+  }
+
+  public async notifyResolution(resolutionId: string, notificationDateJalali: string, actor: User): Promise<ApiResponse<Resolution>> {
+    // Permission-gated, not role-hardcoded — any role granted
+    // NOTIFY_RESOLUTION later can act here too. ADMIN keeps its usual
+    // implicit-superuser access, matching every other permission check
+    // across the app.
+    const canNotify = actor.role === 'ADMIN' || (actor.permissions || []).includes('NOTIFY_RESOLUTION');
+    if (!canNotify) throw new Error('شما مجاز به ثبت ابلاغ این مصوبه نیستید.');
+    if (!notificationDateJalali.trim()) throw new Error('ثبت تاریخ ابلاغ الزامی است.');
+
+    const resolution = this.resolutions.find((item) => item.id === resolutionId);
+    if (!resolution) throw new Error('مصوبه یافت نشد');
+    if (resolution.executionStatus !== 'WAITING_NOTIFICATION') throw new Error('این مصوبه در کارتابل ابلاغ نیست.');
+
+    const now = new Date();
+    const dateJalali = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(now).replace(/[‎‏]/g, '');
+    const timeString = now.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+
+    resolution.notifiedDateJalali = notificationDateJalali.trim();
+    resolution.notifiedByUserId = actor.id;
+    resolution.notifiedByName = actor.fullName;
+    resolution.notifiedAt = now.toISOString();
+    resolution.executionStatus = 'NOTIFIED';
+
+    // دبیر جلسه of the originating meeting is recorded on the notice as the
+    // countersigning secretary of record — a distinct signature context
+    // from the resolution's own three main signatures, never a fourth step
+    // in that chain (see ResolutionNotice.secretaryUserId/secretaryName).
+    const meetings = loadLocalCollection('meetings', mockMeetings);
+    const meeting = meetings.find((item) => item.id === resolution.meetingId);
+    const notices = loadLocalCollection<ResolutionNotice[]>('resolutionNotices', []);
+    const recipientName = resolution.mainResponsibleName || resolution.proposerName;
+    const recipientDepartment = resolution.responsibleDepartmentName || resolution.proposerDepartment;
+    const notice: ResolutionNotice = {
+      id: `notice-${Date.now()}`,
+      noticeNumber: `ابلاغ-${now.getFullYear()}-${notices.length + 1}`,
+      resolutionId: resolution.id,
+      resolutionNumber: resolution.resolutionNumber,
+      meetingId: resolution.meetingId,
+      dateJalali: notificationDateJalali.trim(),
+      recipientName,
+      recipientDepartment,
+      text: `مصوبه «${resolution.topicTitle}» طی این سند در تاریخ ${notificationDateJalali.trim()} ابلاغ رسمی گردید.`,
+      deadlineJalali: resolution.deadlineJalali,
+      attachmentIds: resolution.attachments.map((attachment) => attachment.id),
+      status: 'SENT',
+      sentAt: now.toISOString(),
+      createdByUserId: actor.id,
+      secretaryUserId: meeting?.secretaryId,
+      secretaryName: meeting?.secretaryName,
+    };
+    saveLocalCollection('resolutionNotices', [notice, ...notices]);
+
+    this.activityLogs.unshift({
+      id: `log-notify-${resolution.id}-${Date.now()}`,
+      targetType: 'RESOLUTION',
+      targetId: resolution.id,
+      action: 'مصوبه ابلاغ شد',
+      actorName: actor.fullName,
+      actorRole: actor.title,
+      timestampJalali: dateJalali,
+      timeString,
+      details: `تاریخ ابلاغ: ${notificationDateJalali.trim()}${meeting?.secretaryName ? ` | دبیر جلسه: ${meeting.secretaryName}` : ''}`,
+      badgeColor: 'teal',
+    });
+
+    this.startExecution(resolution);
+    this.persist();
+    return apiClient.simulateNetwork(resolution, 140);
   }
 
   public async deleteResolution(id: string): Promise<ApiResponse<boolean>> {

@@ -15,6 +15,7 @@ export type AppRoute =
   | 'resolutions'
   | 'tasks'
   | 'approvals'
+  | 'notification-inbox'
   | 'reports'
   | 'infographics'
   | 'calendar'

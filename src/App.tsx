@@ -17,6 +17,7 @@ import { MeetingDetailView } from './modules/meetings/MeetingDetailView';
 import { ResolutionListView } from './modules/resolutions/ResolutionListView';
 import { MyTasksView } from './modules/tasks/MyTasksView';
 import { ApprovalsView } from './modules/approvals/ApprovalsView';
+import { NotificationInboxView } from './modules/resolutions/NotificationInboxView';
 import { ReportsView } from './modules/reports/ReportsView';
 import { InfographicsView } from './modules/infographics/InfographicsView';
 import { CalendarView } from './modules/calendar/CalendarView';
@@ -48,6 +49,7 @@ const AppContent: React.FC = () => {
 
   const canManageUsers = currentUser.role === 'ADMIN' || hasPermission('MANAGE_USERS');
   const canViewApprovals = hasPermission('VIEW_APPROVALS') || currentUser.role === 'ADMIN' || currentUser.role === 'DEPT_MANAGER' || currentUser.role === 'CEO';
+  const canNotifyResolutions = hasPermission('NOTIFY_RESOLUTION');
 
   const renderCurrentView = () => {
     switch (currentRoute) {
@@ -67,6 +69,8 @@ const AppContent: React.FC = () => {
         return <MyTasksView />;
       case 'approvals':
         return canViewApprovals ? <ApprovalsView /> : <AccessDenied />;
+      case 'notification-inbox':
+        return canNotifyResolutions ? <NotificationInboxView /> : <AccessDenied />;
       case 'reports':
         return <ReportsView />;
       case 'infographics':

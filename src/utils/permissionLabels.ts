@@ -22,6 +22,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   SIGN_RESOLUTION: 'امضای دیجیتال مصوبات',
   APPEND_MEETING_CONTENT: 'افزودن مدعو/دستور کار جدید به جلسه موجود',
   APPROVE_MEETING_CONFIRMATION: 'تأیید نهایی تایید جلسه (دبیر جلسه)',
+  NOTIFY_RESOLUTION: 'ابلاغ رسمی مصوبه (مسئول دفتر)',
 };
 
 export const getPermissionLabel = (key: string): string => PERMISSION_LABELS[key as PermissionKey] || key;

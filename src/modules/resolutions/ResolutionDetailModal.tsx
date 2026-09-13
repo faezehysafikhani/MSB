@@ -32,6 +32,7 @@ import {
 } from '../../utils/formatters';
 import { TimelineView } from '../../components/common/TimelineView';
 import { AttachmentList } from '../../components/common/AttachmentList';
+import { NotifyResolutionAction } from './NotifyResolutionAction';
 
 interface ResolutionDetailModalProps {
   resolutionId: string | null;
@@ -371,7 +372,18 @@ export const ResolutionDetailModal: React.FC<ResolutionDetailModalProps> = ({
                     )}
                   </div>
                 )}
-                {signatureWorkflow.status === 'COMPLETED' && <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-extrabold flex items-center gap-2"><CheckCircle2 className="w-4 h-4" />هر سه امضا تکمیل شده و مصوبه وارد فرآیند اجرا شده است.</div>}
+                {signatureWorkflow.status === 'COMPLETED' && resolution.executionStatus === 'WAITING_NOTIFICATION' && (
+                  <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-extrabold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" />
+                    هر سه امضای اصلی تکمیل شده؛ مصوبه در انتظار ابلاغ رسمی توسط مسئول دفتر است.
+                  </div>
+                )}
+                {signatureWorkflow.status === 'COMPLETED' && resolution.executionStatus !== 'WAITING_NOTIFICATION' && (
+                  <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-extrabold flex items-center gap-2"><CheckCircle2 className="w-4 h-4" />هر سه امضا تکمیل شده و مصوبه ابلاغ و وارد فرآیند اجرا شده است.</div>
+                )}
+                {resolution.executionStatus === 'WAITING_NOTIFICATION' && hasPermission('NOTIFY_RESOLUTION') && (
+                  <NotifyResolutionAction resolutionId={resolution.id} resolutionNumber={resolution.resolutionNumber} onNotified={triggerRefresh} />
+                )}
               </div>
             </section>
           )}
