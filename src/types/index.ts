@@ -72,7 +72,12 @@ export type PermissionKey =
   // مسئول دفتر) — held by «دبیر جلسه», deliberately separate from the CEO's
   // own initial-approval permission so the two review stages stay
   // independent actors.
-  | 'APPROVE_MEETING_CONFIRMATION';
+  | 'APPROVE_MEETING_CONFIRMATION'
+  // Records the official ابلاغ (notification) of a resolution whose three
+  // main signatures are already complete — held by «مسئول دفتر», separate
+  // from SIGN_RESOLUTION (one of the three main signers) and from
+  // APPROVE_MEETING_CONFIRMATION (دبیر جلسه's own permission).
+  | 'NOTIFY_RESOLUTION';
 
 export interface User {
   id: string;
@@ -419,6 +424,12 @@ export interface ResolutionNotice {
   sentAt: string;
   receivedAt?: string;
   createdByUserId: string;
+  // دبیر جلسه of the originating meeting, recorded on the notice as the
+  // countersigning secretary of record for this ابلاغ — a distinct
+  // signature context from Resolution.signatureWorkflow's three main
+  // signers, never a fourth step in that chain.
+  secretaryUserId?: string;
+  secretaryName?: string;
 }
 
 // Resolution Approval Status at the meeting table
@@ -549,6 +560,14 @@ export interface Resolution {
   obstacles?: string;
   progressReports?: ResolutionProgressReport[];
   createdAt: string;
+  // ابلاغ (official notification) as its own real, independently-tracked
+  // step — set only by resolutionService.notifyResolution, once, when the
+  // office manager records the ابلاغ date. Never implied by the three main
+  // signatures completing on their own.
+  notifiedDateJalali?: string;
+  notifiedByUserId?: string;
+  notifiedByName?: string;
+  notifiedAt?: string;
 }
 
 export interface ResolutionProgressReport {
