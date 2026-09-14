@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { SignatureImageField } from '../../components/common/SignatureImageField';
 import { mockDepartments } from '../../mock/data';
 import { User, UserRole } from '../../types';
 import { PersianDatePicker } from '../../components/common/PersianDatePicker';
@@ -17,11 +18,14 @@ const TABS: { id: UserFormTab; label: string; icon: React.ElementType }[] = [
   { id: 'PERSONAL', label: 'اطلاعات شخصی', icon: UserIcon },
   { id: 'ACCOUNT', label: 'حساب کاربری', icon: KeyRound },
   { id: 'POSITION', label: 'سمت سازمانی', icon: Building2 },
-  { id: 'SIGNATURE', label: 'امضا', icon: PenTool },
+  { id: 'SIGNATURE', label: 'امضای کاربر', icon: PenTool },
 ];
 
 export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, user }) => {
-  const { addUser, updateUser, showToast } = useApp();
+  const { addUser, updateUser, showToast, hasPermission } = useApp();
+  // Only administration manages signature images; the tab is hidden entirely
+  // for anyone else, and userService rejects the write regardless.
+  const canManageSignatures = hasPermission('MANAGE_USER_SIGNATURES');
   const [activeTab, setActiveTab] = useState<UserFormTab>('PERSONAL');
 
   const [firstName, setFirstName] = useState('');
@@ -118,17 +122,6 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClos
     }
   };
 
-  const handleSignatureFile = (file: File | undefined) => {
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      showToast('خطا', 'فایل امضا باید تصویر باشد.', 'error');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setSignatureUrl(reader.result as string);
-    reader.readAsDataURL(file);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firstName.trim() || !lastName.trim()) {
@@ -196,7 +189,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClos
 
         {/* Tabs */}
         <div className="flex items-center gap-1 px-4 pt-3 border-b border-slate-100 shrink-0 overflow-x-auto">
-          {TABS.map(({ id, label, icon: Icon }) => (
+          {TABS.filter(({ id }) => id !== 'SIGNATURE' || canManageSignatures).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
@@ -352,49 +345,15 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClos
           )}
 
           {activeTab === 'SIGNATURE' && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-4">
-                <div className="w-[100px] h-[100px] shrink-0 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden">
-                  {signatureUrl ? (
-                    <img src={signatureUrl} alt="امضا" className="w-[100px] h-[100px] object-contain" />
-                  ) : (
-                    <PenTool className="w-6 h-6 text-slate-300" />
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    تصویر امضا را با اندازه دقیق <strong className="text-slate-700">۱۰۰×۱۰۰ پیکسل</strong> و کیفیت <strong className="text-slate-700">۹۶ dpi</strong> بارگذاری کنید.
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => signatureInputRef.current?.click()}
-                      className="flex items-center gap-1.5 bg-teal-800 hover:bg-teal-700 text-white text-[11px] font-bold py-2 px-3 rounded-xl cursor-pointer"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>انتخاب فایل</span>
-                    </button>
-                    {signatureUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setSignatureUrl('')}
-                        className="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold py-2 px-3 rounded-xl cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>حذف</span>
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    ref={signatureInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handleSignatureFile(e.target.files?.[0])}
-                  />
-                </div>
-              </div>
-            </div>
+            /* Signature images are managed here and nowhere else — the shared
+               field is the app's single signature editor, and the permission
+               is re-checked in userService when the form is saved. */
+            <SignatureImageField
+              ownerName={user ? user.fullName : `${firstName} ${lastName}`.trim() || undefined}
+              value={signatureUrl || undefined}
+              onChange={(next) => setSignatureUrl(next || '')}
+              canManage={canManageSignatures}
+            />
           )}
 
           {/* Footer Submit */}

@@ -83,7 +83,12 @@ export type PermissionKey =
   // user can be given read-only visibility of the cartable without the
   // right to record a follow-up.
   | 'VIEW_RESOLUTION_FOLLOWUP'
-  | 'MANAGE_RESOLUTION_FOLLOWUP';
+  | 'MANAGE_RESOLUTION_FOLLOWUP'
+  // Viewing and replacing the signature IMAGE of any user. Held by system
+  // administration only: a user never manages their own signature image, so
+  // this is deliberately separate from MANAGE_USERS (which covers the rest of
+  // a user record) and from SIGN_RESOLUTION (the act of signing).
+  | 'MANAGE_USER_SIGNATURES';
 
 export interface User {
   id: string;

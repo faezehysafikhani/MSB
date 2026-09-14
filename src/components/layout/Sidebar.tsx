@@ -16,8 +16,7 @@ import {
   Archive,
   PieChart,
   Send,
-  ClipboardList,
-  PenTool
+  ClipboardList
 } from 'lucide-react';
 import { useApp, AppRoute } from '../../context/AppContext';
 import { toPersianDigits } from '../../utils/formatters';
@@ -195,11 +194,6 @@ export const Sidebar: React.FC = () => {
               },
             ]
           : []),
-        {
-          route: 'my-signature' as AppRoute,
-          title: 'امضای من',
-          icon: PenTool,
-        },
         {
           route: 'guide' as AppRoute,
           title: 'راهنمای کاربری سامانه',
