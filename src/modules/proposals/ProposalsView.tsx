@@ -13,7 +13,7 @@ import { PersianDatePicker } from '../../components/common/PersianDatePicker';
 import { downloadProposalExcelTemplate, parseProposalExcelFile, ProposalImportParseResult } from '../../services/proposalExcelImportService';
 
 type ProposalTab = 'OFFICE' | 'CEO' | 'SECRETARY_APPROVAL' | 'MINE';
-type OfficeStatusFilter = 'APPROVED' | 'PENDING_SECRETARY_CONFIRMATION' | 'CONFIRMED_FOR_MEETING' | 'CONVERTED_TO_AGENDA' | 'NO_BOARD_REQUIRED' | 'ALL';
+type OfficeStatusFilter = 'APPROVED' | 'PENDING_SECRETARY_CONFIRMATION' | 'RETURNED_BY_SECRETARY' | 'CONFIRMED_FOR_MEETING' | 'CONVERTED_TO_AGENDA' | 'NO_BOARD_REQUIRED' | 'ALL';
 
 const STATUS_META: Record<ProposalStatus, { label: string; bg: string }> = {
   PENDING_OFFICE_REVIEW: { label: 'در انتظار بررسی مسئول دفتر', bg: 'bg-sky-50 text-sky-700 border-sky-200' },
@@ -25,6 +25,7 @@ const STATUS_META: Record<ProposalStatus, { label: string; bg: string }> = {
   CEO_ORDER_ISSUED: { label: 'دستور مدیرعامل صادر شد', bg: 'bg-purple-50 text-purple-700 border-purple-200' },
   APPROVED: { label: 'تایید جلسات تایید نشده', bg: 'bg-blue-50 text-blue-700 border-blue-200' },
   PENDING_SECRETARY_CONFIRMATION: { label: 'در انتظار تأیید دبیر جلسه', bg: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  RETURNED_BY_SECRETARY: { label: 'برگشت از دبیر جلسه جهت اصلاح', bg: 'bg-rose-50 text-rose-700 border-rose-200' },
   CONFIRMED_FOR_MEETING: { label: 'تایید جلسه شده', bg: 'bg-violet-50 text-violet-700 border-violet-200' },
   CONVERTED_TO_AGENDA: { label: 'تبدیل شده به بند دستور جلسه', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
 };
@@ -35,6 +36,7 @@ const getStatusMeta = (status: ProposalStatus) => STATUS_META[status] || DEFAULT
 const OFFICE_FILTERS: { id: OfficeStatusFilter; label: string }[] = [
   { id: 'APPROVED', label: 'تایید جلسات تایید نشده' },
   { id: 'PENDING_SECRETARY_CONFIRMATION', label: 'در انتظار تأیید دبیر جلسه' },
+  { id: 'RETURNED_BY_SECRETARY', label: 'برگشت از دبیر جلسه' },
   { id: 'CONFIRMED_FOR_MEETING', label: 'تایید جلسه شده' },
   { id: 'CONVERTED_TO_AGENDA', label: 'تبدیل شده به جلسه' },
   { id: 'NO_BOARD_REQUIRED', label: 'عدم نیاز به طرح (قابل بازیافت)' },
@@ -248,6 +250,24 @@ export const ProposalsView: React.FC = () => {
     triggerRefresh();
   };
 
+  // مسئول دفتر برگشت دبیر جلسه را می‌بیند و آن را جهت اصلاح به پیشنهاددهنده
+  // منتقل می‌کند — تنها راه خروج از این وضعیت.
+  const handleForwardSecretaryReturn = async (proposal: Proposal) => {
+    const reason = decisionNotes[proposal.id]?.trim() || proposal.managementDecisionNotes?.trim();
+    if (!reason) {
+      showToast('خطا', 'دلیل برگشت جهت اصلاح را وارد کنید.', 'error');
+      return;
+    }
+    try {
+      await proposalService.forwardSecretaryReturnToProposer(proposal.id, reason, currentUser);
+      showToast('برگشت جهت اصلاح', 'پیشنهاد به کارتابل پیشنهاددهنده برگشت داده شد.', 'info');
+      setDecisionNotes((prev) => ({ ...prev, [proposal.id]: '' }));
+      triggerRefresh();
+    } catch (error) {
+      showToast('خطا', error instanceof Error ? error.message : 'برگشت جهت اصلاح انجام نشد.', 'error');
+    }
+  };
+
   const handleSecretaryFinalize = async (proposal: Proposal, decision: 'APPROVED' | 'REJECTED' | 'RETURNED_FOR_REVISION') => {
     try {
       await proposalService.finalizeMeetingConfirmation(proposal.id, decision, decisionNotes[proposal.id], currentUser);
@@ -266,7 +286,7 @@ export const ProposalsView: React.FC = () => {
   const CEO_ORDER_STATUS_LABEL: Record<'PENDING' | 'IN_PROGRESS' | 'COMPLETED', string> = {
     PENDING: 'در انتظار اقدام', IN_PROGRESS: 'در حال اقدام', COMPLETED: 'انجام‌شده',
   };
-  const officeEligibleStatuses: ProposalStatus[] = ['APPROVED', 'PENDING_SECRETARY_CONFIRMATION', 'CONFIRMED_FOR_MEETING', 'CONVERTED_TO_AGENDA', 'RETURNED_FOR_REVISION', 'RESUBMITTED', 'NO_BOARD_REQUIRED', 'CEO_ORDER_ISSUED', 'REJECTED'];
+  const officeEligibleStatuses: ProposalStatus[] = ['APPROVED', 'PENDING_SECRETARY_CONFIRMATION', 'RETURNED_BY_SECRETARY', 'CONFIRMED_FOR_MEETING', 'CONVERTED_TO_AGENDA', 'RETURNED_FOR_REVISION', 'RESUBMITTED', 'NO_BOARD_REQUIRED', 'CEO_ORDER_ISSUED', 'REJECTED'];
   const officeItems = proposals.filter((p) => officeEligibleStatuses.includes(p.status) && (officeFilter === 'ALL' || p.status === officeFilter));
   const myProposals = proposals.filter((p) => p.proposerUserId === currentUser.id || p.ceoOrder?.assigneeUserId === currentUser.id);
   // Final Meeting Confirmation approval queue — دبیر جلسه's own cartable,
@@ -275,7 +295,7 @@ export const ProposalsView: React.FC = () => {
   const secretaryQueue = proposals.filter((p) => p.status === 'PENDING_SECRETARY_CONFIRMATION');
 
   const visibleTabs: { id: ProposalTab; label: string; count: number; icon: React.ElementType }[] = [
-    ...(isOfficeManager ? [{ id: 'OFFICE' as ProposalTab, label: 'مسئول دفتر', count: proposals.filter((p) => p.status === 'APPROVED').length, icon: Lightbulb }] : []),
+    ...(isOfficeManager ? [{ id: 'OFFICE' as ProposalTab, label: 'مسئول دفتر', count: proposals.filter((p) => p.status === 'APPROVED' || p.status === 'RETURNED_BY_SECRETARY').length, icon: Lightbulb }] : []),
     ...(isCeo ? [{ id: 'CEO' as ProposalTab, label: 'کارتابل مدیرعامل', count: ceoQueue.length, icon: Inbox }] : []),
     ...(isMeetingSecretaryApprover ? [{ id: 'SECRETARY_APPROVAL' as ProposalTab, label: 'دبیر جلسه', count: secretaryQueue.length, icon: ClipboardCheck }] : []),
     ...(isRegularUser ? [{ id: 'MINE' as ProposalTab, label: 'پیشنهادها و دستورات من', count: myProposals.length, icon: Lightbulb }] : []),
@@ -393,6 +413,26 @@ export const ProposalsView: React.FC = () => {
                           <FileCheck2 className="w-3.5 h-3.5" />
                           <span>تبدیل به تایید جلسه</span>
                         </button>
+                      )}
+                      {p.status === 'RETURNED_BY_SECRETARY' && (
+                        <div className="space-y-1.5 min-w-[210px]">
+                          {p.managementDecisionNotes && (
+                            <div className="text-[10px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg p-1.5">
+                              دلیل برگشت دبیر جلسه: {p.managementDecisionNotes}
+                            </div>
+                          )}
+                          <input
+                            type="text"
+                            value={decisionNotes[p.id] ?? p.managementDecisionNotes ?? ''}
+                            onChange={(e) => setDecisionNotes((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                            placeholder="دلیل برگشت به پیشنهاددهنده..."
+                            className="w-full text-[11px] p-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                          />
+                          <button onClick={() => handleForwardSecretaryReturn(p)} className="flex items-center gap-1.5 bg-orange-600 hover:bg-orange-700 text-white text-[11px] font-bold py-1.5 px-3 rounded-xl cursor-pointer">
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>جهت اصلاح به پیشنهاددهنده</span>
+                          </button>
+                        </div>
                       )}
                       {p.status === 'RETURNED_FOR_REVISION' && p.proposerUserId === currentUser.id && (
                         <button onClick={() => setResubmittingProposal(p)} className="flex items-center gap-1.5 bg-orange-600 hover:bg-orange-700 text-white text-[11px] font-bold py-1.5 px-3 rounded-xl cursor-pointer">
