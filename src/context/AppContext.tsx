@@ -17,7 +17,6 @@ export type AppRoute =
   | 'approvals'
   | 'notification-inbox'
   | 'follow-up'
-  | 'my-signature'
   | 'reports'
   | 'infographics'
   | 'calendar'
@@ -327,7 +326,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateUser = async (id: string, userData: Omit<User, 'id'>): Promise<User> => {
     const previousPermissions = availableUsers.find((user) => user.id === id)?.permissions || [];
-    const res = await userService.updateUser(id, userData);
+    // The acting user is always passed so the service can enforce who may
+    // change a signature image, not just who may open the form.
+    const res = await userService.updateUser(id, userData, currentUser);
     const updatedUser = res.data;
     setAvailableUsers((prev) => prev.map((user) => user.id === id ? updatedUser : user));
     if (currentUser.id === id) setCurrentUser(updatedUser);

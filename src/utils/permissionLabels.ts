@@ -25,6 +25,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   NOTIFY_RESOLUTION: 'ابلاغ رسمی مصوبه (مسئول دفتر)',
   VIEW_RESOLUTION_FOLLOWUP: 'مشاهده کارتابل پیگیری مصوبات',
   MANAGE_RESOLUTION_FOLLOWUP: 'ثبت پیگیری مصوبات',
+  MANAGE_USER_SIGNATURES: 'مدیریت تصویر امضای کاربران (مدیر سیستم)',
 };
 
 export const getPermissionLabel = (key: string): string => PERMISSION_LABELS[key as PermissionKey] || key;

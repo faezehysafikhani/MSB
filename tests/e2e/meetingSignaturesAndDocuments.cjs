@@ -35,15 +35,17 @@ const UPLOADED_PNG = Buffer.from(
 
   // ===================== Test 1 — signature upload persists =====================
   await switchUser(page, 'مسئول دفتر');
-  await page.locator('aside button:has-text("امضای من")').first().click();
-  await page.waitForTimeout(700);
-  check('CR-D Test5 نمونه امضا پیش از بارگذاری نمایش داده می‌شود', (await page.locator('body').innerText()).includes('نمونه امضا'));
-
-  await page.locator('input[type="file"]').first().setInputFiles({ name: 'signature.png', mimeType: 'image/png', buffer: UPLOADED_PNG });
-  await page.waitForTimeout(600);
-  check('CR-D بند۵ پیش‌نمایش امضای انتخاب‌شده نمایش داده می‌شود', (await page.locator('body').innerText()).includes('پیش‌نمایش تصویر جدید'));
-  await page.locator('button:has-text("ذخیره امضا")').first().click();
-  await page.waitForTimeout(900);
+  // Signature images are administered from user management only (there is no
+  // self-service «امضای من» page any more); the admin path itself is covered
+  // by tests/e2e/userSignatureManagement.cjs, so here it is just setup.
+  await page.evaluate(async (dataUrl) => {
+    const mod = await import('/src/services/userService.ts');
+    const data = await import('/src/mock/data.ts');
+    const stored = JSON.parse(localStorage.getItem('postbank-mosavabat-v1:users') || 'null');
+    const users = stored && stored.length ? stored : data.mockUsers;
+    await mod.userService.updateUserSignature('user-17', dataUrl, users.find((u) => u.id === 'user-admin'));
+  }, `data:image/png;base64,${UPLOADED_PNG.toString('base64')}`);
+  await page.waitForTimeout(500);
 
   // Logout/login round-trip: a full reload re-reads the persisted users store.
   await page.reload({ waitUntil: 'networkidle' });

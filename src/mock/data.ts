@@ -61,6 +61,7 @@ export const mockUsers: User[] = [
       'VIEW_REPORTS',
       'MANAGE_USERS',
       'CREATE_USER',
+      'MANAGE_USER_SIGNATURES',
     ],
   },
   {
