@@ -13,6 +13,7 @@ import {
   ResolutionNotice,
   AppNotification,
   ResolutionFollowUpPlan,
+  DocumentSignature,
 } from '../types';
 import type { ResolutionProgressReport } from '../types';
 import { mockResolutions, mockActivityLogs, mockTasks, mockApprovals, mockMeetings, mockNotifications } from '../mock/data';
@@ -21,6 +22,7 @@ import { mockUsers } from '../mock/data';
 import { isResolutionRelatedToUser } from './userScope';
 import { loadLocalCollection, saveLocalCollection } from './localStore';
 import { issueNotificationLetterNumber } from './notificationLetterNumbering';
+import { resolveSignatureImageUrl } from '../utils/signatureImage';
 
 export interface CreateResolutionDto {
   meetingId: string;
@@ -307,6 +309,11 @@ class MockResolutionService implements IResolutionService {
     currentStep.signedAt = now.toISOString();
     currentStep.signedDateJalali = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(now).replace(/[\u200e\u200f]/g, '');
     currentStep.signedTimeString = now.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+    // Snapshot of THIS signer's own signature image (never the acting user's),
+    // taken at signing time so replacing a signature later cannot rewrite a
+    // document that was already signed.
+    const signerRecord = loadLocalCollection('users', mockUsers).find((user) => user.id === currentStep.signerUserId);
+    currentStep.signatureImageUrl = resolveSignatureImageUrl(signerRecord?.signatureUrl);
 
     this.activityLogs.unshift({
       id: `log-${Date.now()}`,
@@ -480,6 +487,21 @@ class MockResolutionService implements IResolutionService {
     const meetings = loadLocalCollection('meetings', mockMeetings);
     const meeting = meetings.find((item) => item.id === resolution.meetingId);
     const notices = loadLocalCollection<ResolutionNotice[]>('resolutionNotices', []);
+    // امضای دبیر جلسه روی ابلاغیه — its own signature context, resolved from
+    // the meeting's real دبیر جلسه, never from the office manager acting here.
+    const secretaryUser = meeting ? loadLocalCollection('users', mockUsers).find((user) => user.id === meeting.secretaryId) : undefined;
+    const secretarySignature: DocumentSignature | undefined = meeting?.secretaryId
+      ? {
+          signerUserId: meeting.secretaryId,
+          signerName: meeting.secretaryName,
+          signerTitle: secretaryUser?.title || 'دبیر جلسه',
+          context: 'RESOLUTION_NOTIFICATION',
+          signedAt: now.toISOString(),
+          signedDateJalali: notificationDateJalali.trim(),
+          signedTimeString: timeString,
+          signatureImageUrl: resolveSignatureImageUrl(secretaryUser?.signatureUrl),
+        }
+      : undefined;
     const recipientName = resolution.mainResponsibleName || resolution.proposerName;
     const recipientDepartment = resolution.responsibleDepartmentName || resolution.proposerDepartment;
     // Reserved only now — every validation above has already passed, so an
@@ -503,6 +525,7 @@ class MockResolutionService implements IResolutionService {
       createdByUserId: actor.id,
       secretaryUserId: meeting?.secretaryId,
       secretaryName: meeting?.secretaryName,
+      secretarySignature: secretarySignature,
     };
     saveLocalCollection('resolutionNotices', [notice, ...notices]);
     // Mirrored onto the resolution so lists and reports can show the letter

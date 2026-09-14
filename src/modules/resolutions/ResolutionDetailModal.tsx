@@ -20,7 +20,8 @@ import {
   Paperclip,
   Check,
   RotateCcw,
-  PenTool
+  PenTool,
+  FileDown
 } from 'lucide-react';
 import { 
   toPersianDigits, 
@@ -35,6 +36,8 @@ import { AttachmentList } from '../../components/common/AttachmentList';
 import { NotifyResolutionAction } from './NotifyResolutionAction';
 import { FollowUpHistory } from './FollowUpHistory';
 import { nextDueDate } from '../../services/followUpService';
+import { buildResolutionDocument, buildResolutionNotificationDocument, openGeneratedDocument } from '../../services/documentService';
+import { SAMPLE_SIGNATURE_DATA_URL } from '../../utils/signatureImage';
 import { RecordFollowUpForm } from './RecordFollowUpForm';
 
 interface ResolutionDetailModalProps {
@@ -134,6 +137,24 @@ export const ResolutionDetailModal: React.FC<ResolutionDetailModalProps> = ({
       };
     }),
   ].map((item) => [item.id, item])).values());
+
+  // Official documents render this resolution's real data; documentService
+  // enforces the same access rule that governs viewing the resolution itself.
+  const openDocument = (build: () => ReturnType<typeof buildResolutionDocument>) => {
+    try {
+      const generated = build();
+      if (!openGeneratedDocument(generated)) {
+        showToast('خطا', 'پنجره نمایش سند توسط مرورگر مسدود شد.', 'error');
+        return;
+      }
+      if (!generated.isFinal) showToast('نسخه پیش‌نویس', generated.stateLabel, 'info');
+    } catch (error) {
+      showToast('دسترسی غیرمجاز', error instanceof Error ? error.message : 'دریافت سند انجام نشد.', 'error');
+    }
+  };
+
+  const handleResolutionDocument = () => resolution && openDocument(() => buildResolutionDocument(resolution, meeting || undefined, currentUser));
+  const handleNotificationDocument = () => resolution && openDocument(() => buildResolutionNotificationDocument(resolution, notices[0], meeting || undefined, currentUser));
 
   const handleSignResolution = async () => {
     if (!canSign || !window.confirm('آیا از امضای این مصوبه اطمینان دارید؟')) return;
@@ -358,6 +379,10 @@ export const ResolutionDetailModal: React.FC<ResolutionDetailModalProps> = ({
                           <span className="block text-[10px] text-slate-600 mt-0.5">{step.signerTitle}</span>
                           <span className={`inline-block mt-3 px-2 py-1 rounded-full border text-[10px] font-bold ${statusClass}`}>{statusLabel}</span>
                           {step.status === 'SIGNED' && <span className="block text-[10px] text-slate-500 mt-2">{toPersianDigits(step.signedDateJalali || '—')}، ساعت {toPersianDigits(step.signedTimeString || '—')}</span>}
+                          {/* The signer's own snapshotted signature image — always
+                              resolved from the signature record, never from the
+                              user currently viewing the resolution. */}
+                          {step.status === 'SIGNED' && <img src={step.signatureImageUrl || SAMPLE_SIGNATURE_DATA_URL} alt={`امضای ${step.signerName}`} className="h-12 object-contain mt-2 bg-white/70 rounded-lg p-1" />}
                         </div>
                       );
                     })}
@@ -637,6 +662,21 @@ export const ResolutionDetailModal: React.FC<ResolutionDetailModalProps> = ({
               <FollowUpHistory resolutionId={resolution.id} reloadKey={followUpKey} />
             </div>
           )}
+
+          {/* Official documents — a rendering of this resolution's own data. */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-bold text-slate-800">نسخه رسمی اسناد</h4>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={handleResolutionDocument} className="flex items-center gap-1.5 bg-teal-800 hover:bg-teal-700 text-white text-xs font-bold py-2 px-3.5 rounded-xl cursor-pointer">
+                <FileDown className="w-3.5 h-3.5" />
+                <span>مشاهده و دانلود سند مصوبه</span>
+              </button>
+              <button type="button" onClick={handleNotificationDocument} className="flex items-center gap-1.5 bg-fuchsia-700 hover:bg-fuchsia-800 text-white text-xs font-bold py-2 px-3.5 rounded-xl cursor-pointer">
+                <FileDown className="w-3.5 h-3.5" />
+                <span>مشاهده و دانلود نامه ابلاغیه</span>
+              </button>
+            </div>
+          </div>
 
           {/* Attachments */}
           <div className="space-y-2">

@@ -19,6 +19,7 @@ import { MyTasksView } from './modules/tasks/MyTasksView';
 import { ApprovalsView } from './modules/approvals/ApprovalsView';
 import { NotificationInboxView } from './modules/resolutions/NotificationInboxView';
 import { FollowUpCartableView } from './modules/resolutions/FollowUpCartableView';
+import { MySignatureView } from './modules/profile/MySignatureView';
 import { ReportsView } from './modules/reports/ReportsView';
 import { InfographicsView } from './modules/infographics/InfographicsView';
 import { CalendarView } from './modules/calendar/CalendarView';
@@ -75,6 +76,10 @@ const AppContent: React.FC = () => {
         return canNotifyResolutions ? <NotificationInboxView /> : <AccessDenied />;
       case 'follow-up':
         return canViewFollowUp ? <FollowUpCartableView /> : <AccessDenied />;
+      // Every authenticated user manages their own signature — no permission
+      // gate, because the page can only ever write to the current user.
+      case 'my-signature':
+        return <MySignatureView />;
       case 'reports':
         return <ReportsView />;
       case 'infographics':

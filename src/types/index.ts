@@ -380,6 +380,9 @@ export interface Meeting {
   guests?: MeetingGuest[];
   invitations?: MeetingInvitation[];
   agendaApprovalNotes?: string;
+  // امضای دبیر جلسه روی دعوتنامه — its own signature context, recorded once
+  // when the invitations go out. Attendees and guests are never asked to sign.
+  invitationSignature?: DocumentSignature;
   history?: WorkflowHistoryEntry[];
   resolutionsCount: number;
   attachments: Attachment[];
@@ -387,6 +390,10 @@ export interface Meeting {
   updatedAt: string;
 }
 
+// Legacy: the per-attendee signature the collective minutes used to collect
+// before completion. The workflow no longer creates or requires these — see
+// boardSecretariatService — but the shape stays so minutes recorded under the
+// old rules keep rendering instead of being destructively migrated away.
 export interface BoardMinutesSignature {
   memberUserId: string;
   memberName: string;
@@ -396,6 +403,30 @@ export interface BoardMinutesSignature {
   comments?: string;
 }
 
+// The contexts in which a signature is legitimately collected. Deliberately
+// disjoint from Resolution.signatureWorkflow's three main signers: a دبیر
+// جلسه signature here is never a fourth step in that chain.
+export type DocumentSignatureContext =
+  | 'MEETING_INVITATION'       // امضای دبیر جلسه روی دعوتنامه
+  | 'RESOLUTION_NOTIFICATION'  // امضای دبیر جلسه روی ابلاغیه
+  | 'MEETING_MINUTES';         // امضای دبیرخانه هنگام نهایی‌سازی صورت‌جلسه
+
+/**
+ * A signature outside the resolution's three-step chain. `signatureImageUrl`
+ * is a SNAPSHOT of the signer's signature image at signing time, so replacing
+ * a signature later never rewrites documents already signed with the old one.
+ */
+export interface DocumentSignature {
+  signerUserId: string;
+  signerName: string;
+  signerTitle: string;
+  context: DocumentSignatureContext;
+  signedAt: string;
+  signedDateJalali: string;
+  signedTimeString: string;
+  signatureImageUrl: string;
+}
+
 export interface BoardMinutes {
   id: string;
   meetingId: string;
@@ -403,7 +434,11 @@ export interface BoardMinutes {
   status: 'DRAFT' | 'WAITING_SIGNATURES' | 'PARTIALLY_SIGNED' | 'SIGNED' | 'FINALIZED';
   content: string;
   copiesCount: 3;
-  signatures: BoardMinutesSignature[];
+  // Historical only — populated by minutes created before attendee signatures
+  // were removed from the completion workflow. Never written by new minutes.
+  signatures?: BoardMinutesSignature[];
+  // The secretariat's own signature, recorded when the minutes are finalized.
+  finalizedSignature?: DocumentSignature;
   createdByUserId: string;
   createdByName: string;
   createdAt: string;
@@ -441,6 +476,8 @@ export interface ResolutionNotice {
   // signers, never a fourth step in that chain.
   secretaryUserId?: string;
   secretaryName?: string;
+  // امضای دبیر جلسه روی ابلاغیه, with the image snapshotted at signing time.
+  secretarySignature?: DocumentSignature;
 }
 
 // Resolution Approval Status at the meeting table
@@ -518,6 +555,9 @@ export interface ResolutionSignature {
   signedAt?: string;
   signedDateJalali?: string;
   signedTimeString?: string;
+  // Snapshot of the signer's signature image at the moment they signed, so an
+  // official document keeps showing the signature it was actually signed with.
+  signatureImageUrl?: string;
 }
 
 export interface ResolutionSignatureWorkflow {
