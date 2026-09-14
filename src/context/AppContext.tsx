@@ -17,6 +17,7 @@ export type AppRoute =
   | 'approvals'
   | 'notification-inbox'
   | 'follow-up'
+  | 'my-signature'
   | 'reports'
   | 'infographics'
   | 'calendar'

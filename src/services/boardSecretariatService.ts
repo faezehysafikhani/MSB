@@ -1,7 +1,8 @@
-import { ApiResponse, BoardMinutes, Meeting, ResolutionNotice, User, WorkflowHistoryEntry } from '../types';
+import { ApiResponse, BoardMinutes, DocumentSignature, Meeting, ResolutionNotice, User, WorkflowHistoryEntry } from '../types';
 import { apiClient } from './api/apiClient';
 import { loadLocalCollection, saveLocalCollection } from './localStore';
 import { resolutionService } from './resolutionService';
+import { resolveSignatureImageUrl } from '../utils/signatureImage';
 
 const clock = () => { const now = new Date(); return { iso: now.toISOString(), date: new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(now).replace(/[\u200e\u200f]/g, ''), time: now.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) }; };
 
@@ -17,7 +18,7 @@ class BoardSecretariatService {
   async createMinutes(meeting: Meeting, content: string, actor: User): Promise<ApiResponse<BoardMinutes>> {
     this.requireSecretary(actor); const all = this.minutes(); const existing = all.find((item) => item.meetingId === meeting.id); if (existing) return apiClient.simulateNetwork(existing, 50);
     const now = clock(); const entry = this.entry(actor, 'ایجاد پیش‌نویس صورت‌جلسه تجمیعی', 'DRAFT');
-    const item: BoardMinutes = { id: `minutes-${Date.now()}`, meetingId: meeting.id, meetingNumber: meeting.meetingNumber, status: 'DRAFT', content: content.trim(), copiesCount: 3, signatures: meeting.members.filter((member) => member.attendanceType !== 'GUEST' && member.presenceStatus !== 'ABSENT').map((member) => ({ memberUserId: member.userId, memberName: member.fullName, memberTitle: member.roleTitle, status: 'PENDING' })), createdByUserId: actor.id, createdByName: actor.fullName, createdAt: now.iso, updatedByUserId: actor.id, updatedByName: actor.fullName, updatedAt: now.iso, history: [entry] };
+    const item: BoardMinutes = { id: `minutes-${Date.now()}`, meetingId: meeting.id, meetingNumber: meeting.meetingNumber, status: 'DRAFT', content: content.trim(), copiesCount: 3, createdByUserId: actor.id, createdByName: actor.fullName, createdAt: now.iso, updatedByUserId: actor.id, updatedByName: actor.fullName, updatedAt: now.iso, history: [entry] };
     all.unshift(item); saveLocalCollection('boardMinutes', all); this.audit(entry); return apiClient.simulateNetwork(item, 100);
   }
 
@@ -26,20 +27,18 @@ class BoardSecretariatService {
     const now = clock(); const entry = this.entry(actor, 'ویرایش پیش‌نویس صورت‌جلسه', 'DRAFT', item.status); item.content = content.trim(); item.updatedAt = now.iso; item.updatedByUserId = actor.id; item.updatedByName = actor.fullName; item.history.push(entry); saveLocalCollection('boardMinutes', all); this.audit(entry); return apiClient.simulateNetwork(item, 80);
   }
 
-  async startSignatures(meetingId: string, actor: User): Promise<ApiResponse<BoardMinutes>> {
-    this.requireSecretary(actor); const all = this.minutes(); const item = all.find((value) => value.meetingId === meetingId); if (!item || item.status !== 'DRAFT' || !item.content.trim()) throw new Error('پیش‌نویس معتبر یافت نشد');
-    const entry = this.entry(actor, 'ارسال صورت‌جلسه برای امضای اعضای حاضر', 'WAITING_SIGNATURES', item.status); item.status = 'WAITING_SIGNATURES'; item.history.push(entry); saveLocalCollection('boardMinutes', all); this.audit(entry); return apiClient.simulateNetwork(item, 80);
-  }
-
-  async signMinutes(meetingId: string, actor: User, comments?: string): Promise<ApiResponse<BoardMinutes>> {
-    const all = this.minutes(); const item = all.find((value) => value.meetingId === meetingId); if (!item || !['WAITING_SIGNATURES', 'PARTIALLY_SIGNED'].includes(item.status)) throw new Error('صورت‌جلسه در مرحله امضا نیست');
-    const signature = item.signatures.find((value) => value.memberUserId === actor.id); if (!signature || signature.status === 'SIGNED') throw new Error('شما امضاکننده نیستید یا قبلاً امضا کرده‌اید');
-    signature.status = 'SIGNED'; signature.signedAt = new Date().toISOString(); signature.comments = comments?.trim(); const previous = item.status; item.status = item.signatures.every((value) => value.status === 'SIGNED') ? 'SIGNED' : 'PARTIALLY_SIGNED'; const entry = this.entry(actor, 'امضای صورت‌جلسه تجمیعی', item.status, previous, comments); item.history.push(entry); saveLocalCollection('boardMinutes', all); this.audit(entry); return apiClient.simulateNetwork(item, 90);
-  }
-
+  // Attendee/guest signatures are no longer part of finishing a meeting:
+  // the minutes go straight from DRAFT to FINALIZED, signed by the
+  // secretariat alone. Members, guests and invitees are untouched — they are
+  // still invited, still listed as present, and still shown on the document;
+  // they are simply never asked for a signature.
   async finalizeMinutes(meetingId: string, actor: User): Promise<ApiResponse<BoardMinutes>> {
-    this.requireSecretary(actor); const all = this.minutes(); const item = all.find((value) => value.meetingId === meetingId); if (!item || item.status !== 'SIGNED') throw new Error('همه اعضای حاضر باید صورت‌جلسه را امضا کنند');
-    const entry = this.entry(actor, 'نهایی‌سازی صورت‌جلسه در سه نسخه', 'FINALIZED', item.status); item.status = 'FINALIZED'; item.finalizedAt = new Date().toISOString(); item.history.push(entry); saveLocalCollection('boardMinutes', all); this.audit(entry); await resolutionService.markMeetingMinutesFinalized(meetingId); return apiClient.simulateNetwork(item, 100);
+    this.requireSecretary(actor); const all = this.minutes(); const item = all.find((value) => value.meetingId === meetingId); if (!item) throw new Error('صورت‌جلسه یافت نشد'); if (item.status === 'FINALIZED') throw new Error('این صورت‌جلسه قبلاً نهایی شده است'); if (!item.content.trim()) throw new Error('متن صورت‌جلسه خالی است');
+    const now = clock(); const entry = this.entry(actor, 'نهایی‌سازی صورت‌جلسه در سه نسخه', 'FINALIZED', item.status); item.status = 'FINALIZED'; item.finalizedAt = now.iso;
+    // The secretariat's own signature is the only one this document needs; its
+    // image is snapshotted here so a later re-upload never rewrites history.
+    const signature: DocumentSignature = { signerUserId: actor.id, signerName: actor.fullName, signerTitle: actor.title, context: 'MEETING_MINUTES', signedAt: now.iso, signedDateJalali: now.date, signedTimeString: now.time, signatureImageUrl: resolveSignatureImageUrl(actor.signatureUrl) };
+    item.finalizedSignature = signature; item.history.push(entry); saveLocalCollection('boardMinutes', all); this.audit(entry); await resolutionService.markMeetingMinutesFinalized(meetingId); return apiClient.simulateNetwork(item, 100);
   }
 
   async getNotices(meetingId?: string, resolutionId?: string): Promise<ApiResponse<ResolutionNotice[]>> { return apiClient.simulateNetwork(this.notices().filter((item) => (!meetingId || item.meetingId === meetingId) && (!resolutionId || item.resolutionId === resolutionId)), 60); }

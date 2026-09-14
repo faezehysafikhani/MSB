@@ -31,6 +31,7 @@ import { toPersianDigits, getMeetingTypeLabel, getMeetingStatusMeta, getResoluti
 import { AttachmentList } from '../../components/common/AttachmentList';
 import { TimelineView } from '../../components/common/TimelineView';
 import { exportHtmlToPdf } from '../../utils/pdfExport';
+import { buildMeetingInvitationDocument, buildMeetingMinutesDocument, openGeneratedDocument } from '../../services/documentService';
 import { AppendToMeetingModal } from './AppendToMeetingModal';
 
 interface MeetingDetailViewProps {
@@ -196,9 +197,25 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
     try { await boardSecretariatService.createMinutes(meeting, minutesContent || defaultText, currentUser); await refreshGovernance(); showToast('صورت‌جلسه تجمیعی', 'پیش‌نویس رسمی در سه نسخه ایجاد شد.', 'success'); } catch (error) { showToast('خطا', error instanceof Error ? error.message : 'ایجاد صورت‌جلسه انجام نشد.', 'error'); }
   };
   const handleSaveMinutes = async () => { try { await boardSecretariatService.updateMinutes(meetingId, minutesContent, currentUser); await refreshGovernance(); showToast('ذخیره صورت‌جلسه', 'پیش‌نویس ذخیره شد.', 'success'); } catch (error) { showToast('خطا', error instanceof Error ? error.message : 'ذخیره انجام نشد.', 'error'); } };
-  const handleStartMinutesSignatures = async () => { try { await boardSecretariatService.startSignatures(meetingId, currentUser); await refreshGovernance(); showToast('ارسال برای امضا', 'صورت‌جلسه در کارتابل اعضای حاضر قرار گرفت.', 'success'); } catch (error) { showToast('خطا', error instanceof Error ? error.message : 'ارسال انجام نشد.', 'error'); } };
-  const handleSignMinutes = async () => { if (!window.confirm('آیا صورت‌جلسه تجمیعی را تأیید و امضا می‌کنید؟')) return; try { await boardSecretariatService.signMinutes(meetingId, currentUser); await refreshGovernance(); showToast('امضای صورت‌جلسه', 'امضای شما ثبت شد.', 'success'); } catch (error) { showToast('خطا', error instanceof Error ? error.message : 'امضا ثبت نشد.', 'error'); } };
   const handleFinalizeMinutes = async () => { try { await boardSecretariatService.finalizeMinutes(meetingId, currentUser); await refreshGovernance(); showToast('نهایی‌سازی', 'صورت‌جلسه نهایی و مصوبات آماده ابلاغ شدند.', 'success'); } catch (error) { showToast('خطا', error instanceof Error ? error.message : 'نهایی‌سازی انجام نشد.', 'error'); } };
+  // Official letters are a rendering of the meeting's own data — they never
+  // duplicate the workflow, and the permission check lives in documentService.
+  const handleOpenDocument = (build: () => ReturnType<typeof buildMeetingInvitationDocument>) => {
+    try {
+      const document = build();
+      if (!openGeneratedDocument(document)) {
+        showToast('خطا', 'پنجره نمایش سند توسط مرورگر مسدود شد.', 'error');
+        return;
+      }
+      if (!document.isFinal) showToast('نسخه پیش‌نویس', document.stateLabel, 'info');
+    } catch (error) {
+      showToast('دسترسی غیرمجاز', error instanceof Error ? error.message : 'دریافت سند انجام نشد.', 'error');
+    }
+  };
+
+  const handleInvitationDocument = () => meeting && handleOpenDocument(() => buildMeetingInvitationDocument(meeting, currentUser));
+  const handleMinutesDocument = () => meeting && handleOpenDocument(() => buildMeetingMinutesDocument(meeting, resolutions, boardMinutes || undefined, currentUser));
+
   const handleIssueNotices = async () => { try { await boardSecretariatService.issueNotices(meetingId, currentUser); await refreshGovernance(); showToast('ابلاغ مصوبات', 'ابلاغیه‌ها صادر شدند و Workflow اجرای مصوبات آغاز شد.', 'success'); } catch (error) { showToast('خطا', error instanceof Error ? error.message : 'ابلاغ انجام نشد.', 'error'); } };
 
   if (loading || !meeting) {
@@ -641,7 +658,19 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
         <div className="bg-white rounded-3xl p-6 shadow-xs border border-slate-200/90 space-y-5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div><h3 className="text-xs font-extrabold text-slate-800">دعوتنامه اعضا و مدعوین مستقل</h3><p className="text-[11px] text-slate-500 mt-1">دعوتنامه به‌صورت خودکار بلافاصله پس از تأیید نهایی دستورکار برای همه اعضا و مدعوین ارسال می‌شود.</p></div>
+            <button onClick={handleInvitationDocument} className="flex items-center gap-1.5 bg-blue-800 hover:bg-blue-900 text-white text-xs font-bold py-2 px-3.5 rounded-xl cursor-pointer shrink-0"><FileDown className="w-3.5 h-3.5" /><span>مشاهده و دانلود دعوت‌نامه</span></button>
           </div>
+
+          {meeting.invitationSignature && (
+            <div className="flex items-center gap-3 p-3 rounded-2xl border border-emerald-200 bg-emerald-50/60">
+              <img src={meeting.invitationSignature.signatureImageUrl} alt="امضای دبیر جلسه" className="h-12 object-contain" />
+              <div className="text-[11px]">
+                <strong className="block text-slate-800">دعوت‌نامه توسط دبیر جلسه امضا شده است</strong>
+                <span className="block text-slate-600">{meeting.invitationSignature.signerName} — {meeting.invitationSignature.signerTitle}</span>
+                <span className="block text-slate-500">{toPersianDigits(meeting.invitationSignature.signedDateJalali)} — {toPersianDigits(meeting.invitationSignature.signedTimeString)}</span>
+              </div>
+            </div>
+          )}
 
           {isSecretariat && !['INVITATION_SENT', 'IN_PROGRESS', 'HELD'].includes(meeting.status) && (
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
@@ -681,12 +710,15 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
       {activeTab === 'MINUTES_PRINT' && (
         <div className="space-y-3">
           <div className="no-print bg-white border border-slate-200 rounded-3xl p-5 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-sm font-extrabold text-slate-900">صورت‌جلسه تجمیعی هیأت‌مدیره</h3><p className="text-[11px] text-slate-500">پیش‌نویس، امضای اعضای حاضر، نهایی‌سازی سه نسخه و ابلاغ مصوبات</p></div>{boardMinutes && <span className="px-3 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-[11px] font-bold">{boardMinutes.status === 'DRAFT' ? 'پیش‌نویس' : boardMinutes.status === 'WAITING_SIGNATURES' ? 'در انتظار امضا' : boardMinutes.status === 'PARTIALLY_SIGNED' ? 'بخشی امضا شده' : boardMinutes.status === 'SIGNED' ? 'تکمیل امضاها' : 'نهایی‌شده'}</span>}</div>
+            <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-sm font-extrabold text-slate-900">صورت‌جلسه تجمیعی هیأت‌مدیره</h3><p className="text-[11px] text-slate-500">پیش‌نویس، نهایی‌سازی سه نسخه و ابلاغ مصوبات (امضای اعضا و مدعوین لازم نیست)</p></div>{boardMinutes && <span className="px-3 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-[11px] font-bold">{boardMinutes.status === 'FINALIZED' ? 'نهایی‌شده' : 'پیش‌نویس'}</span>}</div>
             {!boardMinutes && isSecretariat && <button onClick={handleCreateMinutes} className="bg-teal-800 text-white px-4 py-2 rounded-xl text-xs font-bold">ایجاد پیش‌نویس صورت‌جلسه</button>}
             {boardMinutes && <>
               <textarea rows={5} value={minutesContent} onChange={(event) => setMinutesContent(event.target.value)} disabled={boardMinutes.status !== 'DRAFT' || !isSecretariat} className="w-full text-xs leading-7 p-4 bg-slate-50 border border-slate-200 rounded-2xl disabled:opacity-80" />
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">{boardMinutes.signatures.map((signature) => <div key={signature.memberUserId} className={`p-3 rounded-2xl border ${signature.status === 'SIGNED' ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}><strong className="text-slate-800">{signature.memberName}</strong><span className="block text-[10px] text-slate-500">{signature.memberTitle}</span><span className="block text-[10px] font-bold mt-2">{signature.status === 'SIGNED' ? `امضا شده — ${toPersianDigits(new Date(signature.signedAt!).toLocaleString('fa-IR'))}` : 'در انتظار امضا'}</span></div>)}</div>
-              <div className="flex flex-wrap gap-2">{isSecretariat && boardMinutes.status === 'DRAFT' && <><button onClick={handleSaveMinutes} className="bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold">ذخیره پیش‌نویس</button><button onClick={handleStartMinutesSignatures} className="bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-bold">ارسال برای امضای اعضا</button></>}{['WAITING_SIGNATURES', 'PARTIALLY_SIGNED'].includes(boardMinutes.status) && boardMinutes.signatures.some((item) => item.memberUserId === currentUser.id && item.status === 'PENDING') && <button onClick={handleSignMinutes} className="bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold">امضای صورت‌جلسه</button>}{isSecretariat && boardMinutes.status === 'SIGNED' && <button onClick={handleFinalizeMinutes} className="bg-teal-800 text-white px-4 py-2 rounded-xl text-xs font-bold">نهایی‌سازی در سه نسخه</button>}{isSecretariat && boardMinutes.status === 'FINALIZED' && notices.length === 0 && <button onClick={handleIssueNotices} className="bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold">صدور و ارسال ابلاغیه مصوبات</button>}</div>
+              {/* Attendee signatures are no longer collected. Any that already
+                  exist on an older minutes record stay visible, read-only. */}
+              {(boardMinutes.signatures?.length || 0) > 0 && <details className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs"><summary className="cursor-pointer font-bold text-slate-700">امضاهای بایگانی‌شده اعضا (مربوط به فرآیند قبلی)</summary><div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">{boardMinutes.signatures!.map((signature) => <div key={signature.memberUserId} className="p-3 rounded-2xl border bg-white border-slate-200"><strong className="text-slate-800">{signature.memberName}</strong><span className="block text-[10px] text-slate-500">{signature.memberTitle}</span><span className="block text-[10px] font-bold mt-2">{signature.status === 'SIGNED' ? `امضا شده — ${toPersianDigits(new Date(signature.signedAt!).toLocaleString('fa-IR'))}` : 'ثبت نشده'}</span></div>)}</div></details>}
+              {boardMinutes.finalizedSignature && <div className="flex items-center gap-3 p-3 rounded-2xl border border-emerald-200 bg-emerald-50/60"><img src={boardMinutes.finalizedSignature.signatureImageUrl} alt="امضای نهایی‌کننده" className="h-12 object-contain" /><div className="text-[11px]"><strong className="block text-slate-800">{boardMinutes.finalizedSignature.signerName}</strong><span className="block text-slate-500">{boardMinutes.finalizedSignature.signerTitle}</span><span className="block text-slate-500">{toPersianDigits(boardMinutes.finalizedSignature.signedDateJalali)} — {toPersianDigits(boardMinutes.finalizedSignature.signedTimeString)}</span></div></div>}
+              <div className="flex flex-wrap gap-2">{isSecretariat && boardMinutes.status !== 'FINALIZED' && <><button onClick={handleSaveMinutes} className="bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold">ذخیره پیش‌نویس</button><button onClick={handleFinalizeMinutes} className="bg-teal-800 text-white px-4 py-2 rounded-xl text-xs font-bold">نهایی‌سازی در سه نسخه</button></>}<button onClick={handleMinutesDocument} className="bg-blue-800 text-white px-4 py-2 rounded-xl text-xs font-bold">مشاهده و دانلود صورت‌جلسه تجمیعی</button>{isSecretariat && boardMinutes.status === 'FINALIZED' && notices.length === 0 && <button onClick={handleIssueNotices} className="bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold">صدور و ارسال ابلاغیه مصوبات</button>}</div>
               <details className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs"><summary className="cursor-pointer font-bold text-slate-700">ردپای تغییرات صورت‌جلسه ({toPersianDigits(boardMinutes.history.length)})</summary><div className="mt-3 space-y-2">{boardMinutes.history.map((entry) => <div key={entry.id} className="flex flex-wrap justify-between gap-2 border-b border-slate-200 pb-2 last:border-0"><span><strong>{entry.action}</strong> — {entry.actorName}</span><span className="text-slate-500">{toPersianDigits(entry.dateJalali)}، {toPersianDigits(entry.timeString)}</span></div>)}</div></details>
               {notices.length > 0 && <div className="border-t border-slate-100 pt-3"><div className="font-extrabold text-slate-800 mb-2">ابلاغیه‌های صادرشده ({toPersianDigits(notices.length)})</div><div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{notices.map((notice) => <div key={notice.id} className="p-3 bg-blue-50/40 border border-blue-200 rounded-xl"><strong>{notice.noticeNumber} — {notice.resolutionNumber}</strong><span className="block text-[10px] text-slate-600">گیرنده: {notice.recipientName} ({notice.recipientDepartment})</span><span className="block text-[10px] text-blue-700 mt-1">{notice.status === 'RECEIVED' ? 'دریافت شده' : 'ارسال شده'} — مهلت: {toPersianDigits(notice.deadlineJalali || '—')}</span></div>)}</div></div>}
             </>}
@@ -736,10 +768,12 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
             ))}
           </div>
 
-          <div className="pt-8 border-t border-slate-200 flex justify-between items-center text-xs font-bold">
+          <div className="pt-8 border-t border-slate-200 flex justify-between items-start text-xs font-bold gap-4">
             <div>امضای رئیس جلسه</div>
-            <div>امضای دبیر جلسه</div>
-            <div>مهر و امضای اعضای حاضر</div>
+            <div className="text-center">
+              <div>امضای دبیر جلسه</div>
+              {boardMinutes?.finalizedSignature && <img src={boardMinutes.finalizedSignature.signatureImageUrl} alt="امضای دبیر جلسه" className="h-12 object-contain mx-auto mt-2" />}
+            </div>
           </div>
           </div>
         </div>

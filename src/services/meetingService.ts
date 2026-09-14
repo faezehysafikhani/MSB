@@ -1,6 +1,7 @@
-import { Meeting, MeetingStatus, ApiResponse, ApiFilterParams, PagedResult, User, MeetingGuest, AgendaItem, MeetingOutcomeLetter, Proposal } from '../types';
-import { mockDepartments, mockMeetings, mockResolutions } from '../mock/data';
+import { Meeting, MeetingStatus, ApiResponse, ApiFilterParams, PagedResult, User, MeetingGuest, AgendaItem, MeetingOutcomeLetter, Proposal, DocumentSignature } from '../types';
+import { mockDepartments, mockMeetings, mockResolutions, mockUsers } from '../mock/data';
 import { apiClient } from './api/apiClient';
+import { resolveSignatureImageUrl } from '../utils/signatureImage';
 import { loadLocalCollection, loadLocalValue, saveLocalCollection, saveLocalValue } from './localStore';
 import { smsService } from './smsService';
 
@@ -353,6 +354,22 @@ class MockMeetingService implements IMeetingService {
     ];
     meeting.guests = (meeting.guests || []).map((guest) => ({ ...guest, invitationStatus: 'SENT', sentAt }));
     meeting.status = 'INVITATION_SENT';
+    // امضای دبیر جلسه روی دعوتنامه — recorded here, in its own signature
+    // context, against the meeting's real دبیر جلسه (never whoever triggered
+    // the send). Recipients are invited, never asked to sign.
+    const secretary = loadLocalCollection('users', mockUsers).find((user) => user.id === meeting.secretaryId);
+    const signedNow = new Date();
+    const invitationSignature: DocumentSignature = {
+      signerUserId: meeting.secretaryId,
+      signerName: meeting.secretaryName,
+      signerTitle: secretary?.title || 'دبیر جلسه',
+      context: 'MEETING_INVITATION',
+      signedAt: sentAt,
+      signedDateJalali: new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(signedNow).replace(/[\u200e\u200f]/g, ''),
+      signedTimeString: signedNow.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+      signatureImageUrl: resolveSignatureImageUrl(secretary?.signatureUrl),
+    };
+    meeting.invitationSignature = invitationSignature;
     this.addHistory(meeting, actor, 'ارسال دعوتنامه اعضا و مدعوین', 'READY_FOR_INVITATION', `${meeting.invitations.length} دعوتنامه ارسال شد`);
     this.saveMeetingsData(meetings);
     await smsService.sendMeetingNotification(meeting);
