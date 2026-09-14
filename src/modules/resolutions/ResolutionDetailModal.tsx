@@ -38,6 +38,7 @@ import { FollowUpHistory } from './FollowUpHistory';
 import { nextDueDate } from '../../services/followUpService';
 import { buildResolutionDocument, buildResolutionNotificationDocument, openGeneratedDocument } from '../../services/documentService';
 import { SAMPLE_SIGNATURE_DATA_URL } from '../../utils/signatureImage';
+import { ArchiveResolutionAction } from './ArchiveResolutionAction';
 import { RecordFollowUpForm } from './RecordFollowUpForm';
 
 interface ResolutionDetailModalProps {
@@ -662,6 +663,9 @@ export const ResolutionDetailModal: React.FC<ResolutionDetailModalProps> = ({
               <FollowUpHistory resolutionId={resolution.id} reloadKey={followUpKey} />
             </div>
           )}
+
+          {/* Archive — filing and unfiling only; never a delete. */}
+          <ArchiveResolutionAction resolution={resolution} onChanged={() => { triggerRefresh(); onClose(); }} />
 
           {/* Official documents — a rendering of this resolution's own data. */}
           <div className="space-y-2">
