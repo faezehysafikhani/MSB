@@ -15,11 +15,13 @@ import {
   Lightbulb,
   Archive,
   PieChart,
-  Send
+  Send,
+  ClipboardList
 } from 'lucide-react';
 import { useApp, AppRoute } from '../../context/AppContext';
 import { toPersianDigits } from '../../utils/formatters';
 import { meetingService, resolutionService, taskService, approvalService } from '../../services';
+import { followUpService } from '../../services/followUpService';
 import { GUIDE_SLIDES } from '../../modules/guide/UserGuideView';
 import { hasOrgWideMeetingAccess } from '../../services/userScope';
 
@@ -47,24 +49,27 @@ export const Sidebar: React.FC = () => {
     refreshTrigger
   } = useApp();
 
-  const [counts, setCounts] = useState({ meetings: 0, resolutions: 0, tasks: 0, approvals: 0, notifyPending: 0 });
+  const [counts, setCounts] = useState({ meetings: 0, resolutions: 0, tasks: 0, approvals: 0, notifyPending: 0, followUpPending: 0 });
 
   useEffect(() => {
     const isAdmin = currentUser.role === 'ADMIN';
     const canNotify = hasPermission('NOTIFY_RESOLUTION');
+    const canFollowUp = hasPermission('VIEW_RESOLUTION_FOLLOWUP');
     Promise.all([
       meetingService.getMeetings({ pageSize: 1, participantUserId: hasOrgWideMeetingAccess(currentUser.role) ? undefined : currentUser.id }),
       resolutionService.getResolutions({ pageSize: 1, relatedUserId: isAdmin ? undefined : currentUser.id }),
       taskService.getMyTasks(currentUser.id, { pageSize: 1 }),
       approvalService.getMyApprovals(currentUser.id, { pageSize: 1, status: 'PENDING' }),
       canNotify ? resolutionService.getResolutions({ pageSize: 1, executionStatus: 'WAITING_NOTIFICATION' }) : Promise.resolve(null),
-    ]).then(([meetingsRes, resRes, taskRes, apprRes, notifyRes]) => {
+      canFollowUp ? followUpService.getFollowUpCartable(currentUser).catch(() => null) : Promise.resolve(null),
+    ]).then(([meetingsRes, resRes, taskRes, apprRes, notifyRes, followUpRes]) => {
       setCounts({
         meetings: meetingsRes.isSuccess ? meetingsRes.data.totalCount : 0,
         resolutions: resRes.isSuccess ? resRes.data.totalCount : 0,
         tasks: taskRes.isSuccess ? taskRes.data.totalCount : 0,
         approvals: apprRes.isSuccess ? apprRes.data.totalCount : 0,
         notifyPending: notifyRes?.isSuccess ? notifyRes.data.totalCount : 0,
+        followUpPending: followUpRes?.isSuccess ? followUpRes.data.length : 0,
       });
     });
   }, [currentUser.id, refreshTrigger]);
@@ -145,6 +150,17 @@ export const Sidebar: React.FC = () => {
                 icon: Send,
                 badge: counts.notifyPending,
                 badgeColor: 'bg-fuchsia-50 dark:bg-fuchsia-950 text-fuchsia-800 dark:text-fuchsia-300 border border-fuchsia-200 dark:border-fuchsia-800',
+              },
+            ]
+          : []),
+        ...(hasPermission('VIEW_RESOLUTION_FOLLOWUP')
+          ? [
+              {
+                route: 'follow-up' as AppRoute,
+                title: 'پیگیری',
+                icon: ClipboardList,
+                badge: counts.followUpPending,
+                badgeColor: 'bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800',
               },
             ]
           : []),

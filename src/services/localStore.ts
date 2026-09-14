@@ -10,6 +10,7 @@ export type LocalCollectionKey =
   | 'notifications'
   | 'boardMinutes'
   | 'resolutionNotices'
+  | 'resolutionFollowUps'
   | 'governanceAudit'
   | 'outcomeLetters';
 

@@ -10,13 +10,16 @@ import {
   Calendar,
   ShieldCheck,
   Lock,
-  Building2
+  Building2,
+  Repeat
 } from 'lucide-react';
 import {
   ResolutionApprovalStatus,
   PriorityLevel,
   VerificationConfig,
+  ResolutionFollowUpType,
 } from '../../types';
+import { buildFollowUpPlan } from '../../services/followUpService';
 import { Meeting } from '../../types';
 
 interface CreateResolutionModalProps {
@@ -55,6 +58,12 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
   const [deadlineJalali, setDeadlineJalali] = useState('۱۴۰۳/۰۷/۲۰');
   const [priority, setPriority] = useState<PriorityLevel>('HIGH');
 
+  // Follow-up plan (برنامه پیگیری مصوبه) — monitoring only, never part of
+  // the signature/ابلاغ/execution chain.
+  const [followUpEnabled, setFollowUpEnabled] = useState(true);
+  const [followUpType, setFollowUpType] = useState<ResolutionFollowUpType>('MONTHLY');
+  const [followUpStartDateJalali, setFollowUpStartDateJalali] = useState('۱۴۰۳/۰۶/۲۸');
+
   // Verification Settings (single-step only)
   const [requiresVerification, setRequiresVerification] = useState(true);
   const [verifierId, setVerifierId] = useState('');
@@ -79,6 +88,8 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
       setMainResponsibleUserId('');
       setResponsibleDepartmentId('');
       setVerifierId('');
+      setFollowUpEnabled(true);
+      setFollowUpType('MONTHLY');
     }
   }, [isOpen, defaultMeetingId, defaultAgendaItemId, defaultTopicTitle]);
 
@@ -119,6 +130,10 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
     }
     if (approvalStatus === 'APPROVED' && requiresVerification && !verifierId) {
       showToast('خطا', 'یک صحه‌گذار انتخاب کنید یا گزینه نیاز به صحه‌گذاری را غیرفعال کنید.', 'error');
+      return;
+    }
+    if (approvalStatus === 'APPROVED' && followUpEnabled && !followUpStartDateJalali.trim()) {
+      showToast('خطا', 'تاریخ شروع پیگیری را مشخص کنید.', 'error');
       return;
     }
 
@@ -165,6 +180,9 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
         priority,
         verificationConfig: vConfig,
         attachments: [],
+        followUp: approvalStatus === 'APPROVED' && followUpEnabled
+          ? buildFollowUpPlan(followUpType, followUpStartDateJalali)
+          : undefined,
       });
 
       if (res.isSuccess) {
@@ -394,6 +412,61 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
                   </select>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Follow-up plan — a parallel monitoring schedule, set here by the
+              office manager. It only decides when the resolution surfaces in
+              the «کارتابل پیگیری»; it never gates execution or validation. */}
+          {approvalStatus === 'APPROVED' && (
+            <div className="p-4 bg-amber-50/60 border border-amber-200/80 rounded-2xl space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Repeat className="w-5 h-5 text-amber-700" />
+                  <div>
+                    <h4 className="text-xs font-extrabold text-amber-950">برنامه پیگیری مصوبه</h4>
+                    <p className="text-[10px] text-amber-700">
+                      تعیین می‌کند این مصوبه در چه موعدهایی در کارتابل پیگیری نمایش داده شود.
+                    </p>
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={followUpEnabled}
+                    onChange={(e) => setFollowUpEnabled(e.target.checked)}
+                    className="w-4 h-4 text-amber-700 rounded-md focus:ring-amber-500 cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-amber-900">پیگیری این مصوبه فعال باشد</span>
+                </label>
+              </div>
+
+              {followUpEnabled && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">نوع پیگیری</label>
+                    <select
+                      value={followUpType}
+                      onChange={(e) => setFollowUpType(e.target.value as ResolutionFollowUpType)}
+                      className="w-full text-xs p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-amber-900"
+                    >
+                      <option value="WEEKLY">گزارش هفتگی</option>
+                      <option value="MONTHLY">گزارش ماهانه</option>
+                      <option value="QUARTERLY">گزارش فصلی</option>
+                      <option value="CUSTOM">سفارشی</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <PersianDatePicker
+                      label={followUpType === 'CUSTOM' ? 'تاریخ شروع پیگیری (سفارشی)' : 'تاریخ شروع پیگیری'}
+                      value={followUpStartDateJalali}
+                      onChange={setFollowUpStartDateJalali}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

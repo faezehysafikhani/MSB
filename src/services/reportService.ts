@@ -1,8 +1,9 @@
-import { DashboardKPIs, DepartmentPerformance, ApiResponse } from '../types';
+import { DashboardKPIs, DepartmentPerformance, ApiResponse, ResolutionNotice } from '../types';
 import { mockMeetings, mockResolutions, mockTasks, mockApprovals, mockDepartments, mockUsers } from '../mock/data';
 import { apiClient } from './api/apiClient';
 import { isMeetingRelatedToUser, isResolutionRelatedToUser } from './userScope';
 import { loadLocalCollection } from './localStore';
+import { compareJalali, toEnglishDigits } from '../utils/jalaliDate';
 
 const JALALI_MONTH_NAMES = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
 
@@ -27,6 +28,28 @@ export interface IReportService {
   getResolutionStatusDistribution(): Promise<ApiResponse<ResolutionStatusDistribution[]>>;
   getMonthlyTrends(): Promise<ApiResponse<MonthlyMeetingTrend[]>>;
   getSemiAnnualReport(fromDateJalali: string, toDateJalali: string): Promise<ApiResponse<SemiAnnualReport>>;
+  getNotificationLettersReport(filters?: NotificationLettersReportFilters): Promise<ApiResponse<NotificationLetterReportRow[]>>;
+}
+
+export interface NotificationLettersReportFilters {
+  fromDateJalali?: string;
+  toDateJalali?: string;
+  proposerDepartment?: string;
+  resolutionNumber?: string;
+  notificationLetterNumber?: string;
+}
+
+/** One row of «گزارش ابلاغ مصوبات». Every field is read from the real
+ *  ResolutionNotice / Resolution pair — no duplicated reporting data. */
+export interface NotificationLetterReportRow {
+  noticeId: string;
+  resolutionId: string;
+  subject: string;
+  notificationLetterNumber: string;
+  resolutionNumber: string;
+  dateJalali: string;
+  proposerDepartment: string;
+  description: string;
 }
 
 export interface SemiAnnualReport {
@@ -166,6 +189,56 @@ class MockReportService implements IReportService {
 
     const trends = JALALI_MONTH_NAMES.filter((month) => byMonth.has(month)).map((month) => byMonth.get(month)!);
     return apiClient.simulateNetwork(trends, 120);
+  }
+
+  /**
+   * «گزارش ابلاغیه‌ها» — one row per issued ابلاغیه. The subject, resolution
+   * number and proposing unit all come from the resolution the notice points
+   * at (which in turn inherits the proposing organization from its originating
+   * proposal chain), and the date is the real ابلاغ date, never createdAt.
+   */
+  public async getNotificationLettersReport(filters?: NotificationLettersReportFilters): Promise<ApiResponse<NotificationLetterReportRow[]>> {
+    const notices = loadLocalCollection<ResolutionNotice[]>('resolutionNotices', []);
+    const resolutions = loadLocalCollection('resolutions', mockResolutions);
+
+    let rows: NotificationLetterReportRow[] = notices
+      // Only notices that actually carry an issued letter number belong in
+      // this report; legacy bulk-issued notices predate the numbering.
+      .filter((notice) => Boolean(notice.notificationLetterNumber))
+      .map((notice) => {
+        const resolution = resolutions.find((item) => item.id === notice.resolutionId);
+        return {
+          noticeId: notice.id,
+          resolutionId: notice.resolutionId,
+          subject: resolution?.topicTitle || notice.text,
+          notificationLetterNumber: notice.notificationLetterNumber!,
+          resolutionNumber: resolution?.resolutionNumber || notice.resolutionNumber,
+          dateJalali: resolution?.notifiedDateJalali || notice.dateJalali,
+          proposerDepartment: resolution?.proposerDepartment || notice.recipientDepartment,
+          description: resolution?.reviewResultNotes || resolution?.requestDescription || notice.text,
+        };
+      });
+
+    if (filters?.fromDateJalali) {
+      rows = rows.filter((row) => compareJalali(row.dateJalali, filters.fromDateJalali) >= 0);
+    }
+    if (filters?.toDateJalali) {
+      rows = rows.filter((row) => compareJalali(row.dateJalali, filters.toDateJalali) <= 0);
+    }
+    if (filters?.proposerDepartment && filters.proposerDepartment !== 'ALL') {
+      rows = rows.filter((row) => row.proposerDepartment === filters.proposerDepartment);
+    }
+    if (filters?.resolutionNumber?.trim()) {
+      const term = filters.resolutionNumber.trim();
+      rows = rows.filter((row) => row.resolutionNumber.includes(term));
+    }
+    if (filters?.notificationLetterNumber?.trim()) {
+      const term = toEnglishDigits(filters.notificationLetterNumber.trim());
+      rows = rows.filter((row) => toEnglishDigits(row.notificationLetterNumber).includes(term));
+    }
+
+    rows.sort((a, b) => Number(b.notificationLetterNumber) - Number(a.notificationLetterNumber));
+    return apiClient.simulateNetwork(rows, 130);
   }
 
   public async getSemiAnnualReport(fromDateJalali: string, toDateJalali: string): Promise<ApiResponse<SemiAnnualReport>> {

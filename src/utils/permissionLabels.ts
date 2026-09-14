@@ -23,6 +23,8 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   APPEND_MEETING_CONTENT: 'افزودن مدعو/دستور کار جدید به جلسه موجود',
   APPROVE_MEETING_CONFIRMATION: 'تأیید نهایی تایید جلسه (دبیر جلسه)',
   NOTIFY_RESOLUTION: 'ابلاغ رسمی مصوبه (مسئول دفتر)',
+  VIEW_RESOLUTION_FOLLOWUP: 'مشاهده کارتابل پیگیری مصوبات',
+  MANAGE_RESOLUTION_FOLLOWUP: 'ثبت پیگیری مصوبات',
 };
 
 export const getPermissionLabel = (key: string): string => PERMISSION_LABELS[key as PermissionKey] || key;

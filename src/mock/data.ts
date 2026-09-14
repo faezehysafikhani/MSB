@@ -390,6 +390,8 @@ export const mockUsers: User[] = [
       'SIGN_RESOLUTION',
       'APPEND_MEETING_CONTENT',
       'NOTIFY_RESOLUTION',
+      'VIEW_RESOLUTION_FOLLOWUP',
+      'MANAGE_RESOLUTION_FOLLOWUP',
     ],
   }
 ];
