@@ -65,6 +65,8 @@ export interface IProposalService {
   // three outcomes the CEO's own initial review already has (approve /
   // reject / return for revision); only the actor and recipient changed.
   finalizeMeetingConfirmation(id: string, decision: 'APPROVED' | 'REJECTED' | 'RETURNED_FOR_REVISION', notes: string | undefined, actor: User): Promise<ApiResponse<Proposal>>;
+  // مسئول دفتر برگشت دبیر جلسه را به پیشنهاددهنده منتقل می‌کند.
+  forwardSecretaryReturnToProposer(id: string, reason: string, actor: User): Promise<ApiResponse<Proposal>>;
   markConvertedToAgenda(id: string, meetingId: string, meetingTitle: string, relatedUsers?: Proposal['relatedUsers']): Promise<ApiResponse<Proposal>>;
 }
 
@@ -317,10 +319,41 @@ class MockProposalService implements IProposalService {
     if (!proposal) throw new Error('پیشنهاد یافت نشد');
     if (proposal.status !== 'PENDING_SECRETARY_CONFIRMATION') throw new Error('این پیشنهاد در کارتابل تأیید نهایی دبیر جلسه نیست');
     const previousStatus = proposal.status;
-    proposal.status = decision;
+    // APPROVED must land on CONFIRMED_FOR_MEETING — the state that makes the
+    // item pickable as a ready agenda item. Writing back a bare 'APPROVED'
+    // put it straight back into the office manager's «تبدیل به تایید جلسه»
+    // queue, so confirming it simply re-sent it to دبیر جلسه, forever.
+    // RETURNED_FOR_REVISION goes to the office manager first, who decides
+    // whether to pass the correction request on to the proposer.
+    proposal.status = decision === 'APPROVED'
+      ? 'CONFIRMED_FOR_MEETING'
+      : decision === 'RETURNED_FOR_REVISION'
+        ? 'RETURNED_BY_SECRETARY'
+        : 'REJECTED';
     if (notes?.trim()) proposal.managementDecisionNotes = notes.trim();
     const labels = { APPROVED: 'تأیید نهایی تایید جلسه توسط دبیر جلسه', REJECTED: 'رد تایید جلسه توسط دبیر جلسه', RETURNED_FOR_REVISION: 'برگشت تایید جلسه توسط دبیر جلسه جهت اصلاح' };
     this.addHistory(proposal, actor, labels[decision], previousStatus, notes?.trim());
+    this.saveData(proposals);
+    return apiClient.simulateNetwork(proposal, 120);
+  }
+
+  /**
+   * مسئول دفتر پس از دیدن برگشت دبیر جلسه، پیشنهاد را جهت اصلاح به خود
+   * پیشنهاددهنده برمی‌گرداند. تنها مسیر خروج از RETURNED_BY_SECRETARY است و
+   * دقیقاً به همان حالتی می‌رسد که «اصلاح و ارسال مجدد» پیشنهاددهنده از آن
+   * پشتیبانی می‌کند.
+   */
+  public async forwardSecretaryReturnToProposer(id: string, reason: string, actor: User): Promise<ApiResponse<Proposal>> {
+    if (!['SECRETARY', 'ADMIN'].includes(actor.role)) throw new Error('فقط مسئول دفتر مجاز به برگشت این پیشنهاد به پیشنهاددهنده است');
+    if (!reason.trim()) throw new Error('ثبت دلیل برگشت جهت اصلاح الزامی است');
+    const proposals = this.getData();
+    const proposal = proposals.find((item) => item.id === id);
+    if (!proposal) throw new Error('پیشنهاد یافت نشد');
+    if (proposal.status !== 'RETURNED_BY_SECRETARY') throw new Error('این پیشنهاد در کارتابل برگشت از دبیر جلسه نیست');
+    const previousStatus = proposal.status;
+    proposal.status = 'RETURNED_FOR_REVISION';
+    proposal.managementDecisionNotes = reason.trim();
+    this.addHistory(proposal, actor, 'برگشت پیشنهاد به پیشنهاددهنده جهت اصلاح (پس از برگشت دبیر جلسه)', previousStatus, reason.trim());
     this.saveData(proposals);
     return apiClient.simulateNetwork(proposal, 120);
   }

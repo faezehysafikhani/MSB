@@ -119,6 +119,30 @@ const PNG_SECRETARY = png('mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
   users = await readLS(page, 'users');
   check('CR-G Test3 امضا پس از باز کردن دوباره Persist شده است', Boolean(users.find((u) => u.id === 'user-17')?.signatureUrl));
 
+  // ============ Editing a user must not reset their permissions =============
+  const officeAfterEdit = (await readLS(page, 'users')).find((u) => u.id === 'user-17');
+  check('مجوزهای اختصاصی کاربر پس از ویرایش پروفایل حفظ شدند', (officeAfterEdit.permissions || []).includes('NOTIFY_RESOLUTION'), (officeAfterEdit.permissions || []).join(','));
+  check('سایر مجوزهای اختصاصی نیز پاک نشدند', ['VIEW_RESOLUTION_FOLLOWUP', 'MANAGE_RESOLUTION_FOLLOWUP', 'APPEND_MEETING_CONTENT'].every((p) => (officeAfterEdit.permissions || []).includes(p)));
+
+  const roleChange = await page.evaluate(async () => {
+    const mod = await import('/src/services/userService.ts');
+    const users = await window.loadUsers();
+    const admin = users.find((u) => u.id === 'user-admin');
+    const target = users.find((u) => u.id === 'user-17');
+    const before = [...(target.permissions || [])];
+    // Simulates what the edit form now sends when the role changes: existing
+    // permissions plus the new role's baseline, never a replacement.
+    const { id, ...rest } = target;
+    const merged = Array.from(new Set([...before, 'VIEW_APPROVALS', 'VIEW_REPORTS']));
+    await mod.userService.updateUser(id, { ...rest, role: 'DEPT_MANAGER', permissions: merged }, admin);
+    const saved = JSON.parse(localStorage.getItem('postbank-mosavabat-v1:users')).find((u) => u.id === 'user-17');
+    // Put the persona back so the rest of the suite is unaffected.
+    await mod.userService.updateUser(id, { ...rest, role: target.role, permissions: before }, admin);
+    return { keptAll: before.every((p) => saved.permissions.includes(p)), gained: saved.permissions.includes('VIEW_APPROVALS') };
+  });
+  check('تغییر نقش، مجوزهای قبلی را حذف نمی‌کند', roleChange.keptAll);
+  check('تغییر نقش، مجوزهای پایه نقش جدید را اضافه می‌کند', roleChange.gained);
+
   // ===================== Test 7 — three main signers, each their own =========
   const signerImages = await page.evaluate(async () => {
     const userMod = await import('/src/services/userService.ts');
