@@ -14,6 +14,7 @@ import {
   AppNotification,
   ResolutionFollowUpPlan,
   DocumentSignature,
+  ResolutionArchiveState,
 } from '../types';
 import type { ResolutionProgressReport } from '../types';
 import { mockResolutions, mockActivityLogs, mockTasks, mockApprovals, mockMeetings, mockNotifications } from '../mock/data';
@@ -57,7 +58,7 @@ export interface CreateResolutionDto {
 }
 
 export interface IResolutionService {
-  getResolutions(params?: ApiFilterParams & { approvalStatus?: string; executionStatus?: string; meetingId?: string; relatedUserId?: string; proposerDepartmentName?: string }): Promise<ApiResponse<PagedResult<Resolution>>>;
+  getResolutions(params?: ApiFilterParams & { approvalStatus?: string; executionStatus?: string; meetingId?: string; relatedUserId?: string; proposerDepartmentName?: string; includeArchived?: boolean }): Promise<ApiResponse<PagedResult<Resolution>>>;
   getResolutionById(id: string): Promise<ApiResponse<Resolution | null>>;
   createResolution(dto: CreateResolutionDto): Promise<ApiResponse<Resolution>>;
   updateResolution(id: string, dto: Partial<Resolution>): Promise<ApiResponse<Resolution>>;
@@ -70,6 +71,11 @@ export interface IResolutionService {
   updateExecutionProgress(resolutionId: string, report: ResolutionProgressReport): Promise<ApiResponse<Resolution>>;
   markMeetingMinutesFinalized(meetingId: string): Promise<ApiResponse<number>>;
   appendResolutionTimelineEntry(entry: ActivityLog): void;
+  // Archive state only. Never deletes the resolution, never touches the
+  // signature/ابلاغ/execution/verification workflows — it records where the
+  // resolution was filed and the working status to restore it to.
+  setResolutionArchiveState(resolutionId: string, state: Omit<ResolutionArchiveState, 'previousExecutionStatus' | 'archivedAt' | 'archivedDateJalali'>): Promise<ApiResponse<Resolution>>;
+  clearResolutionArchiveState(resolutionId: string, actorName: string): Promise<ApiResponse<Resolution>>;
   releaseMeetingResolutionsForExecution(meetingId: string): Promise<ApiResponse<number>>;
   // Records the independent ابلاغ (official notification) step for a
   // resolution whose three main signatures are already complete — the one
@@ -132,7 +138,7 @@ class MockResolutionService implements IResolutionService {
     saveLocalCollection('tasks', tasks);
   }
 
-  public async getResolutions(params?: ApiFilterParams & { approvalStatus?: string; executionStatus?: string; meetingId?: string; requiresVerification?: boolean; relatedUserId?: string; proposerDepartmentName?: string }): Promise<ApiResponse<PagedResult<Resolution>>> {
+  public async getResolutions(params?: ApiFilterParams & { approvalStatus?: string; executionStatus?: string; meetingId?: string; requiresVerification?: boolean; relatedUserId?: string; proposerDepartmentName?: string; includeArchived?: boolean }): Promise<ApiResponse<PagedResult<Resolution>>> {
     let filtered = [...this.resolutions];
 
     if (params?.relatedUserId) {
@@ -166,6 +172,13 @@ class MockResolutionService implements IResolutionService {
 
     if (params?.executionStatus && params.executionStatus !== 'ALL') {
       filtered = filtered.filter((r) => r.executionStatus === params.executionStatus);
+    }
+
+    // An archived resolution leaves the active list entirely — it must never
+    // appear in both the bank of resolutions and the archive at the same time.
+    // Callers that are *showing* the archive opt back in explicitly.
+    if (!params?.includeArchived && params?.executionStatus !== 'ARCHIVED') {
+      filtered = filtered.filter((r) => !r.archive);
     }
 
     if (params?.departmentId && params.departmentId !== 'ALL') {
@@ -369,6 +382,77 @@ class MockResolutionService implements IResolutionService {
   public appendResolutionTimelineEntry(entry: ActivityLog): void {
     this.activityLogs.unshift(entry);
     this.persist();
+  }
+
+  /**
+   * Files a resolution into the archive. The working status is preserved in
+   * `previousExecutionStatus` so restoring is exact — nothing about the
+   * signature, ابلاغ, execution, verification or follow-up workflows changes.
+   */
+  public async setResolutionArchiveState(resolutionId: string, state: Omit<ResolutionArchiveState, 'previousExecutionStatus' | 'archivedAt' | 'archivedDateJalali'>): Promise<ApiResponse<Resolution>> {
+    const resolution = this.resolutions.find((item) => item.id === resolutionId);
+    if (!resolution) throw new Error('مصوبه یافت نشد');
+    if (resolution.archive) throw new Error('این مصوبه از قبل بایگانی شده است.');
+
+    const now = new Date();
+    const dateJalali = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(now).replace(/[\u200e\u200f]/g, '');
+    resolution.archive = {
+      ...state,
+      archivedAt: now.toISOString(),
+      archivedDateJalali: dateJalali,
+      previousExecutionStatus: resolution.executionStatus,
+    };
+    resolution.executionStatus = 'ARCHIVED';
+
+    this.activityLogs.unshift({
+      id: `log-archive-${resolutionId}-${now.getTime()}`,
+      targetType: 'RESOLUTION',
+      targetId: resolutionId,
+      action: 'بایگانی مصوبه',
+      actorName: state.archivedByName,
+      actorRole: state.scope === 'ORGANIZATION' ? 'بایگانی سازمانی' : 'بایگانی شخصی',
+      timestampJalali: dateJalali,
+      timeString: now.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+      details: state.scope === 'ORGANIZATION'
+        ? `بایگانی سازمانی — پوشه «${state.folderName || '—'}» | وضعیت پیش از بایگانی: ${resolution.archive.previousExecutionStatus}`
+        : `بایگانی شخصی | وضعیت پیش از بایگانی: ${resolution.archive.previousExecutionStatus}`,
+      badgeColor: 'purple',
+    });
+    this.persist();
+    return apiClient.simulateNetwork(resolution, 120);
+  }
+
+  /**
+   * Takes a resolution back out of the archive — «حذف از بایگانی». This is a
+   * restore, never a delete: the entity, its attachments and its whole
+   * timeline stay exactly as they are, and the pre-archive working status is
+   * put back rather than reset.
+   */
+  public async clearResolutionArchiveState(resolutionId: string, actorName: string): Promise<ApiResponse<Resolution>> {
+    const resolution = this.resolutions.find((item) => item.id === resolutionId);
+    if (!resolution) throw new Error('مصوبه یافت نشد');
+    if (!resolution.archive) throw new Error('این مصوبه در بایگانی نیست.');
+
+    const now = new Date();
+    const dateJalali = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(now).replace(/[\u200e\u200f]/g, '');
+    const restoredStatus = resolution.archive.previousExecutionStatus;
+    resolution.executionStatus = restoredStatus;
+    delete resolution.archive;
+
+    this.activityLogs.unshift({
+      id: `log-unarchive-${resolutionId}-${now.getTime()}`,
+      targetType: 'RESOLUTION',
+      targetId: resolutionId,
+      action: 'خروج مصوبه از بایگانی',
+      actorName,
+      actorRole: 'بایگانی',
+      timestampJalali: dateJalali,
+      timeString: now.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+      details: `مصوبه به فهرست مصوبات بازگشت؛ وضعیت بازگردانده‌شده: ${restoredStatus}`,
+      badgeColor: 'green',
+    });
+    this.persist();
+    return apiClient.simulateNetwork(resolution, 120);
   }
 
   public async updateResolution(id: string, dto: Partial<Resolution>): Promise<ApiResponse<Resolution>> {

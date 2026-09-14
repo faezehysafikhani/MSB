@@ -219,26 +219,70 @@ export type ProposalSource = 'MANUAL' | 'EXCEL_IMPORT';
 // status, it only groups references to proposals for easier retrieval.
 export type ArchiveScope = 'PERSONAL' | 'ORGANIZATION';
 
+/**
+ * Who may open a folder and its contents. Empty lists mean "no explicit
+ * restriction" — the folder is then governed by the archive scope's own
+ * permission alone, which is how every folder created before access rules
+ * existed keeps behaving.
+ */
+export interface ArchiveFolderAccess {
+  // Specific people, chosen with the existing user selector.
+  userIds: string[];
+  // Organizational positions (User.title), read from the real user records —
+  // never a hard-coded list of positions.
+  positions: string[];
+}
+
 export interface ArchiveFolder {
   id: string;
   name: string;
+  description?: string;
   scope: ArchiveScope;
   // PERSONAL folders belong to one organizational unit; ORGANIZATION
   // folders are shared org-wide and carry no department owner.
   ownerDepartmentId?: string;
+  access?: ArchiveFolderAccess;
   createdByUserId: string;
   createdByName: string;
   createdAt: string;
 }
 
+/** What an archive entry points at. Absent means PROPOSAL (legacy entries). */
+export type ArchiveItemType = 'PROPOSAL' | 'RESOLUTION';
+
 export interface ArchiveItem {
   id: string;
+  // Empty for a personal archive entry, which is owned by a user rather than
+  // filed into a folder.
   folderId: string;
-  proposalId: string;
-  proposalTitle: string;
+  itemType?: ArchiveItemType;
+  // Personal-archive owner. Only this user (or an admin) ever sees the entry.
+  ownerUserId?: string;
+  proposalId?: string;
+  proposalTitle?: string;
+  resolutionId?: string;
+  resolutionTitle?: string;
+  resolutionNumber?: string;
   movedByUserId: string;
   movedByName: string;
   movedAt: string;
+}
+
+/**
+ * A resolution's archive state. Purely an archive concern: it records where
+ * the resolution was filed and the working status it had beforehand, so
+ * restoring puts that exact status back instead of resetting the workflow.
+ */
+export interface ResolutionArchiveState {
+  scope: ArchiveScope;
+  folderId?: string;
+  folderName?: string;
+  ownerUserId?: string;
+  archivedByUserId: string;
+  archivedByName: string;
+  archivedAt: string;
+  archivedDateJalali: string;
+  previousExecutionStatus: ResolutionExecutionStatus;
 }
 
 export type MeetingStatus =
@@ -623,6 +667,9 @@ export interface Resolution {
   // purely so lists/reports can show it without joining the notices
   // collection. The ResolutionNotice record stays the source of truth.
   notificationLetterNumber?: string;
+  // Set only while the resolution sits in the archive; clearing it restores
+  // previousExecutionStatus. Never implies deletion — the entity is untouched.
+  archive?: ResolutionArchiveState;
   // «برنامه پیگیری مصوبه» — set by the office manager when the resolution
   // is registered. Monitoring metadata only: nothing here ever changes
   // executionStatus, tasks, signatures, verification or ابلاغ.

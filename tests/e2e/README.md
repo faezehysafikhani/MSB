@@ -15,5 +15,6 @@ node tests/e2e/<suite>.cjs                # in another
 | `notificationLetters.cjs` | شماره نامه ابلاغیه خودکار/یکتا و گزارش ابلاغیه‌ها |
 | `followUpCartable.cjs` | مجوزها، زمان‌بندی هفتگی/ماهانه/فصلی/سفارشی و ثبت پیگیری |
 | `meetingSignaturesAndDocuments.cjs` | حذف امضای اعضا/مدعوین، امضای تصویری و تولید اسناد رسمی |
+| `archive.cjs` | بایگانی شخصی/سازمانی، دسترسی پوشه، بایگانی مصوبه و خروج از بایگانی |
 
 Each script exits non-zero if any assertion fails.
