@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toPersianDigits } from '../../utils/formatters';
+import { jalaliToGregorian } from '../../utils/jalaliDate';
 
 interface PersianDatePickerProps {
   value: string; // e.g. "۱۴۰۳/۰۷/۰۵" or "1403/07/05"
@@ -42,33 +43,6 @@ const OFFICIAL_SOLAR_HOLIDAYS: Record<string, string> = {
   '03/15': 'قیام ۱۵ خرداد',
   '11/22': 'پیروزی انقلاب اسلامی',
   '12/29': 'ملی شدن صنعت نفت',
-};
-
-const div = (a: number, b: number) => Math.trunc(a / b);
-
-const jalaliToGregorian = (jy: number, jm: number, jd: number): [number, number, number] => {
-  let year = jy + 1595;
-  let days = -355668 + (365 * year) + (div(year, 33) * 8) + div((year % 33) + 3, 4) + jd;
-  days += jm < 7 ? (jm - 1) * 31 : ((jm - 7) * 30) + 186;
-  let gy = 400 * div(days, 146097);
-  days %= 146097;
-  if (days > 36524) {
-    gy += 100 * div(--days, 36524);
-    days %= 36524;
-    if (days >= 365) days++;
-  }
-  gy += 4 * div(days, 1461);
-  days %= 1461;
-  if (days > 365) {
-    gy += div(days - 1, 365);
-    days = (days - 1) % 365;
-  }
-  let gd = days + 1;
-  const leap = gy % 4 === 0 && gy % 100 !== 0 || gy % 400 === 0;
-  const monthDays = [0, 31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  let gm = 1;
-  while (gm <= 12 && gd > monthDays[gm]) gd -= monthDays[gm++];
-  return [gy, gm, gd];
 };
 
 const getWeekDayIndex = (year: number, month: number, day: number) => {

@@ -77,7 +77,13 @@ export type PermissionKey =
   // main signatures are already complete — held by «مسئول دفتر», separate
   // from SIGN_RESOLUTION (one of the three main signers) and from
   // APPROVE_MEETING_CONFIRMATION (دبیر جلسه's own permission).
-  | 'NOTIFY_RESOLUTION';
+  | 'NOTIFY_RESOLUTION'
+  // «پیگیری مصوبات» — a parallel monitoring workflow that never touches
+  // execution, validation, signatures or ابلاغ. Split in two levels so a
+  // user can be given read-only visibility of the cartable without the
+  // right to record a follow-up.
+  | 'VIEW_RESOLUTION_FOLLOWUP'
+  | 'MANAGE_RESOLUTION_FOLLOWUP';
 
 export interface User {
   id: string;
@@ -424,6 +430,11 @@ export interface ResolutionNotice {
   sentAt: string;
   receivedAt?: string;
   createdByUserId: string;
+  // Auto-generated, unique, sequential «شماره نامه ابلاغیه» — the letter
+  // number of the ابلاغ document itself. Deliberately independent of
+  // Resolution.resolutionNumber and of the proposal's own letterNumber;
+  // issued by resolutionService only once an ابلاغ actually succeeds.
+  notificationLetterNumber?: string;
   // دبیر جلسه of the originating meeting, recorded on the notice as the
   // countersigning secretary of record for this ابلاغ — a distinct
   // signature context from Resolution.signatureWorkflow's three main
@@ -568,6 +579,49 @@ export interface Resolution {
   notifiedByUserId?: string;
   notifiedByName?: string;
   notifiedAt?: string;
+  // Mirror of the issued ابلاغیه's letter number, kept on the resolution
+  // purely so lists/reports can show it without joining the notices
+  // collection. The ResolutionNotice record stays the source of truth.
+  notificationLetterNumber?: string;
+  // «برنامه پیگیری مصوبه» — set by the office manager when the resolution
+  // is registered. Monitoring metadata only: nothing here ever changes
+  // executionStatus, tasks, signatures, verification or ابلاغ.
+  followUp?: ResolutionFollowUpPlan;
+}
+
+// How often a resolution should surface in the «کارتابل پیگیری».
+export type ResolutionFollowUpType =
+  | 'WEEKLY'      // گزارش هفتگی
+  | 'MONTHLY'     // گزارش ماهانه
+  | 'QUARTERLY'   // گزارش فصلی
+  | 'CUSTOM';     // سفارشی — تاریخ شروع دستی
+
+export interface ResolutionFollowUpPlan {
+  enabled: boolean;
+  type: ResolutionFollowUpType;
+  // The date follow-up starts from; every subsequent due date is computed
+  // from it (or from the last recorded follow-up) by followUpService.
+  startDateJalali: string;
+  nextFollowUpDateJalali?: string;
+  lastFollowUpDateJalali?: string;
+}
+
+// One recorded follow-up. Kept in its own collection (not inlined on the
+// Resolution) so the history is append-only and pageable, exactly like the
+// notices/activity collections already are.
+export interface ResolutionFollowUpRecord {
+  id: string;
+  resolutionId: string;
+  resolutionNumber: string;
+  resolutionTitle: string;
+  followUpDateJalali: string;
+  nextDeadlineJalali?: string;
+  text: string;
+  notes?: string;
+  attachments: Attachment[];
+  createdByUserId: string;
+  createdByName: string;
+  createdAt: string;
 }
 
 export interface ResolutionProgressReport {

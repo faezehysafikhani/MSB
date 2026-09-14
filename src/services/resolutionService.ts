@@ -12,6 +12,7 @@ import {
   User,
   ResolutionNotice,
   AppNotification,
+  ResolutionFollowUpPlan,
 } from '../types';
 import type { ResolutionProgressReport } from '../types';
 import { mockResolutions, mockActivityLogs, mockTasks, mockApprovals, mockMeetings, mockNotifications } from '../mock/data';
@@ -19,6 +20,7 @@ import { apiClient } from './api/apiClient';
 import { mockUsers } from '../mock/data';
 import { isResolutionRelatedToUser } from './userScope';
 import { loadLocalCollection, saveLocalCollection } from './localStore';
+import { issueNotificationLetterNumber } from './notificationLetterNumbering';
 
 export interface CreateResolutionDto {
   meetingId: string;
@@ -46,6 +48,10 @@ export interface CreateResolutionDto {
   verificationConfig?: VerificationConfig;
   attachments?: Resolution['attachments'];
   letterNumber?: string;
+  // «برنامه پیگیری مصوبه» chosen by the office manager while registering the
+  // resolution. Monitoring metadata only — it never influences the signature,
+  // ابلاغ, execution or verification workflows below.
+  followUp?: ResolutionFollowUpPlan;
 }
 
 export interface IResolutionService {
@@ -61,6 +67,7 @@ export interface IResolutionService {
   signResolution(resolutionId: string, signerUserId: string): Promise<ApiResponse<Resolution>>;
   updateExecutionProgress(resolutionId: string, report: ResolutionProgressReport): Promise<ApiResponse<Resolution>>;
   markMeetingMinutesFinalized(meetingId: string): Promise<ApiResponse<number>>;
+  appendResolutionTimelineEntry(entry: ActivityLog): void;
   releaseMeetingResolutionsForExecution(meetingId: string): Promise<ApiResponse<number>>;
   // Records the independent ابلاغ (official notification) step for a
   // resolution whose three main signatures are already complete — the one
@@ -246,6 +253,7 @@ class MockResolutionService implements IResolutionService {
       signatureWorkflow: isApproved ? this.createSignatureWorkflow() : undefined,
       attachments: dto.attachments || [],
       createdAt: new Date().toISOString(),
+      followUp: dto.followUp,
     };
 
     this.resolutions.unshift(newResolution);
@@ -343,6 +351,17 @@ class MockResolutionService implements IResolutionService {
 
     this.persist();
     return apiClient.simulateNetwork(resolution, 160);
+  }
+
+  /**
+   * Appends one entry to the shared resolution timeline. Exposed so sibling
+   * services (e.g. followUpService) record history through this service's own
+   * in-memory log array instead of writing the activityLogs collection behind
+   * its back, which a later persist() would silently overwrite.
+   */
+  public appendResolutionTimelineEntry(entry: ActivityLog): void {
+    this.activityLogs.unshift(entry);
+    this.persist();
   }
 
   public async updateResolution(id: string, dto: Partial<Resolution>): Promise<ApiResponse<Resolution>> {
@@ -463,9 +482,13 @@ class MockResolutionService implements IResolutionService {
     const notices = loadLocalCollection<ResolutionNotice[]>('resolutionNotices', []);
     const recipientName = resolution.mainResponsibleName || resolution.proposerName;
     const recipientDepartment = resolution.responsibleDepartmentName || resolution.proposerDepartment;
+    // Reserved only now — every validation above has already passed, so an
+    // abandoned or rejected ابلاغ never consumes a letter number.
+    const notificationLetterNumber = issueNotificationLetterNumber();
     const notice: ResolutionNotice = {
       id: `notice-${Date.now()}`,
       noticeNumber: `ابلاغ-${now.getFullYear()}-${notices.length + 1}`,
+      notificationLetterNumber,
       resolutionId: resolution.id,
       resolutionNumber: resolution.resolutionNumber,
       meetingId: resolution.meetingId,
@@ -482,6 +505,9 @@ class MockResolutionService implements IResolutionService {
       secretaryName: meeting?.secretaryName,
     };
     saveLocalCollection('resolutionNotices', [notice, ...notices]);
+    // Mirrored onto the resolution so lists and reports can show the letter
+    // number without joining the notices collection.
+    resolution.notificationLetterNumber = notificationLetterNumber;
 
     this.activityLogs.unshift({
       id: `log-notify-${resolution.id}-${Date.now()}`,
@@ -492,7 +518,7 @@ class MockResolutionService implements IResolutionService {
       actorRole: actor.title,
       timestampJalali: dateJalali,
       timeString,
-      details: `تاریخ ابلاغ: ${notificationDateJalali.trim()}${meeting?.secretaryName ? ` | دبیر جلسه: ${meeting.secretaryName}` : ''}`,
+      details: `شماره نامه ابلاغیه: ${notificationLetterNumber} | تاریخ ابلاغ: ${notificationDateJalali.trim()}${meeting?.secretaryName ? ` | دبیر جلسه: ${meeting.secretaryName}` : ''}`,
       badgeColor: 'teal',
     });
 

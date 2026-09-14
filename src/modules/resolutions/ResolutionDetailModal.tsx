@@ -33,6 +33,9 @@ import {
 import { TimelineView } from '../../components/common/TimelineView';
 import { AttachmentList } from '../../components/common/AttachmentList';
 import { NotifyResolutionAction } from './NotifyResolutionAction';
+import { FollowUpHistory } from './FollowUpHistory';
+import { nextDueDate } from '../../services/followUpService';
+import { RecordFollowUpForm } from './RecordFollowUpForm';
 
 interface ResolutionDetailModalProps {
   resolutionId: string | null;
@@ -51,6 +54,8 @@ export const ResolutionDetailModal: React.FC<ResolutionDetailModalProps> = ({
   const [loading, setLoading] = useState(true);
   const [isSigning, setIsSigning] = useState(false);
   const [notices, setNotices] = useState<ResolutionNotice[]>([]);
+  // Bumped after a follow-up is recorded so the history below reloads.
+  const [followUpKey, setFollowUpKey] = useState(0);
 
   // Complete task form state
   const [completionNotes, setCompletionNotes] = useState('');
@@ -431,7 +436,7 @@ export const ResolutionDetailModal: React.FC<ResolutionDetailModalProps> = ({
           <section className="p-5 bg-slate-50 border border-slate-200 rounded-3xl space-y-3">
             <h4 className="font-extrabold text-slate-900">پرونده و زنجیره سوابق مصوبه</h4>
             <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold"><span className="px-3 py-1.5 bg-white border rounded-xl">پیشنهاد اولیه {meeting?.agendaItems.find((item) => item.id === resolution.agendaItemId)?.sourceProposalId ? `(${meeting.agendaItems.find((item) => item.id === resolution.agendaItemId)?.sourceProposalId})` : ''}</span><span>←</span><span className="px-3 py-1.5 bg-white border rounded-xl">دستورکار {resolution.agendaItemId || '—'}</span><span>←</span><span className="px-3 py-1.5 bg-white border rounded-xl">{resolution.meetingNumber}</span><span>←</span><span className="px-3 py-1.5 bg-white border rounded-xl">{resolution.resolutionNumber}</span><span>←</span><span className="px-3 py-1.5 bg-white border rounded-xl">{notices.length ? `${toPersianDigits(notices.length)} ابلاغیه` : 'در انتظار ابلاغ'}</span><span>←</span><span className="px-3 py-1.5 bg-white border rounded-xl">{toPersianDigits(resolution.progressPercent || 0)}٪ اجرا</span></div>
-            {notices.length > 0 && <div className="space-y-2">{notices.map((notice) => <div key={notice.id} className="p-3 bg-white border border-blue-200 rounded-xl flex flex-wrap items-center justify-between gap-2"><div><strong className="text-blue-900">{notice.noticeNumber}</strong><span className="block text-[10px] text-slate-500">{notice.recipientName} — {notice.recipientDepartment} — {toPersianDigits(notice.dateJalali)}</span></div><div className="flex items-center gap-2"><span className={`text-[10px] font-bold px-2 py-1 rounded-full ${notice.status === 'RECEIVED' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>{notice.status === 'RECEIVED' ? 'دریافت شده' : 'ارسال شده'}</span>{notice.status === 'SENT' && (currentUser.role === 'ADMIN' || notice.recipientName === currentUser.fullName || notice.recipientDepartment === currentUser.departmentName) && <button onClick={() => handleNoticeReceived(notice.id)} className="text-[10px] bg-teal-700 text-white px-2.5 py-1.5 rounded-lg">ثبت دریافت</button>}</div></div>)}</div>}
+            {notices.length > 0 && <div className="space-y-2">{notices.map((notice) => <div key={notice.id} className="p-3 bg-white border border-blue-200 rounded-xl flex flex-wrap items-center justify-between gap-2"><div><strong className="text-blue-900">{notice.noticeNumber}</strong>{notice.notificationLetterNumber && <span className="mr-2 text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">شماره نامه ابلاغیه: {toPersianDigits(notice.notificationLetterNumber)}</span>}<span className="block text-[10px] text-slate-500">{notice.recipientName} — {notice.recipientDepartment} — {toPersianDigits(notice.dateJalali)}</span></div><div className="flex items-center gap-2"><span className={`text-[10px] font-bold px-2 py-1 rounded-full ${notice.status === 'RECEIVED' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>{notice.status === 'RECEIVED' ? 'دریافت شده' : 'ارسال شده'}</span>{notice.status === 'SENT' && (currentUser.role === 'ADMIN' || notice.recipientName === currentUser.fullName || notice.recipientDepartment === currentUser.departmentName) && <button onClick={() => handleNoticeReceived(notice.id)} className="text-[10px] bg-teal-700 text-white px-2.5 py-1.5 rounded-lg">ثبت دریافت</button>}</div></div>)}</div>}
           </section>
 
           {/* Texts & Instructions */}
@@ -611,6 +616,25 @@ export const ResolutionDetailModal: React.FC<ResolutionDetailModalProps> = ({
                   <span>تایید مرحله صحه‌گذاری</span>
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Follow-up (پیگیری) — a parallel monitoring track. Shown only to
+              holders of the follow-up permission; recording still goes through
+              the same single followUpService path the cartable uses. */}
+          {resolution.followUp?.enabled && hasPermission('VIEW_RESOLUTION_FOLLOWUP') && (
+            <div className="p-3.5 bg-amber-50/50 border border-amber-200/70 rounded-2xl space-y-3">
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-amber-900">
+                <span className="font-extrabold">برنامه پیگیری:</span>
+                <span>موعد بعدی {nextDueDate(resolution.followUp) ? toPersianDigits(nextDueDate(resolution.followUp)!) : 'تعیین نشده'}</span>
+                {resolution.followUp.lastFollowUpDateJalali && (
+                  <span>— آخرین پیگیری {toPersianDigits(resolution.followUp.lastFollowUpDateJalali)}</span>
+                )}
+              </div>
+              {hasPermission('MANAGE_RESOLUTION_FOLLOWUP') && (
+                <RecordFollowUpForm resolutionId={resolution.id} onRecorded={() => { setFollowUpKey((previous) => previous + 1); triggerRefresh(); }} />
+              )}
+              <FollowUpHistory resolutionId={resolution.id} reloadKey={followUpKey} />
             </div>
           )}
 

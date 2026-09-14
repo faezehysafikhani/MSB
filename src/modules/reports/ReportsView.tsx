@@ -6,6 +6,7 @@ import {
   TrendingUp,
   Building2,
   PieChart,
+  Send,
   X
 } from 'lucide-react';
 import {
@@ -20,7 +21,7 @@ import {
 } from 'recharts';
 import { Chart as ChartJS, ArcElement, Tooltip as ChartJsTooltip, Legend as ChartJsLegend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
-import { reportService, SemiAnnualReport, ResolutionStatusDistribution } from '../../services/reportService';
+import { reportService, SemiAnnualReport, ResolutionStatusDistribution, NotificationLetterReportRow } from '../../services/reportService';
 import { resolutionService } from '../../services/resolutionService';
 import { proposalService } from '../../services/proposalService';
 import { mockDepartments } from '../../mock/data';
@@ -63,9 +64,33 @@ export const ReportsView: React.FC = () => {
   const [resolutionStatusDist, setResolutionStatusDist] = useState<ResolutionStatusDistribution[]>([]);
   const [proposalStatusCounts, setProposalStatusCounts] = useState<ProposalStatusCount[]>([]);
 
+  // «گزارش ابلاغ مصوبات» — its own filter state so it never perturbs the
+  // six-month report's date range above.
+  const [noticeRows, setNoticeRows] = useState<NotificationLetterReportRow[]>([]);
+  const [noticeFromDate, setNoticeFromDate] = useState('');
+  const [noticeToDate, setNoticeToDate] = useState('');
+  const [noticeDepartment, setNoticeDepartment] = useState('ALL');
+  const [noticeResolutionNumber, setNoticeResolutionNumber] = useState('');
+  const [noticeLetterNumber, setNoticeLetterNumber] = useState('');
+
   useEffect(() => {
     loadReports();
   }, []);
+
+  useEffect(() => {
+    loadNotificationLetters();
+  }, []);
+
+  const loadNotificationLetters = async () => {
+    const response = await reportService.getNotificationLettersReport({
+      fromDateJalali: noticeFromDate || undefined,
+      toDateJalali: noticeToDate || undefined,
+      proposerDepartment: noticeDepartment,
+      resolutionNumber: noticeResolutionNumber,
+      notificationLetterNumber: noticeLetterNumber,
+    });
+    if (response.isSuccess) setNoticeRows(response.data);
+  };
 
   const loadReports = async () => {
     setLoading(true);
@@ -160,6 +185,71 @@ export const ReportsView: React.FC = () => {
       <div className="bg-white rounded-2xl p-6 shadow-xs border border-slate-100 space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-100 pb-3"><div><h3 className="text-sm font-extrabold text-slate-900">گزارش شش‌ماهه نتایج مصوبات</h3><p className="text-[11px] text-slate-500">بازه شمسی دلخواه را برای دوره شش‌ماهه انتخاب کنید.</p></div><div className="flex flex-wrap items-end gap-2"><label className="text-[10px] text-slate-500">از تاریخ<input value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="block mt-1 text-xs p-2 border rounded-lg" /></label><label className="text-[10px] text-slate-500">تا تاریخ<input value={toDate} onChange={(e) => setToDate(e.target.value)} className="block mt-1 text-xs p-2 border rounded-lg" /></label><button onClick={loadReports} className="bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold">محاسبه گزارش</button></div></div>
         {semiAnnual && <><div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">{[{ label: 'کل مصوبات', value: semiAnnual.total }, { label: 'اجراشده', value: semiAnnual.completed }, { label: 'در حال اجرا', value: semiAnnual.inProgress }, { label: 'اجرا نشده', value: semiAnnual.notStarted }, { label: 'دارای تأخیر', value: semiAnnual.overdue }, { label: 'درصد تحقق', value: `${semiAnnual.fulfillmentPercent}٪` }].map((item) => <div key={item.label} className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-center"><div className="text-[10px] text-slate-500">{item.label}</div><strong className="block text-lg text-slate-900 mt-1">{toPersianDigits(item.value)}</strong></div>)}</div><div className="grid grid-cols-1 lg:grid-cols-3 gap-4"><div><h4 className="text-xs font-bold mb-2">تفکیک بر اساس واحد</h4>{semiAnnual.byDepartment.map((item) => <div key={item.name} className="flex justify-between p-2 border-b text-xs"><span>{item.name}</span><span>{toPersianDigits(item.completed)} از {toPersianDigits(item.count)}</span></div>)}</div><div><h4 className="text-xs font-bold mb-2">تفکیک بر اساس جلسه</h4>{semiAnnual.byMeeting.map((item) => <div key={item.id} className="flex justify-between p-2 border-b text-xs"><span>{item.name}</span><span>{toPersianDigits(item.count)} مصوبه</span></div>)}</div><div><h4 className="text-xs font-bold mb-2">مصوبات مهم و معوق</h4>{semiAnnual.importantOrOverdue.length === 0 ? <div className="text-xs text-slate-400">موردی در این بازه نیست.</div> : semiAnnual.importantOrOverdue.map((item) => <button key={item.id} onClick={() => navigateTo('resolutions', { resolutionId: item.id })} className="w-full text-right p-2 border-b text-xs hover:bg-slate-50"><strong>{item.resolutionNumber}</strong> — {item.topicTitle}</button>)}</div></div></>}
+      </div>
+
+      {/* گزارش ابلاغ مصوبات — one row per issued ابلاغیه, keyed by its own
+          «شماره نامه ابلاغیه» which is independent of the resolution number. */}
+      <div className="bg-white rounded-2xl p-6 shadow-xs border border-slate-100 space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <Send className="w-4 h-4 text-fuchsia-700" />
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900">گزارش ابلاغ مصوبات</h3>
+              <p className="text-[11px] text-slate-500">فهرست ابلاغیه‌های صادرشده به همراه شماره نامه ابلاغیه</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="text-[10px] text-slate-500">از تاریخ
+            <input value={noticeFromDate} onChange={(e) => setNoticeFromDate(e.target.value)} placeholder="۱۴۰۵/۰۱/۰۱" className="block mt-1 text-xs p-2 border rounded-lg w-28" />
+          </label>
+          <label className="text-[10px] text-slate-500">تا تاریخ
+            <input value={noticeToDate} onChange={(e) => setNoticeToDate(e.target.value)} placeholder="۱۴۰۵/۱۲/۲۹" className="block mt-1 text-xs p-2 border rounded-lg w-28" />
+          </label>
+          <label className="text-[10px] text-slate-500">واحد پیشنهاددهنده
+            <select value={noticeDepartment} onChange={(e) => setNoticeDepartment(e.target.value)} className="block mt-1 text-xs p-2 border rounded-lg">
+              <option value="ALL">همه واحدها</option>
+              {mockDepartments.map((dept) => <option key={dept.id} value={dept.name}>{dept.name}</option>)}
+            </select>
+          </label>
+          <label className="text-[10px] text-slate-500">شماره مصوبه
+            <input value={noticeResolutionNumber} onChange={(e) => setNoticeResolutionNumber(e.target.value)} className="block mt-1 text-xs p-2 border rounded-lg w-32" />
+          </label>
+          <label className="text-[10px] text-slate-500">شماره نامه ابلاغیه
+            <input value={noticeLetterNumber} onChange={(e) => setNoticeLetterNumber(e.target.value)} className="block mt-1 text-xs p-2 border rounded-lg w-28" />
+          </label>
+          <button onClick={loadNotificationLetters} className="bg-fuchsia-700 hover:bg-fuchsia-800 text-white px-4 py-2 rounded-lg text-xs font-bold cursor-pointer">اعمال فیلتر</button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-right border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-50 text-slate-500 border-b border-slate-200 text-[11px]">
+                <th className="py-3 px-3 font-bold">موضوع</th>
+                <th className="py-3 px-3 font-bold">شماره نامه ابلاغیه</th>
+                <th className="py-3 px-3 font-bold">شماره مصوبه</th>
+                <th className="py-3 px-3 font-bold">تاریخ</th>
+                <th className="py-3 px-3 font-bold">واحد پیشنهاددهنده</th>
+                <th className="py-3 px-3 font-bold">توضیحات</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {noticeRows.length === 0 ? (
+                <tr><td colSpan={6} className="py-8 text-center text-xs text-slate-400">ابلاغیه‌ای با این مشخصات ثبت نشده است.</td></tr>
+              ) : noticeRows.map((row) => (
+                <tr key={row.noticeId} className="hover:bg-slate-50/80 align-top">
+                  <td className="py-3 px-3 font-bold text-slate-800">{row.subject}</td>
+                  <td className="py-3 px-3 font-bold text-fuchsia-700">{toPersianDigits(row.notificationLetterNumber)}</td>
+                  <td className="py-3 px-3 font-bold text-teal-700">{toPersianDigits(row.resolutionNumber)}</td>
+                  <td className="py-3 px-3">{toPersianDigits(row.dateJalali)}</td>
+                  <td className="py-3 px-3">{row.proposerDepartment || '—'}</td>
+                  <td className="py-3 px-3 text-slate-600 max-w-md">{row.description}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Infographic: proposal & resolution status breakdown (doughnut charts, Chart.js) */}
