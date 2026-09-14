@@ -122,6 +122,21 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClos
     }
   };
 
+  /**
+   * Role defaults are a STARTING POINT for a new user, never a reset for an
+   * existing one. Editing someone's profile must not silently strip
+   * permissions that were granted to them individually (NOTIFY_RESOLUTION,
+   * APPROVE_MEETING_CONFIRMATION, the follow-up permissions, …) — those are
+   * managed in the permissions dialog and are the reason a persona works at
+   * all. Changing the role only ADDS that role's baseline on top.
+   */
+  const resolvePermissions = (): string[] => {
+    if (!user) return getPermissionsForRole(role);
+    const existing = user.permissions || [];
+    if (user.role === role) return existing;
+    return Array.from(new Set<string>([...existing, ...getPermissionsForRole(role)]));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firstName.trim() || !lastName.trim()) {
@@ -154,7 +169,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClos
         organizationName: 'سازمان مرکزی فناوری و اطلاعات',
         signatureUrl: signatureUrl || undefined,
         isActive,
-        permissions: getPermissionsForRole(role),
+        permissions: resolvePermissions(),
       };
 
       if (user) await updateUser(user.id, userData);
