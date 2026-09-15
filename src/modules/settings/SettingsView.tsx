@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Settings, Users2, PieChart, BookOpen } from 'lucide-react';
+import { Settings, Users2, PieChart, BookOpen, Network } from 'lucide-react';
 import { GeneralSettingsTab } from './GeneralSettingsTab';
 import { UserManagementTab } from './UserManagementTab';
+import { LdapSettingsTab } from './LdapSettingsTab';
 import { InfographicsView } from '../infographics/InfographicsView';
 import { UserGuideView } from '../guide/UserGuideView';
 import { useApp } from '../../context/AppContext';
 
-type SettingsMainTab = 'GENERAL' | 'USERS' | 'INFOGRAPHICS' | 'GUIDE';
+type SettingsMainTab = 'GENERAL' | 'USERS' | 'LDAP' | 'INFOGRAPHICS' | 'GUIDE';
 
 export const SettingsView: React.FC = () => {
   const { currentUser, hasPermission } = useApp();
@@ -21,6 +22,9 @@ export const SettingsView: React.FC = () => {
       ? [
           { id: 'GENERAL' as SettingsMainTab, label: 'تنظیمات عمومی', icon: Settings },
           { id: 'USERS' as SettingsMainTab, label: 'مدیریت کاربران', icon: Users2 },
+          // LDAP مثل بقیه تب‌های مدیریتی فقط برای مدیر سیستم / دارنده مجوز
+          // مدیریت تنظیمات نمایش داده می‌شود.
+          { id: 'LDAP' as SettingsMainTab, label: 'LDAP', icon: Network },
         ]
       : []),
     { id: 'INFOGRAPHICS' as SettingsMainTab, label: 'اینفوگراف', icon: PieChart },
@@ -39,7 +43,7 @@ export const SettingsView: React.FC = () => {
         </h1>
         <p className="text-xs text-slate-400 font-medium mt-0.5">
           {canManageSystem
-            ? 'مدیریت اطلاعات سازمان، پنل پیامکی، تقویم، تم سامانه، مدیریت کاربران، اینفوگراف و راهنمای کاربری'
+            ? 'مدیریت اطلاعات سازمان، پنل پیامکی، تقویم، تم سامانه، مدیریت کاربران، دایرکتوری سازمانی، اینفوگراف و راهنمای کاربری'
             : 'اینفوگراف سامانه و راهنمای کاربری'}
         </p>
 
@@ -64,6 +68,7 @@ export const SettingsView: React.FC = () => {
 
       {activeTab === 'GENERAL' && <GeneralSettingsTab />}
       {activeTab === 'USERS' && <UserManagementTab />}
+      {activeTab === 'LDAP' && <LdapSettingsTab />}
       {activeTab === 'INFOGRAPHICS' && <InfographicsView />}
       {activeTab === 'GUIDE' && <UserGuideView />}
     </div>

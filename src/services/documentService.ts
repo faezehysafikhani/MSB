@@ -195,13 +195,20 @@ export const buildResolutionNotificationDocument = (
   actor: User
 ): GeneratedDocument => {
   if (!canAccessResolutionDocument(resolution, actor)) denyResolution();
-  const isFinal = Boolean(notice?.notificationLetterNumber && resolution.notifiedDateJalali);
+  // نسخه نهایی فقط وقتی است که ابلاغ ثبت شده باشد **و** دبیر جلسه واقعاً
+  // ابلاغیه را امضا کرده باشد. تا پیش از آن سند به‌وضوح «پیش‌نویس / در
+  // انتظار امضا» است و امضای دبیر جلسه در آن نمایش داده نمی‌شود.
+  const isFinal = Boolean(
+    notice?.notificationLetterNumber && resolution.notifiedDateJalali && notice?.secretarySignature
+  );
 
   const html = `
     ${DOCUMENT_STYLES}
     <div class="doc">
       ${orgHeader('نامه ابلاغ مصوبه', `${resolution.resolutionNumber} — ${resolution.topicTitle}`)}
-      ${draftBanner(isFinal, 'این مصوبه هنوز ابلاغ رسمی نشده است')}
+      ${draftBanner(isFinal, notice?.notificationLetterNumber
+        ? 'این ابلاغیه هنوز توسط دبیر جلسه امضا نشده است — پیش‌نویس'
+        : 'این مصوبه هنوز ابلاغ رسمی نشده است')}
       <div class="meta">
         <span><b>شماره نامه ابلاغیه:</b> ${fa(notice?.notificationLetterNumber || '—')}</span>
         <span><b>شماره مصوبه:</b> ${fa(resolution.resolutionNumber)}</span>

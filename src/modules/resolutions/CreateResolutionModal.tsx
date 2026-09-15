@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { resolutionService } from '../../services/resolutionService';
 import { meetingService } from '../../services/meetingService';
+import { proposalService } from '../../services/proposalService';
 import { mockDepartments, mockMeetings } from '../../mock/data';
 import { PersianDatePicker } from '../../components/common/PersianDatePicker';
 import {
@@ -82,6 +83,7 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
       setLetterNumber('');
       setProposerName('');
       setProposerDepartment('');
+      void autofillFromSourceProposal(defaultMeetingId, defaultAgendaItemId);
       setRequestDescription('');
       setReviewResultNotes('');
       setExecutionDescription('');
@@ -92,6 +94,39 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
       setFollowUpType('MONTHLY');
     }
   }, [isOpen, defaultMeetingId, defaultAgendaItemId, defaultTopicTitle]);
+
+  /**
+   * Autofill شماره نامه / پیشنهاددهنده / واحد پیشنهاددهنده از روی همان
+   * Proposal ای که این بند دستور جلسه از آن ساخته شده است.
+   * مسیر Relation موجود دنبال می‌شود (بدون Data جدید):
+   *   Meeting → AgendaItem.sourceProposalId → Proposal
+   * فیلدها همچنان قابل ویرایش‌اند؛ فقط مقدار اولیه درست پر می‌شود.
+   */
+  const autofillFromSourceProposal = async (meetingId?: string, agendaItemId?: string) => {
+    if (!meetingId || !agendaItemId) return;
+    const meetingRes = await meetingService.getMeetingById(meetingId);
+    const agenda = meetingRes.data?.agendaItems.find((item) => item.id === agendaItemId);
+    if (!agenda?.sourceProposalId) return;
+
+    const proposalRes = await proposalService.getProposals({ pageSize: 500 });
+    const proposal = proposalRes.isSuccess
+      ? proposalRes.data.items.find((item) => item.id === agenda.sourceProposalId)
+      : undefined;
+    if (!proposal) return;
+
+    // شماره نامه: همان Field مشترک پیشنهاد (فرم دستی و Excel Import).
+    if (proposal.sourceLetterNumber) setLetterNumber(proposal.sourceLetterNumber);
+
+    // پیشنهاددهنده: ارائه‌دهنده تأییدشده پیشنهاد، وگرنه ارائه‌دهنده اولیه.
+    const presenterName = proposal.confirmedPresenterName || proposal.presenterName;
+    if (presenterName) setProposerName(presenterName);
+
+    // واحد پیشنهاددهنده: واحد سازمانی همان ارائه‌دهنده، وگرنه واحد ثبت پیشنهاد.
+    const presenterId = proposal.confirmedPresenterId || proposal.presenterUserId;
+    const presenterUser = availableUsers.find((user) => user.id === presenterId);
+    const department = presenterUser?.departmentName || proposal.proposerDepartmentName;
+    if (department) setProposerDepartment(department);
+  };
 
   // Auto-fill responsible department when mainResponsibleUserId changes (Requirement 8)
   useEffect(() => {

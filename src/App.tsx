@@ -51,6 +51,8 @@ const AppContent: React.FC = () => {
   const canManageUsers = currentUser.role === 'ADMIN' || hasPermission('MANAGE_USERS');
   const canViewApprovals = hasPermission('VIEW_APPROVALS') || currentUser.role === 'ADMIN' || currentUser.role === 'DEPT_MANAGER' || currentUser.role === 'CEO';
   const canNotifyResolutions = hasPermission('NOTIFY_RESOLUTION');
+  // دبیر جلسه‌ها ابلاغیه امضا می‌کنند و باید به همان کارتابل دسترسی داشته باشند.
+  const canSignNotices = currentUser.role === 'ADMIN' || currentUser.role === 'SECRETARY' || hasPermission('APPROVE_MEETING_CONFIRMATION');
   const canViewFollowUp = hasPermission('VIEW_RESOLUTION_FOLLOWUP');
 
   const renderCurrentView = () => {
@@ -72,7 +74,9 @@ const AppContent: React.FC = () => {
       case 'approvals':
         return canViewApprovals ? <ApprovalsView /> : <AccessDenied />;
       case 'notification-inbox':
-        return canNotifyResolutions ? <NotificationInboxView /> : <AccessDenied />;
+        // مسئول دفتر (ثبت ابلاغ) و دبیر جلسه (امضای ابلاغیه) هر دو به این
+        // کارتابل دسترسی دارند؛ محتوای هر تب خودش Scope شده است.
+        return canNotifyResolutions || canSignNotices ? <NotificationInboxView /> : <AccessDenied />;
       case 'follow-up':
         return canViewFollowUp ? <FollowUpCartableView /> : <AccessDenied />;
       case 'reports':

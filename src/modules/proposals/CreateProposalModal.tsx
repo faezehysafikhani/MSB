@@ -17,6 +17,9 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({ isOpen
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [rationale, setRationale] = useState('');
+  // «شماره نامه» پیشنهاد — همان Field ای که Excel Import هم پر می‌کند
+  // (sourceLetterNumber)، نه یک Field موازی.
+  const [letterNumber, setLetterNumber] = useState('');
   const [presenterUserId, setPresenterUserId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -41,6 +44,7 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({ isOpen
         proposerDepartmentName: currentUser.departmentName,
         presenterUserId: presenter.id,
         presenterName: presenter.fullName,
+        sourceLetterNumber: letterNumber.trim() || undefined,
       });
       showToast(
         'ثبت مصوبه پیشنهادی',
@@ -50,6 +54,7 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({ isOpen
       setTitle('');
       setDescription('');
       setRationale('');
+      setLetterNumber('');
       setPresenterUserId('');
       triggerRefresh();
       onClose();
@@ -111,6 +116,17 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({ isOpen
               className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
               placeholder="این موضوع چرا باید در جلسه مطرح و درباره آن تصمیم‌گیری شود؟"
             />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">شماره نامه</label>
+            <input
+              type="text"
+              value={letterNumber}
+              onChange={(e) => setLetterNumber(e.target.value)}
+              className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+              placeholder="مثال: ۱۴۰۵/۱۲۳۴۵"
+            />
+            <p className="text-[10px] text-slate-400 mt-1">هنگام تبدیل این پیشنهاد به مصوبه، این شماره به‌صورت خودکار در فرم مصوبه درج می‌شود.</p>
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">دلایل و ضرورت طرح</label>

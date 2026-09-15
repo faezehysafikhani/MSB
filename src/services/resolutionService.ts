@@ -82,7 +82,11 @@ export interface IResolutionService {
   // real transition that unlocks execution. Called from both the کارتابل
   // ابلاغ inbox and the resolution's own detail form; never a second,
   // parallel notification path.
-  notifyResolution(resolutionId: string, notificationDateJalali: string, actor: User): Promise<ApiResponse<Resolution>>;
+  // تاریخ ابلاغ دیگر از کاربر گرفته نمی‌شود — از DateTime واقعی سیستم ثبت می‌شود.
+  notifyResolution(resolutionId: string, actor: User): Promise<ApiResponse<Resolution>>;
+  // امضای واقعی دبیر جلسه روی ابلاغیه؛ تنها راه ورود مصوبه به فاز اجرا.
+  signNotificationLetter(resolutionId: string, actor: User): Promise<ApiResponse<Resolution>>;
+  filterNoticesAwaitingSignatureBy(resolutions: Resolution[], actor: User): Promise<Resolution[]>;
 }
 
 class MockResolutionService implements IResolutionService {
@@ -519,9 +523,10 @@ class MockResolutionService implements IResolutionService {
   public async releaseMeetingResolutionsForExecution(meetingId: string): Promise<ApiResponse<number>> {
     const eligible = this.resolutions.filter((item) => item.meetingId === meetingId && item.executionStatus === 'WAITING_NOTIFICATION');
     eligible.forEach((resolution) => {
-      resolution.executionStatus = 'NOTIFIED';
-      this.activityLogs.unshift({ id: `log-notice-${resolution.id}-${Date.now()}`, targetType: 'RESOLUTION', targetId: resolution.id, action: 'ابلاغ رسمی مصوبه', actorName: 'دبیرخانه هیأت‌مدیره', actorRole: 'دبیرخانه', timestampJalali: new Intl.DateTimeFormat('fa-IR-u-ca-persian').format(new Date()).replace(/[\u200e\u200f]/g, ''), timeString: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }), details: `ابلاغیه صادر و مصوبه به ${resolution.mainResponsibleName || 'مسئول اجرا'} ارجاع شد.`, badgeColor: 'teal' });
-      this.startExecution(resolution);
+      // مسیر صدور گروهی ابلاغیه از صورت‌جلسه هم مثل مسیر تکی، مصوبه را
+      // مستقیم وارد اجرا نمی‌کند: ابتدا باید دبیر جلسه ابلاغیه را امضا کند.
+      resolution.executionStatus = 'PENDING_SECRETARY_NOTICE_SIGNATURE';
+      this.activityLogs.unshift({ id: `log-notice-${resolution.id}-${Date.now()}`, targetType: 'RESOLUTION', targetId: resolution.id, action: 'ابلاغ رسمی مصوبه', actorName: 'دبیرخانه هیأت‌مدیره', actorRole: 'دبیرخانه', timestampJalali: new Intl.DateTimeFormat('fa-IR-u-ca-persian').format(new Date()).replace(/[\u200e\u200f]/g, ''), timeString: new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }), details: `ابلاغیه صادر شد و برای امضا به کارتابل دبیر جلسه رفت.`, badgeColor: 'teal' });
     });
     this.persist();
     return apiClient.simulateNetwork(eligible.length, 120);
@@ -554,51 +559,40 @@ class MockResolutionService implements IResolutionService {
     saveLocalCollection('notifications', [...newOnes, ...notifications]);
   }
 
-  public async notifyResolution(resolutionId: string, notificationDateJalali: string, actor: User): Promise<ApiResponse<Resolution>> {
+  public async notifyResolution(resolutionId: string, actor: User): Promise<ApiResponse<Resolution>> {
     // Permission-gated, not role-hardcoded — any role granted
     // NOTIFY_RESOLUTION later can act here too. ADMIN keeps its usual
     // implicit-superuser access, matching every other permission check
     // across the app.
     const canNotify = actor.role === 'ADMIN' || (actor.permissions || []).includes('NOTIFY_RESOLUTION');
     if (!canNotify) throw new Error('شما مجاز به ثبت ابلاغ این مصوبه نیستید.');
-    if (!notificationDateJalali.trim()) throw new Error('ثبت تاریخ ابلاغ الزامی است.');
 
     const resolution = this.resolutions.find((item) => item.id === resolutionId);
     if (!resolution) throw new Error('مصوبه یافت نشد');
     if (resolution.executionStatus !== 'WAITING_NOTIFICATION') throw new Error('این مصوبه در کارتابل ابلاغ نیست.');
 
+    // تاریخ/ساعت/کاربر ابلاغ خودکار از DateTime واقعی سیستم ثبت می‌شوند —
+    // هیچ تاریخی از کاربر گرفته نمی‌شود. مبنای ذخیره‌سازی notifiedAt
+    // (ISO DateTime) است و رشته شمسی فقط برای نمایش نگهداری می‌شود.
     const now = new Date();
     const dateJalali = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(now).replace(/[‎‏]/g, '');
     const timeString = now.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
 
-    resolution.notifiedDateJalali = notificationDateJalali.trim();
+    resolution.notifiedAt = now.toISOString();
+    resolution.notifiedDateJalali = dateJalali;
+    resolution.notifiedTimeString = timeString;
     resolution.notifiedByUserId = actor.id;
     resolution.notifiedByName = actor.fullName;
-    resolution.notifiedAt = now.toISOString();
-    resolution.executionStatus = 'NOTIFIED';
+    // ابلاغ، مصوبه را وارد اجرا نمی‌کند. ابتدا باید دبیر جلسه ابلاغیه را
+    // واقعاً امضا کند (signNotificationLetter).
+    resolution.executionStatus = 'PENDING_SECRETARY_NOTICE_SIGNATURE';
 
-    // دبیر جلسه of the originating meeting is recorded on the notice as the
-    // countersigning secretary of record — a distinct signature context
-    // from the resolution's own three main signatures, never a fourth step
-    // in that chain (see ResolutionNotice.secretaryUserId/secretaryName).
     const meetings = loadLocalCollection('meetings', mockMeetings);
     const meeting = meetings.find((item) => item.id === resolution.meetingId);
     const notices = loadLocalCollection<ResolutionNotice[]>('resolutionNotices', []);
-    // امضای دبیر جلسه روی ابلاغیه — its own signature context, resolved from
-    // the meeting's real دبیر جلسه, never from the office manager acting here.
-    const secretaryUser = meeting ? loadLocalCollection('users', mockUsers).find((user) => user.id === meeting.secretaryId) : undefined;
-    const secretarySignature: DocumentSignature | undefined = meeting?.secretaryId
-      ? {
-          signerUserId: meeting.secretaryId,
-          signerName: meeting.secretaryName,
-          signerTitle: secretaryUser?.title || 'دبیر جلسه',
-          context: 'RESOLUTION_NOTIFICATION',
-          signedAt: now.toISOString(),
-          signedDateJalali: notificationDateJalali.trim(),
-          signedTimeString: timeString,
-          signatureImageUrl: resolveSignatureImageUrl(secretaryUser?.signatureUrl),
-        }
-      : undefined;
+    // دبیر جلسه فقط به‌عنوان «امضاکننده موردانتظار» ثبت می‌شود؛ رکورد امضا
+    // (secretarySignature) عمداً اینجا ساخته نمی‌شود، چون هنوز امضایی انجام
+    // نشده است و PDF نباید امضای جعلی/زودهنگام نشان دهد.
     const recipientName = resolution.mainResponsibleName || resolution.proposerName;
     const recipientDepartment = resolution.responsibleDepartmentName || resolution.proposerDepartment;
     // Reserved only now — every validation above has already passed, so an
@@ -611,10 +605,10 @@ class MockResolutionService implements IResolutionService {
       resolutionId: resolution.id,
       resolutionNumber: resolution.resolutionNumber,
       meetingId: resolution.meetingId,
-      dateJalali: notificationDateJalali.trim(),
+      dateJalali,
       recipientName,
       recipientDepartment,
-      text: `مصوبه «${resolution.topicTitle}» طی این سند در تاریخ ${notificationDateJalali.trim()} ابلاغ رسمی گردید.`,
+      text: `مصوبه «${resolution.topicTitle}» طی این سند در تاریخ ${dateJalali} ابلاغ رسمی گردید.`,
       deadlineJalali: resolution.deadlineJalali,
       attachmentIds: resolution.attachments.map((attachment) => attachment.id),
       status: 'SENT',
@@ -622,7 +616,8 @@ class MockResolutionService implements IResolutionService {
       createdByUserId: actor.id,
       secretaryUserId: meeting?.secretaryId,
       secretaryName: meeting?.secretaryName,
-      secretarySignature: secretarySignature,
+      // بدون امضا صادر می‌شود؛ با امضای واقعی دبیر جلسه پر خواهد شد.
+      secretarySignature: undefined,
     };
     saveLocalCollection('resolutionNotices', [notice, ...notices]);
     // Mirrored onto the resolution so lists and reports can show the letter
@@ -638,10 +633,103 @@ class MockResolutionService implements IResolutionService {
       actorRole: actor.title,
       timestampJalali: dateJalali,
       timeString,
-      details: `شماره نامه ابلاغیه: ${notificationLetterNumber} | تاریخ ابلاغ: ${notificationDateJalali.trim()}${meeting?.secretaryName ? ` | دبیر جلسه: ${meeting.secretaryName}` : ''}`,
+      details: `ابلاغ توسط ${actor.fullName} در تاریخ ${dateJalali} ساعت ${timeString} | شماره نامه ابلاغیه: ${notificationLetterNumber}${meeting?.secretaryName ? ` | در انتظار امضای دبیر جلسه: ${meeting.secretaryName}` : ''}`,
       badgeColor: 'teal',
     });
 
+    // عمداً startExecution صدا زده نمی‌شود — اجرا فقط پس از امضای دبیر جلسه.
+    this.persist();
+    return apiClient.simulateNetwork(resolution, 140);
+  }
+
+  /**
+   * از میان مصوباتِ «در انتظار امضای دبیر جلسه»، فقط آنهایی که همین کاربر
+   * دبیر جلسه‌شان است. همان قاعده‌ای که signNotificationLetter هم Enforce
+   * می‌کند، تا کارتابل و مجوز اقدام از یک منبع تصمیم بگیرند.
+   */
+  public async filterNoticesAwaitingSignatureBy(resolutions: Resolution[], actor: User): Promise<Resolution[]> {
+    if (actor.role === 'ADMIN') return resolutions;
+    const notices = loadLocalCollection<ResolutionNotice[]>('resolutionNotices', []);
+    const meetings = loadLocalCollection('meetings', mockMeetings);
+    return resolutions.filter((resolution) => {
+      const notice = notices.find((item) => item.resolutionId === resolution.id);
+      const meeting = meetings.find((item) => item.id === resolution.meetingId);
+      const expectedSignerId = notice?.secretaryUserId || meeting?.secretaryId;
+      return Boolean(expectedSignerId) && expectedSignerId === actor.id;
+    });
+  }
+
+  /**
+   * امضای واقعی دبیر جلسه روی ابلاغیه — مرحله بین «ابلاغ» و «شروع اجرا».
+   * تنها دبیر جلسهِ همان جلسه (یا ADMIN) مجاز است. پس از امضای موفق:
+   * رکورد امضا با signerUserId/signedAt و Context ابلاغ ثبت می‌شود، تصویر
+   * امضا از امضای مرکزی همان کاربر خوانده و Snapshot می‌شود، و تازه آنگاه
+   * Workflow اجرای موجود شروع می‌شود.
+   * این امضا مربوط به «ابلاغیه» است و امضای چهارمِ سه امضای اصلی مصوبه
+   * محسوب نمی‌شود (signatureWorkflow اصلاً لمس نمی‌شود).
+   */
+  public async signNotificationLetter(resolutionId: string, actor: User): Promise<ApiResponse<Resolution>> {
+    const resolution = this.resolutions.find((item) => item.id === resolutionId);
+    if (!resolution) throw new Error('مصوبه یافت نشد');
+    if (resolution.executionStatus !== 'PENDING_SECRETARY_NOTICE_SIGNATURE') {
+      throw new Error('این ابلاغیه در کارتابل امضای دبیر جلسه نیست.');
+    }
+
+    const notices = loadLocalCollection<ResolutionNotice[]>('resolutionNotices', []);
+    const notice = notices.find((item) => item.resolutionId === resolution.id);
+    if (!notice) throw new Error('ابلاغیه این مصوبه یافت نشد.');
+
+    const meetings = loadLocalCollection('meetings', mockMeetings);
+    const meeting = meetings.find((item) => item.id === resolution.meetingId);
+    // امضاکننده موردانتظار: دبیر جلسهِ همان جلسه. اگر جلسه‌ای دبیر ثبت‌شده
+    // نداشته باشد، مصوبه نباید برای همیشه پشت این مرحله بماند — در آن حالت
+    // مدیر سیستم می‌تواند با هویت خودش امضا کند و بن‌بست را باز کند.
+    const expectedSignerId = notice.secretaryUserId || meeting?.secretaryId;
+    const isAdmin = actor.role === 'ADMIN';
+    if (!expectedSignerId && !isAdmin) {
+      throw new Error('دبیر جلسه برای این ابلاغیه تعیین نشده است.');
+    }
+    if (!isAdmin && actor.id !== expectedSignerId) {
+      throw new Error('فقط دبیر جلسه همین جلسه مجاز به امضای این ابلاغیه است.');
+    }
+    const signerId = expectedSignerId || actor.id;
+
+    const now = new Date();
+    const dateJalali = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(now).replace(/[‎‏]/g, '');
+    const timeString = now.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+
+    // تصویر امضا از منبع مرکزی امضای همان کاربر (مدیریت‌شده توسط Admin)
+    // خوانده و همین‌جا Snapshot می‌شود تا تعویض بعدی امضا، اسناد امضاشده
+    // قبلی را تغییر ندهد.
+    const users = loadLocalCollection('users', mockUsers);
+    const signerUser = users.find((user) => user.id === signerId);
+    notice.secretarySignature = {
+      signerUserId: signerId,
+      signerName: signerUser?.fullName || notice.secretaryName || meeting?.secretaryName || 'دبیر جلسه',
+      signerTitle: signerUser?.title || 'دبیر جلسه',
+      context: 'RESOLUTION_NOTIFICATION',
+      signedAt: now.toISOString(),
+      signedDateJalali: dateJalali,
+      signedTimeString: timeString,
+      signatureImageUrl: resolveSignatureImageUrl(signerUser?.signatureUrl),
+    };
+    saveLocalCollection('resolutionNotices', notices);
+
+    resolution.executionStatus = 'NOTIFIED';
+    this.activityLogs.unshift({
+      id: `log-notice-sign-${resolution.id}-${Date.now()}`,
+      targetType: 'RESOLUTION',
+      targetId: resolution.id,
+      action: 'امضای ابلاغیه توسط دبیر جلسه',
+      actorName: notice.secretarySignature.signerName,
+      actorRole: notice.secretarySignature.signerTitle,
+      timestampJalali: dateJalali,
+      timeString,
+      details: `ابلاغیه ${notice.notificationLetterNumber || notice.noticeNumber} توسط ${notice.secretarySignature.signerName} در تاریخ ${dateJalali} ساعت ${timeString} امضا شد و مصوبه وارد فاز اجرا گردید.`,
+      badgeColor: 'purple',
+    });
+
+    // تازه حالا Workflow اجرای موجود شروع می‌شود.
     this.startExecution(resolution);
     this.persist();
     return apiClient.simulateNetwork(resolution, 140);

@@ -242,7 +242,15 @@ export const ReportsView: React.FC = () => {
                   <td className="py-3 px-3 font-bold text-slate-800">{row.subject}</td>
                   <td className="py-3 px-3 font-bold text-fuchsia-700">{toPersianDigits(row.notificationLetterNumber)}</td>
                   <td className="py-3 px-3 font-bold text-teal-700">{toPersianDigits(row.resolutionNumber)}</td>
-                  <td className="py-3 px-3">{toPersianDigits(row.dateJalali)}</td>
+                  <td className="py-3 px-3">
+                    {toPersianDigits(row.dateJalali)}
+                    {row.notifiedByName && (
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        ابلاغ توسط {row.notifiedByName}
+                        {row.notifiedTimeString ? ` — ساعت ${toPersianDigits(row.notifiedTimeString)}` : ''}
+                      </div>
+                    )}
+                  </td>
                   <td className="py-3 px-3">{row.proposerDepartment || '—'}</td>
                   <td className="py-3 px-3 text-slate-600 max-w-md">{row.description}</td>
                 </tr>
