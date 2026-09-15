@@ -6,7 +6,6 @@ import {
   Calendar,
   Clock,
   MapPin,
-  Users,
   FileText,
   ArrowRight,
   Printer,
@@ -44,7 +43,7 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
 
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [resolutions, setResolutions] = useState<Resolution[]>([]);
-  const [activeTab, setActiveTab] = useState<'AGENDAS' | 'RESOLUTIONS' | 'MEMBERS' | 'INVITATIONS' | 'ATTACHMENTS' | 'MINUTES_PRINT'>('AGENDAS');
+  const [activeTab, setActiveTab] = useState<'AGENDAS' | 'RESOLUTIONS' | 'INVITATIONS' | 'ATTACHMENTS' | 'MINUTES_PRINT'>('AGENDAS');
   const [loading, setLoading] = useState(true);
   const [agendaReviewNotes, setAgendaReviewNotes] = useState('');
   const [outcomeStatuses, setOutcomeStatuses] = useState<Record<string, NonNullable<AgendaItem['outcomeStatus']>>>({});
@@ -378,18 +377,6 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
         </button>
 
         <button
-          onClick={() => setActiveTab('MEMBERS')}
-          className={`flex items-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
-            activeTab === 'MEMBERS'
-              ? 'bg-teal-800 text-white shadow-xs'
-              : 'text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>اعضا و امضاکنندگان ({toPersianDigits(meeting.members.length)})</span>
-        </button>
-
-        <button
           onClick={() => setActiveTab('ATTACHMENTS')}
           className={`flex items-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
             activeTab === 'ATTACHMENTS'
@@ -627,32 +614,9 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
         </div>
       )}
 
-      {/* Tab 3: Members */}
-      {activeTab === 'MEMBERS' && (
-        <div className="bg-white rounded-3xl p-6 shadow-xs border border-slate-200/90 space-y-4">
-          <h3 className="text-xs font-extrabold text-slate-800 border-b border-slate-100 pb-3">
-            فهرست اعضای حاضر و ارکان جلسه
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {meeting.members.map((member) => (
-              <div
-                key={member.userId}
-                className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-3"
-              >
-                <div className="w-9 h-9 rounded-full bg-teal-800 text-white font-bold text-xs flex items-center justify-center">
-                  {member.fullName[0]}
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-800">{member.fullName}</div>
-                  <div className="text-[11px] text-slate-500">{member.organizationPosition}</div>
-                  <div className="text-[10px] text-teal-800 font-medium">{member.departmentName}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* تب «اعضا و امضاکنندگان» حذف شد: امضای اعضا از فرآیند برداشته شده
+          و فهرست اعضا به‌همراه سمت و واحد سازمانی در تب «دعوتنامه‌ها و
+          مدعوین» نمایش داده می‌شود، پس این تب کاربرد مستقلی نداشت. */}
 
       {activeTab === 'INVITATIONS' && (
         <div className="bg-white rounded-3xl p-6 shadow-xs border border-slate-200/90 space-y-5">
@@ -661,9 +625,10 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
             <button onClick={handleInvitationDocument} className="flex items-center gap-1.5 bg-blue-800 hover:bg-blue-900 text-white text-xs font-bold py-2 px-3.5 rounded-xl cursor-pointer shrink-0"><FileDown className="w-3.5 h-3.5" /><span>مشاهده و دانلود دعوت‌نامه</span></button>
           </div>
 
+          {/* تصویر امضای دبیر جلسه داخل فرم جلسه نمایش داده نمی‌شود؛ فقط وضعیت
+              امضا. تصویر امضا همچنان در دعوت‌نامه و اسناد رسمی/PDF چاپ می‌شود. */}
           {meeting.invitationSignature && (
             <div className="flex items-center gap-3 p-3 rounded-2xl border border-emerald-200 bg-emerald-50/60">
-              <img src={meeting.invitationSignature.signatureImageUrl} alt="امضای دبیر جلسه" className="h-12 object-contain" />
               <div className="text-[11px]">
                 <strong className="block text-slate-800">دعوت‌نامه توسط دبیر جلسه امضا شده است</strong>
                 <span className="block text-slate-600">{meeting.invitationSignature.signerName} — {meeting.invitationSignature.signerTitle}</span>
@@ -690,7 +655,7 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {meeting.members.map((member) => {
               const invitation = meeting.invitations?.find((item) => item.recipientType === 'MEMBER' && item.recipientId === member.userId);
-              return <div key={member.userId} className="p-3 border border-slate-200 rounded-2xl"><strong className="text-slate-800">{member.fullName}</strong><span className="block text-[10px] text-slate-500">{member.roleTitle} — عضو جلسه</span><span className={`inline-block mt-2 text-[10px] font-bold px-2 py-1 rounded-full ${invitation ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{invitation?.status === 'VIEWED' ? 'مشاهده شده' : invitation ? 'ارسال شده' : 'ارسال نشده'}</span>{invitation && <span className="text-[10px] text-slate-400 mr-2">{toPersianDigits(new Date(invitation.sentAt).toLocaleString('fa-IR'))}</span>}{member.userId === currentUser.id && invitation?.status === 'SENT' && <button onClick={handleInvitationViewed} className="block mt-2 bg-teal-800 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold">ثبت مشاهده دعوتنامه</button>}</div>;
+              return <div key={member.userId} className="p-3 border border-slate-200 rounded-2xl"><strong className="text-slate-800">{member.fullName}</strong><span className="block text-[10px] text-slate-500">{member.roleTitle} — عضو جلسه</span><span className="block text-[10px] text-slate-500">{member.organizationPosition}</span><span className="block text-[10px] text-teal-800 font-medium">{member.departmentName}</span><span className={`inline-block mt-2 text-[10px] font-bold px-2 py-1 rounded-full ${invitation ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{invitation?.status === 'VIEWED' ? 'مشاهده شده' : invitation ? 'ارسال شده' : 'ارسال نشده'}</span>{invitation && <span className="text-[10px] text-slate-400 mr-2">{toPersianDigits(new Date(invitation.sentAt).toLocaleString('fa-IR'))}</span>}{member.userId === currentUser.id && invitation?.status === 'SENT' && <button onClick={handleInvitationViewed} className="block mt-2 bg-teal-800 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold">ثبت مشاهده دعوتنامه</button>}</div>;
             })}
             {(meeting.guests || []).map((guest) => <div key={guest.id} className="p-3 border border-blue-200 bg-blue-50/30 rounded-2xl"><strong className="text-slate-800">{guest.fullName}</strong><span className="block text-[10px] text-slate-500">{guest.roleTitle} — {guest.organizationName}</span><span className="block text-[10px] text-blue-700 mt-1">موضوع: {guest.agendaItemTitle || 'کل جلسه'} | زمان حضور: {toPersianDigits(guest.requiredTime || '—')}</span><span className="inline-block mt-2 text-[10px] font-bold px-2 py-1 rounded-full bg-white border border-blue-200">{guest.invitationStatus === 'SENT' ? 'دعوتنامه ارسال شده' : guest.invitationStatus === 'VIEWED' ? 'مشاهده شده' : 'ارسال نشده'}</span></div>)}
           </div>
@@ -717,7 +682,7 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
               {/* Attendee signatures are no longer collected. Any that already
                   exist on an older minutes record stay visible, read-only. */}
               {(boardMinutes.signatures?.length || 0) > 0 && <details className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs"><summary className="cursor-pointer font-bold text-slate-700">امضاهای بایگانی‌شده اعضا (مربوط به فرآیند قبلی)</summary><div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">{boardMinutes.signatures!.map((signature) => <div key={signature.memberUserId} className="p-3 rounded-2xl border bg-white border-slate-200"><strong className="text-slate-800">{signature.memberName}</strong><span className="block text-[10px] text-slate-500">{signature.memberTitle}</span><span className="block text-[10px] font-bold mt-2">{signature.status === 'SIGNED' ? `امضا شده — ${toPersianDigits(new Date(signature.signedAt!).toLocaleString('fa-IR'))}` : 'ثبت نشده'}</span></div>)}</div></details>}
-              {boardMinutes.finalizedSignature && <div className="flex items-center gap-3 p-3 rounded-2xl border border-emerald-200 bg-emerald-50/60"><img src={boardMinutes.finalizedSignature.signatureImageUrl} alt="امضای نهایی‌کننده" className="h-12 object-contain" /><div className="text-[11px]"><strong className="block text-slate-800">{boardMinutes.finalizedSignature.signerName}</strong><span className="block text-slate-500">{boardMinutes.finalizedSignature.signerTitle}</span><span className="block text-slate-500">{toPersianDigits(boardMinutes.finalizedSignature.signedDateJalali)} — {toPersianDigits(boardMinutes.finalizedSignature.signedTimeString)}</span></div></div>}
+              {boardMinutes.finalizedSignature && <div className="flex items-center gap-3 p-3 rounded-2xl border border-emerald-200 bg-emerald-50/60"><div className="text-[11px]"><strong className="block text-slate-800">{boardMinutes.finalizedSignature.signerName}</strong><span className="block text-slate-500">{boardMinutes.finalizedSignature.signerTitle}</span><span className="block text-slate-500">{toPersianDigits(boardMinutes.finalizedSignature.signedDateJalali)} — {toPersianDigits(boardMinutes.finalizedSignature.signedTimeString)}</span></div></div>}
               <div className="flex flex-wrap gap-2">{isSecretariat && boardMinutes.status !== 'FINALIZED' && <><button onClick={handleSaveMinutes} className="bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold">ذخیره پیش‌نویس</button><button onClick={handleFinalizeMinutes} className="bg-teal-800 text-white px-4 py-2 rounded-xl text-xs font-bold">نهایی‌سازی در سه نسخه</button></>}<button onClick={handleMinutesDocument} className="bg-blue-800 text-white px-4 py-2 rounded-xl text-xs font-bold">مشاهده و دانلود صورت‌جلسه تجمیعی</button>{isSecretariat && boardMinutes.status === 'FINALIZED' && notices.length === 0 && <button onClick={handleIssueNotices} className="bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold">صدور و ارسال ابلاغیه مصوبات</button>}</div>
               <details className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs"><summary className="cursor-pointer font-bold text-slate-700">ردپای تغییرات صورت‌جلسه ({toPersianDigits(boardMinutes.history.length)})</summary><div className="mt-3 space-y-2">{boardMinutes.history.map((entry) => <div key={entry.id} className="flex flex-wrap justify-between gap-2 border-b border-slate-200 pb-2 last:border-0"><span><strong>{entry.action}</strong> — {entry.actorName}</span><span className="text-slate-500">{toPersianDigits(entry.dateJalali)}، {toPersianDigits(entry.timeString)}</span></div>)}</div></details>
               {notices.length > 0 && <div className="border-t border-slate-100 pt-3"><div className="font-extrabold text-slate-800 mb-2">ابلاغیه‌های صادرشده ({toPersianDigits(notices.length)})</div><div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{notices.map((notice) => <div key={notice.id} className="p-3 bg-blue-50/40 border border-blue-200 rounded-xl"><strong>{notice.noticeNumber} — {notice.resolutionNumber}</strong><span className="block text-[10px] text-slate-600">گیرنده: {notice.recipientName} ({notice.recipientDepartment})</span><span className="block text-[10px] text-blue-700 mt-1">{notice.status === 'RECEIVED' ? 'دریافت شده' : 'ارسال شده'} — مهلت: {toPersianDigits(notice.deadlineJalali || '—')}</span></div>)}</div></div>}

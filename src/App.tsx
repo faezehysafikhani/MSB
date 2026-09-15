@@ -86,7 +86,9 @@ const AppContent: React.FC = () => {
       case 'guide':
         return <UserGuideView />;
       case 'settings':
-        return canManageUsers ? <SettingsView /> : <AccessDenied />;
+        // اینفوگراف و راهنمای کاربری داخل Settings تب مستقل دارند، پس این صفحه
+        // برای همه باز است؛ تب‌های مدیریتی درون SettingsView خودش گیت می‌شوند.
+        return <SettingsView />;
       default:
         return <DashboardView />;
     }
