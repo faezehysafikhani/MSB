@@ -4,6 +4,7 @@ import { apiClient } from './api/apiClient';
 import { resolveSignatureImageUrl } from '../utils/signatureImage';
 import { loadLocalCollection, loadLocalValue, saveLocalCollection, saveLocalValue } from './localStore';
 import { smsService } from './smsService';
+import { scopeMeetingAgendaToUser } from './userScope';
 
 export interface CreateMeetingDto {
   title: string;
@@ -31,7 +32,7 @@ export interface AppendToMeetingDto {
 
 export interface IMeetingService {
   getMeetings(params?: ApiFilterParams & { participantUserId?: string }): Promise<ApiResponse<PagedResult<Meeting>>>;
-  getMeetingById(id: string): Promise<ApiResponse<Meeting | null>>;
+  getMeetingById(id: string, actor?: User): Promise<ApiResponse<Meeting | null>>;
   createMeeting(dto: CreateMeetingDto): Promise<ApiResponse<Meeting>>;
   updateMeeting(id: string, dto: Partial<Meeting>): Promise<ApiResponse<Meeting>>;
   deleteMeeting(id: string): Promise<ApiResponse<boolean>>;
@@ -127,13 +128,18 @@ class MockMeetingService implements IMeetingService {
     }, 150);
   }
 
-  public async getMeetingById(id: string): Promise<ApiResponse<Meeting | null>> {
+  public async getMeetingById(id: string, actor?: User): Promise<ApiResponse<Meeting | null>> {
     const meeting = this.getMeetingsData().find((m) => m.id === id) || null;
     if (meeting) {
       const resolutions = loadLocalCollection('resolutions', mockResolutions);
       meeting.resolutionsCount = resolutions.filter((r) => r.meetingId === meeting.id).length;
     }
-    return apiClient.simulateNetwork(meeting, 120);
+    // فیلتر «تایید جلسه»ها بر اساس افراد مرتبط، در خودِ Data Source — نه فقط
+    // پنهان‌سازی در UI. کاربر عادی حتی با دستکاری State یا فراخوانی مستقیم
+    // این متد هم بند غیرمرتبط را دریافت نمی‌کند. نقش‌های مدیریتی و Scope
+    // فعلی دست‌نخورده می‌مانند (canSeeAllAgendaItems).
+    const scoped = meeting ? scopeMeetingAgendaToUser(meeting, actor) : null;
+    return apiClient.simulateNetwork(scoped, 120);
   }
 
   public async createMeeting(dto: CreateMeetingDto): Promise<ApiResponse<Meeting>> {

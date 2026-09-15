@@ -40,6 +40,7 @@ import { buildResolutionDocument, buildResolutionNotificationDocument, openGener
 import { SAMPLE_SIGNATURE_DATA_URL } from '../../utils/signatureImage';
 import { ArchiveResolutionAction } from './ArchiveResolutionAction';
 import { RecordFollowUpForm } from './RecordFollowUpForm';
+import { buildAttachmentFromFile } from '../../utils/attachmentFile';
 
 interface ResolutionDetailModalProps {
   resolutionId: string | null;
@@ -188,7 +189,9 @@ export const ResolutionDetailModal: React.FC<ResolutionDetailModalProps> = ({
     setIsSubmittingCompletion(true);
     try {
       const uploadDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()).replace(/[‎‏]/g, '');
-      const attachments: Attachment[] = completionFiles.map((file, index) => ({ id: `completion-attachment-${Date.now()}-${index}`, fileName: file.name, fileSizeBytes: file.size, fileExtension: file.name.split('.').pop() || 'file', uploadDate, uploadedBy: currentUser.fullName, downloadUrl: '#' }));
+      const attachments: Attachment[] = (await Promise.all(
+        completionFiles.map((file) => buildAttachmentFromFile(file, currentUser.fullName, uploadDate))
+      )).map((built) => built.attachment);
       const res = await resolutionService.completeResolutionTask(resolution.id, completionNotes, attachments);
       if (res.isSuccess) {
         showToast(
