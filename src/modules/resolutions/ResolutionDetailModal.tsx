@@ -41,6 +41,7 @@ import { SAMPLE_SIGNATURE_DATA_URL } from '../../utils/signatureImage';
 import { ArchiveResolutionAction } from './ArchiveResolutionAction';
 import { RecordFollowUpForm } from './RecordFollowUpForm';
 import { buildAttachmentFromFile } from '../../utils/attachmentFile';
+import { SignNotificationLetterAction } from './SignNotificationLetterAction';
 
 interface ResolutionDetailModalProps {
   resolutionId: string | null;
@@ -412,8 +413,31 @@ export const ResolutionDetailModal: React.FC<ResolutionDetailModalProps> = ({
                     هر سه امضای اصلی تکمیل شده؛ مصوبه در انتظار ابلاغ رسمی توسط مسئول دفتر است.
                   </div>
                 )}
-                {signatureWorkflow.status === 'COMPLETED' && resolution.executionStatus !== 'WAITING_NOTIFICATION' && (
-                  <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-extrabold flex items-center gap-2"><CheckCircle2 className="w-4 h-4" />هر سه امضا تکمیل شده و مصوبه ابلاغ و وارد فرآیند اجرا شده است.</div>
+                {/* ابلاغ ثبت شده اما ابلاغیه هنوز امضا نشده: مصوبه وارد اجرا نشده است. */}
+                {resolution.executionStatus === 'PENDING_SECRETARY_NOTICE_SIGNATURE' && (
+                  <div className="p-3 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-900 space-y-2">
+                    <div className="font-extrabold flex items-center gap-2">
+                      <PenTool className="w-4 h-4" />
+                      ابلاغ ثبت شد؛ ابلاغیه در انتظار امضای دبیر جلسه است و مصوبه هنوز وارد فاز اجرا نشده.
+                    </div>
+                    <div className="text-[11px] font-bold">
+                      ابلاغ توسط {resolution.notifiedByName || '—'} در تاریخ {toPersianDigits(resolution.notifiedDateJalali || '—')}
+                      {resolution.notifiedTimeString ? ` ساعت ${toPersianDigits(resolution.notifiedTimeString)}` : ''}
+                      {resolution.notificationLetterNumber ? ` | شماره نامه ابلاغیه: ${toPersianDigits(resolution.notificationLetterNumber)}` : ''}
+                    </div>
+                    <SignNotificationLetterAction resolution={resolution} onSigned={triggerRefresh} />
+                  </div>
+                )}
+                {signatureWorkflow.status === 'COMPLETED' && !['WAITING_NOTIFICATION', 'PENDING_SECRETARY_NOTICE_SIGNATURE'].includes(resolution.executionStatus) && (
+                  <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 space-y-1">
+                    <div className="font-extrabold flex items-center gap-2"><CheckCircle2 className="w-4 h-4" />هر سه امضا تکمیل شده و مصوبه ابلاغ و وارد فرآیند اجرا شده است.</div>
+                    {resolution.notifiedByName && (
+                      <div className="text-[11px] font-bold">
+                        ابلاغ توسط {resolution.notifiedByName} در تاریخ {toPersianDigits(resolution.notifiedDateJalali || '—')}
+                        {resolution.notifiedTimeString ? ` ساعت ${toPersianDigits(resolution.notifiedTimeString)}` : ''}
+                      </div>
+                    )}
+                  </div>
                 )}
                 {resolution.executionStatus === 'WAITING_NOTIFICATION' && hasPermission('NOTIFY_RESOLUTION') && (
                   <NotifyResolutionAction resolutionId={resolution.id} resolutionNumber={resolution.resolutionNumber} onNotified={triggerRefresh} />

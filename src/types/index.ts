@@ -212,10 +212,11 @@ export interface Proposal {
   history?: WorkflowHistoryEntry[];
   updatedAt?: string;
   createdAt: string;
-  // Traceability only — never affects workflow. A proposal created via the
-  // Excel bulk-import path carries the originating automation letter's
-  // reference so it can later be matched back to that letter.
+  // Traceability only — never affects workflow.
   source?: ProposalSource;
+  // «شماره نامه» پیشنهاد. هر دو مسیر ایجاد پیشنهاد (فرم دستی و Excel
+  // Import) همین یک Field را پر می‌کنند — Field موازی وجود ندارد. هنگام
+  // ایجاد مصوبه از روی این پیشنهاد، همین مقدار Autofill می‌شود.
   sourceLetterNumber?: string;
   sourceLetterDateJalali?: string;
   sourceLetterSubject?: string;
@@ -549,6 +550,10 @@ export type ResolutionExecutionStatus =
   | 'PENDING_ADMIN_SIGNATURE'  // در انتظار امضای ادمین
   | 'WAITING_MINUTES_SIGNATURE' // در انتظار صورت‌جلسه تجمیعی
   | 'WAITING_NOTIFICATION'     // در انتظار ابلاغ رسمی
+  // ابلاغ توسط مسئول دفتر ثبت شده (شماره نامه ابلاغیه، تاریخ/ساعت و
+  // ابلاغ‌کننده ثبت شده‌اند) اما ابلاغیه هنوز توسط دبیر جلسه امضا نشده.
+  // مصوبه تا پیش از آن امضا وارد اجرا نمی‌شود و Task اجرایی ساخته نمی‌شود.
+  | 'PENDING_SECRETARY_NOTICE_SIGNATURE' // در انتظار امضای دبیر جلسه
   | 'NOTIFIED'                 // ابلاغ شده و آماده اجرا
   | 'NOT_STARTED'       // شروع نشده
   | 'IN_PROGRESS'       // در حال انجام
@@ -666,12 +671,17 @@ export interface Resolution {
   createdAt: string;
   // ابلاغ (official notification) as its own real, independently-tracked
   // step — set only by resolutionService.notifyResolution, once, when the
-  // office manager records the ابلاغ date. Never implied by the three main
+  // office manager records the ابلاغ. Never implied by the three main
   // signatures completing on their own.
+  //
+  // مبنای زمانی، notifiedAt (ISO DateTime واقعی سیستم) است؛ تاریخ و ساعت
+  // شمسی فقط برای نمایش از روی همان لحظه ثبت می‌شوند. هیچ‌کدام از کاربر
+  // گرفته نمی‌شوند.
+  notifiedAt?: string;
   notifiedDateJalali?: string;
+  notifiedTimeString?: string;
   notifiedByUserId?: string;
   notifiedByName?: string;
-  notifiedAt?: string;
   // Mirror of the issued ابلاغیه's letter number, kept on the resolution
   // purely so lists/reports can show it without joining the notices
   // collection. The ResolutionNotice record stays the source of truth.

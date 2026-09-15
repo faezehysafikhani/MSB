@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { Send } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { resolutionService } from '../../services/resolutionService';
-import { PersianDatePicker } from '../../components/common/PersianDatePicker';
-import { toPersianDigits } from '../../utils/formatters';
 
 interface NotifyResolutionActionProps {
   resolutionId: string;
@@ -17,23 +15,21 @@ interface NotifyResolutionActionProps {
 // detail form (ResolutionDetailModal), both calling the same
 // resolutionService.notifyResolution rather than two separate Business
 // Logic paths.
+//
+// تاریخ ابلاغ از کاربر گرفته نمی‌شود: با کلیک روی «ابلاغ»، تاریخ، ساعت و
+// کاربر ابلاغ‌کننده به‌صورت خودکار از DateTime واقعی سیستم ثبت می‌شوند.
 export const NotifyResolutionAction: React.FC<NotifyResolutionActionProps> = ({ resolutionId, resolutionNumber, onNotified, compact = false }) => {
   const { currentUser, showToast } = useApp();
-  const [dateJalali, setDateJalali] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleNotify = async () => {
-    if (!dateJalali.trim()) {
-      showToast('خطا', 'لطفاً تاریخ ابلاغ را مشخص کنید.', 'error');
-      return;
-    }
-    const confirmed = window.confirm(`آیا از ثبت ابلاغ مصوبه «${resolutionNumber}» در تاریخ ${toPersianDigits(dateJalali)} اطمینان دارید؟`);
+    const confirmed = window.confirm(`آیا از ثبت ابلاغ مصوبه «${resolutionNumber}» اطمینان دارید؟ تاریخ و ساعت ابلاغ به‌صورت خودکار ثبت می‌شود.`);
     if (!confirmed) return;
 
     setIsSubmitting(true);
     try {
-      await resolutionService.notifyResolution(resolutionId, dateJalali, currentUser);
-      showToast('ابلاغ مصوبه', 'ابلاغ با موفقیت ثبت شد.', 'success');
+      await resolutionService.notifyResolution(resolutionId, currentUser);
+      showToast('ابلاغ مصوبه', 'ابلاغ ثبت شد و ابلاغیه برای امضا به کارتابل دبیر جلسه ارسال گردید.', 'success');
       onNotified();
     } catch (error) {
       showToast('خطا', error instanceof Error ? error.message : 'ثبت ابلاغ انجام نشد.', 'error');
@@ -43,13 +39,15 @@ export const NotifyResolutionAction: React.FC<NotifyResolutionActionProps> = ({ 
   };
 
   return (
-    <div className={compact ? 'flex flex-wrap items-end gap-2' : 'p-3.5 bg-fuchsia-50/60 border border-fuchsia-200/80 rounded-2xl space-y-2.5'}>
+    <div className={compact ? 'flex flex-wrap items-center gap-2' : 'p-3.5 bg-fuchsia-50/60 border border-fuchsia-200/80 rounded-2xl space-y-2.5'}>
       {!compact && (
-        <div className="text-xs font-bold text-fuchsia-950">تعیین تاریخ ابلاغ و ثبت</div>
+        <div className="text-xs font-bold text-fuchsia-950">ثبت ابلاغ رسمی مصوبه</div>
       )}
-      <div className={compact ? 'w-40' : ''}>
-        <PersianDatePicker value={dateJalali} onChange={setDateJalali} label={compact ? undefined : 'تاریخ ابلاغ'} />
-      </div>
+      {!compact && (
+        <p className="text-[11px] text-fuchsia-900">
+          تاریخ، ساعت و نام ابلاغ‌کننده به‌صورت خودکار ثبت می‌شود. پس از ثبت، ابلاغیه برای امضا به کارتابل دبیر جلسه می‌رود و مصوبه تنها پس از امضای ایشان وارد فاز اجرا می‌شود.
+        </p>
+      )}
       <button
         type="button"
         onClick={handleNotify}

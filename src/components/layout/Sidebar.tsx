@@ -46,7 +46,7 @@ export const Sidebar: React.FC = () => {
     refreshTrigger
   } = useApp();
 
-  const [counts, setCounts] = useState({ meetings: 0, resolutions: 0, tasks: 0, approvals: 0, notifyPending: 0, followUpPending: 0 });
+  const [counts, setCounts] = useState({ meetings: 0, resolutions: 0, tasks: 0, approvals: 0, notifyPending: 0, noticeSignaturePending: 0, followUpPending: 0 });
 
   useEffect(() => {
     const isAdmin = currentUser.role === 'ADMIN';
@@ -58,14 +58,21 @@ export const Sidebar: React.FC = () => {
       taskService.getMyTasks(currentUser.id, { pageSize: 1 }),
       approvalService.getMyApprovals(currentUser.id, { pageSize: 1, status: 'PENDING' }),
       canNotify ? resolutionService.getResolutions({ pageSize: 1, executionStatus: 'WAITING_NOTIFICATION' }) : Promise.resolve(null),
+      // ابلاغیه‌های در انتظار امضای همین کاربر به‌عنوان دبیر جلسه — کارتابل
+      // ابلاغ برای ایشان هم باز می‌شود، حتی بدون مجوز NOTIFY_RESOLUTION.
+      resolutionService
+        .getResolutions({ pageSize: 200, executionStatus: 'PENDING_SECRETARY_NOTICE_SIGNATURE' })
+        .then((res) => (res.isSuccess ? resolutionService.filterNoticesAwaitingSignatureBy(res.data.items, currentUser) : []))
+        .catch(() => []),
       canFollowUp ? followUpService.getFollowUpCartable(currentUser).catch(() => null) : Promise.resolve(null),
-    ]).then(([meetingsRes, resRes, taskRes, apprRes, notifyRes, followUpRes]) => {
+    ]).then(([meetingsRes, resRes, taskRes, apprRes, notifyRes, noticeSignatureRes, followUpRes]) => {
       setCounts({
         meetings: meetingsRes.isSuccess ? meetingsRes.data.totalCount : 0,
         resolutions: resRes.isSuccess ? resRes.data.totalCount : 0,
         tasks: taskRes.isSuccess ? taskRes.data.totalCount : 0,
         approvals: apprRes.isSuccess ? apprRes.data.totalCount : 0,
         notifyPending: notifyRes?.isSuccess ? notifyRes.data.totalCount : 0,
+        noticeSignaturePending: noticeSignatureRes?.length || 0,
         followUpPending: followUpRes?.isSuccess ? followUpRes.data.length : 0,
       });
     });
@@ -139,13 +146,15 @@ export const Sidebar: React.FC = () => {
               },
             ]
           : []),
-        ...(hasPermission('NOTIFY_RESOLUTION')
+        // کارتابل ابلاغ برای مسئول دفتر (ثبت ابلاغ) و برای دبیر جلسه‌ای که
+        // ابلاغیه‌ای در انتظار امضای اوست، باز می‌شود.
+        ...(hasPermission('NOTIFY_RESOLUTION') || counts.noticeSignaturePending > 0
           ? [
               {
                 route: 'notification-inbox' as AppRoute,
                 title: 'کارتابل ابلاغ',
                 icon: Send,
-                badge: counts.notifyPending,
+                badge: counts.notifyPending + counts.noticeSignaturePending,
                 badgeColor: 'bg-fuchsia-50 dark:bg-fuchsia-950 text-fuchsia-800 dark:text-fuchsia-300 border border-fuchsia-200 dark:border-fuchsia-800',
               },
             ]

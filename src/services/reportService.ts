@@ -48,6 +48,10 @@ export interface NotificationLetterReportRow {
   notificationLetterNumber: string;
   resolutionNumber: string;
   dateJalali: string;
+  // چه کسی و در چه ساعتی ابلاغ را ثبت کرده — از همان DateTime خودکارِ
+  // لحظه ابلاغ خوانده می‌شود، نه ورودی دستی.
+  notifiedByName?: string;
+  notifiedTimeString?: string;
   proposerDepartment: string;
   description: string;
 }
@@ -214,6 +218,8 @@ class MockReportService implements IReportService {
           notificationLetterNumber: notice.notificationLetterNumber!,
           resolutionNumber: resolution?.resolutionNumber || notice.resolutionNumber,
           dateJalali: resolution?.notifiedDateJalali || notice.dateJalali,
+          notifiedByName: resolution?.notifiedByName,
+          notifiedTimeString: resolution?.notifiedTimeString,
           proposerDepartment: resolution?.proposerDepartment || notice.recipientDepartment,
           description: resolution?.reviewResultNotes || resolution?.requestDescription || notice.text,
         };

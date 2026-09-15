@@ -55,17 +55,15 @@ const readLS = (page, key) => page.evaluate((k) => JSON.parse(localStorage.getIt
     await page.waitForTimeout(900);
   };
 
+  // ابلاغ دیگر تاریخ نمی‌گیرد: ردیف باز می‌شود و مستقیماً دکمه ابلاغ زده
+  // می‌شود؛ تاریخ/ساعت/کاربر خودکار ثبت می‌شوند.
   const notify = async (topic) => {
     const row = page.locator('tbody tr').filter({ hasText: topic }).first();
     await row.locator('button:has-text("ابلاغ")').click();
     await page.waitForTimeout(500);
-    const form = page.locator('tr').filter({ hasText: 'تعیین تاریخ ابلاغ و ثبت' });
-    await form.locator('div.cursor-pointer').first().click();
-    await page.waitForTimeout(400);
-    await page.locator('button:has-text("۱۵")').first().click();
-    await page.waitForTimeout(300);
+    const form = page.locator('tr').filter({ hasText: 'ثبت ابلاغ رسمی مصوبه' });
     await form.locator('button:has-text("ابلاغ مصوبه")').click();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1100);
   };
 
   await openInbox();
@@ -95,11 +93,8 @@ const readLS = (page, key) => page.evaluate((k) => JSON.parse(localStorage.getIt
   const row3 = page.locator('tbody tr').filter({ hasText: 'موضوع ابلاغیه سوم' }).first();
   await row3.locator('button:has-text("ابلاغ")').click();
   await page.waitForTimeout(500);
-  const form3 = page.locator('tr').filter({ hasText: 'تعیین تاریخ ابلاغ و ثبت' });
-  await form3.locator('div.cursor-pointer').first().click();
-  await page.waitForTimeout(400);
-  await page.locator('button:has-text("۱۵")').first().click();
-  await page.waitForTimeout(300);
+  const form3 = page.locator('tr').filter({ hasText: 'ثبت ابلاغ رسمی مصوبه' });
+  await form3.waitFor({ state: 'visible' });
   // Cancel by collapsing the row instead of submitting.
   await row3.locator('button:has-text("ابلاغ")').click();
   await page.waitForTimeout(600);

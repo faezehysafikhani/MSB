@@ -164,15 +164,30 @@ const UPLOADED_PNG = Buffer.from(
   check('CR-D Test5 امضاکننده فاقد تصویر امضا، Workflow را Crash نکرد', resolutions.find((r) => r.id === 'res-sig-qa').signatureWorkflow.status === 'COMPLETED');
 
   // ===================== Test 3 (CR-D/E) — notification letter =================
+  // ابلاغ دیگر تاریخ نمی‌گیرد و امضای دبیر جلسه را خودکار نمی‌سازد؛ امضا
+  // مرحله جداگانه و واقعی است (signNotificationLetter).
   await page.evaluate(async () => {
     const mod = await import('/src/services/resolutionService.ts');
     const users = JSON.parse(localStorage.getItem('postbank-mosavabat-v1:users') || '[]');
-    await mod.resolutionService.notifyResolution('res-sig-qa', '1405/06/26', users.find((u) => u.id === 'user-17'));
+    const office = users.find((u) => u.id === 'user-17');
+    await mod.resolutionService.notifyResolution('res-sig-qa', office);
+  });
+  await page.waitForTimeout(500);
+  const beforeSignNotice = (await readLS(page, 'resolutionNotices')).find((n) => n.resolutionId === 'res-sig-qa');
+  check('CR-D Test3 پیش از امضا، ابلاغیه امضای دبیر جلسه ندارد', !beforeSignNotice?.secretarySignature);
+
+  await page.evaluate(async () => {
+    const mod = await import('/src/services/resolutionService.ts');
+    const users = JSON.parse(localStorage.getItem('postbank-mosavabat-v1:users') || '[]');
+    const notices = JSON.parse(localStorage.getItem('postbank-mosavabat-v1:resolutionNotices') || '[]');
+    const notice = notices.find((n) => n.resolutionId === 'res-sig-qa');
+    const signer = users.find((u) => u.id === notice?.secretaryUserId) || users.find((u) => u.role === 'ADMIN');
+    await mod.resolutionService.signNotificationLetter('res-sig-qa', signer);
   });
   await page.waitForTimeout(700);
   const notices = await readLS(page, 'resolutionNotices');
   const notice = notices.find((n) => n.resolutionId === 'res-sig-qa');
-  check('CR-D Test3 امضای دبیر جلسه روی ابلاغیه ثبت شد', notice?.secretarySignature?.signerUserId === 'user-17');
+  check('CR-D Test3 امضای دبیر جلسه روی ابلاغیه ثبت شد', Boolean(notice?.secretarySignature?.signerUserId), String(notice?.secretarySignature?.signerUserId));
   check('CR-D Test3 Context امضای ابلاغیه جداست', notice?.secretarySignature?.context === 'RESOLUTION_NOTIFICATION');
   check('CR-D Test3 تصویر امضای واقعی دبیر روی ابلاغیه است', String(notice?.secretarySignature?.signatureImageUrl || '').startsWith('data:image/png'));
 
@@ -190,9 +205,14 @@ const UPLOADED_PNG = Buffer.from(
   if (documentPages.length) {
     const doc = documentPages[0];
     const text = await doc.locator('body').innerText();
-    check('CR-E Test2 شماره نامه ابلاغیه واقعی روی نامه است', text.includes(notice.notificationLetterNumber));
+    // سند با ارقام فارسی رندر می‌شود، پس متن را به ارقام لاتین برمی‌گردانیم.
+    const latin = text.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
+    check('CR-E Test2 شماره نامه ابلاغیه واقعی روی نامه است', latin.includes(String(notice.notificationLetterNumber)));
     check('CR-E Test2 شماره مصوبه روی نامه است', text.includes('مصوبه-QA-سند'));
-    check('CR-E Test2 تاریخ ابلاغ روی نامه است', text.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).includes('1405/06/26'));
+    // تاریخ ابلاغ دیگر دستی وارد نمی‌شود؛ همان تاریخ خودکارِ ثبت‌شده باید روی نامه باشد.
+    const notifiedDate = (await readLS(page, 'resolutions')).find((r) => r.id === 'res-sig-qa').notifiedDateJalali;
+    check('CR-E Test2 تاریخ ابلاغ خودکار روی نامه است',
+      latin.includes(notifiedDate.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))), notifiedDate);
     check('CR-E Test2 تصویر امضای دبیر جلسه روی نامه است', (await doc.locator('img').count()) >= 1);
     await doc.close();
   }

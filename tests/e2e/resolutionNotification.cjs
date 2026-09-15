@@ -75,19 +75,14 @@ const switchUser = async (page, name) => {
   await page.waitForTimeout(500);
   await page.screenshot({ path: '/tmp/notify_row_expanded.png', fullPage: true });
 
-  // The expanded row should now be tbody tr:nth-child(2) containing the date picker
-  const expandedRow = page.locator('tr').filter({ hasText: 'تعیین تاریخ ابلاغ و ثبت' });
-  await expandedRow.locator('div.cursor-pointer').first().click();
-  await page.waitForTimeout(400);
-  await page.screenshot({ path: '/tmp/notify_datepicker_open.png', fullPage: true });
-
-  // pick day 15 from the open calendar grid
-  await page.locator('button:has-text("۱۵")').first().click();
-  await page.waitForTimeout(300);
+  // تاریخ ابلاغ دیگر از کاربر گرفته نمی‌شود: ردیف بازشده مستقیماً دکمه
+  // «ابلاغ مصوبه» را دارد و تاریخ/ساعت/کاربر خودکار ثبت می‌شوند.
+  const expandedRow = page.locator('tr').filter({ hasText: 'ثبت ابلاغ رسمی مصوبه' });
+  console.log(`[${await expandedRow.count() > 0 ? 'PASS' : 'FAIL'}] TEST4 ردیف ابلاغ بدون فیلد تاریخ باز شد`);
   await expandedRow.locator('button:has-text("ابلاغ مصوبه")').click();
   await page.waitForTimeout(400);
   // confirm dialog
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(1200);
   await page.screenshot({ path: '/tmp/notify_after_confirm.png', fullPage: true });
 
   const bodyAfter = await page.locator('body').innerText();
@@ -101,13 +96,10 @@ const switchUser = async (page, name) => {
   console.log('[INFO] r1 notifiedDateJalali:', r1?.notifiedDateJalali);
   console.log('[INFO] r1 notifiedByName:', r1?.notifiedByName);
   console.log('[INFO] r1 notifiedAt set:', Boolean(r1?.notifiedAt));
-  // notifyResolution sets NOTIFIED and then immediately calls startExecution,
-  // which advances the same resolution to IN_PROGRESS — exactly as the older
-  // bulk releaseMeetingResolutionsForExecution path has always done. So the
-  // observable post-ابلاغ state is IN_PROGRESS (or NOTIFIED when there is no
-  // main responsible to open a task for); asserting a bare 'NOTIFIED' was the
-  // test's own mistake, not an application bug.
-  console.log(`[${['NOTIFIED', 'IN_PROGRESS'].includes(r1?.executionStatus) ? 'PASS' : 'FAIL'}] TEST4 ابلاغ وضعیت را از WAITING_NOTIFICATION خارج و اجرا را آغاز کرد (${r1?.executionStatus})`);
+  // ابلاغ دیگر مستقیماً اجرا را شروع نمی‌کند: مصوبه ابتدا در انتظار امضای
+  // دبیر جلسه می‌ماند و تنها پس از امضای واقعی وارد فاز اجرا می‌شود.
+  console.log(`[${r1?.executionStatus === 'PENDING_SECRETARY_NOTICE_SIGNATURE' ? 'PASS' : 'FAIL'}] TEST4 ابلاغ وضعیت را از WAITING_NOTIFICATION به «در انتظار امضای دبیر جلسه» برد (${r1?.executionStatus})`);
+  console.log(`[${Boolean(r1?.notifiedTimeString) ? 'PASS' : 'FAIL'}] TEST4 ساعت ابلاغ خودکار ثبت شد (${r1?.notifiedTimeString})`);
   console.log(`[${Boolean(r1?.notifiedDateJalali) ? 'PASS' : 'FAIL'}] TEST4 notifiedDateJalali saved`);
   console.log(`[${r1?.notifiedByName === 'مسئول دفتر' ? 'PASS' : 'FAIL'}] TEST4 notifiedByName saved`);
 
@@ -120,8 +112,28 @@ const switchUser = async (page, name) => {
   const timelineEntry = activityLogs.find((l) => l.targetId === 'res-notify-test-1' && l.action === 'مصوبه ابلاغ شد');
   console.log(`[${Boolean(timelineEntry) ? 'PASS' : 'FAIL'}] TEST9 Timeline event "مصوبه ابلاغ شد" recorded`);
 
+  const tasksBeforeSignature = await page.evaluate(() => JSON.parse(localStorage.getItem('postbank-mosavabat-v1:tasks') || '[]'));
+  console.log(`[${!tasksBeforeSignature.some((t) => t.resolutionId === 'res-notify-test-1') ? 'PASS' : 'FAIL'}] TEST15 پیش از امضای دبیر جلسه هیچ Task اجرایی ساخته نشد`);
+
+  // امضای دبیر جلسه؛ تنها پس از آن اجرا شروع می‌شود.
+  await page.evaluate(async () => {
+    const mod = await import('/src/services/resolutionService.ts');
+    const users = JSON.parse(localStorage.getItem('postbank-mosavabat-v1:users') || 'null')
+      || (await import('/src/mock/data.ts')).mockUsers;
+    const notices = JSON.parse(localStorage.getItem('postbank-mosavabat-v1:resolutionNotices') || '[]');
+    const notice = notices.find((n) => n.resolutionId === 'res-notify-test-1');
+    // جلسه این داده تست در مجموعه جلسات وجود ندارد، پس دبیر جلسه‌ای تعیین
+    // نشده؛ مدیر سیستم امضا می‌کند (همان مسیر باز کردن بن‌بست در Service).
+    const signer = users.find((u) => u.id === notice?.secretaryUserId) || users.find((u) => u.role === 'ADMIN');
+    await mod.resolutionService.signNotificationLetter('res-notify-test-1', signer);
+  });
+  await page.waitForTimeout(700);
+
   const tasks = await page.evaluate(() => JSON.parse(localStorage.getItem('postbank-mosavabat-v1:tasks') || '[]'));
-  console.log(`[${tasks.some((t) => t.resolutionId === 'res-notify-test-1') ? 'PASS' : 'FAIL'}] TEST15 execution (task) started only after ابلاغ`);
+  console.log(`[${tasks.some((t) => t.resolutionId === 'res-notify-test-1') ? 'PASS' : 'FAIL'}] TEST15 execution (task) started only after امضای دبیر جلسه`);
+  const signedNotices = await page.evaluate(() => JSON.parse(localStorage.getItem('postbank-mosavabat-v1:resolutionNotices') || '[]'));
+  const signedNotice = signedNotices.find((n) => n.resolutionId === 'res-notify-test-1');
+  console.log(`[${Boolean(signedNotice?.secretarySignature?.signedAt) ? 'PASS' : 'FAIL'}] TEST15 امضای واقعی دبیر جلسه روی ابلاغیه ثبت شد`);
 
   // Signature chain integrity (Test 6)
   console.log(`[${r1?.signatureWorkflow?.steps?.length === 3 ? 'PASS' : 'FAIL'}] TEST6 exactly 3 main signature steps (found ${r1?.signatureWorkflow?.steps?.length})`);

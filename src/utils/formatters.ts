@@ -129,6 +129,8 @@ export function getResolutionExecutionMeta(status: ResolutionExecutionStatus): {
       return { label: 'در انتظار امضای صورت‌جلسه تجمیعی', bg: 'bg-purple-50 text-purple-700 border-purple-200', text: 'text-purple-700', dot: 'bg-purple-500' };
     case 'WAITING_NOTIFICATION':
       return { label: 'در انتظار ابلاغ رسمی', bg: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200', text: 'text-fuchsia-700', dot: 'bg-fuchsia-500' };
+    case 'PENDING_SECRETARY_NOTICE_SIGNATURE':
+      return { label: 'در انتظار امضای دبیر جلسه', bg: 'bg-indigo-50 text-indigo-700 border-indigo-200', text: 'text-indigo-700', dot: 'bg-indigo-500' };
     case 'NOTIFIED':
       return { label: 'ابلاغ شده', bg: 'bg-teal-50 text-teal-700 border-teal-200', text: 'text-teal-700', dot: 'bg-teal-500' };
     case 'APPROVED_CLOSED':

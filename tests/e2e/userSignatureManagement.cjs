@@ -237,7 +237,13 @@ const PNG_SECRETARY = png('mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
   await page.evaluate(async () => {
     const mod = await import('/src/services/resolutionService.ts');
     const users = await window.loadUsers();
-    await mod.resolutionService.notifyResolution('res-sigmgmt', '1405/06/26', users.find((u) => u.id === 'user-admin'));
+    await mod.resolutionService.notifyResolution('res-sigmgmt', users.find((u) => u.id === 'user-admin'));
+    // امضای ابلاغیه حالا مرحله جداگانه‌ای است؛ تصویر امضا در همان لحظه
+    // امضا از امضای مرکزی همان کاربر Snapshot می‌شود.
+    const notices = JSON.parse(localStorage.getItem('postbank-mosavabat-v1:resolutionNotices') || '[]');
+    const notice = notices.find((n) => n.resolutionId === 'res-sigmgmt');
+    const signer = users.find((u) => u.id === notice?.secretaryUserId) || users.find((u) => u.role === 'ADMIN');
+    await mod.resolutionService.signNotificationLetter('res-sigmgmt', signer);
   });
   await page.waitForTimeout(700);
 
