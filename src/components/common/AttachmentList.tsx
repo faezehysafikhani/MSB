@@ -1,8 +1,15 @@
 import React from 'react';
 import { Attachment } from '../../types';
 import { formatFileSize, toPersianDigits } from '../../utils/formatters';
-import { FileText, Download, Trash2, Paperclip } from 'lucide-react';
+import { FileText, Download, Trash2, Paperclip, FileWarning } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import {
+  ATTACHMENT_MAX_BYTES,
+  buildAttachmentFromFile,
+  downloadAttachment,
+  hasDownloadableContent,
+} from '../../utils/attachmentFile';
+import { todayJalali } from '../../utils/jalaliDate';
 
 interface AttachmentListProps {
   attachments: Attachment[];
@@ -17,33 +24,63 @@ export const AttachmentList: React.FC<AttachmentListProps> = ({
   canUpload = false,
   onAddFiles,
 }) => {
-  const { showToast } = useApp();
+  const { showToast, currentUser } = useApp();
 
-  const handleMockDownload = (fileName: string) => {
-    showToast('دانلود فایل', `فایل "${fileName}" با موفقیت دانلود شد.`, 'info');
+  // دانلود واقعی: فایل از روی محتوای ذخیره‌شده ساخته و تحویل مرورگر می‌شود.
+  // پیام موفقیت فقط وقتی نمایش داده می‌شود که دانلود واقعاً شروع شده باشد.
+  const handleDownload = (attachment: Attachment) => {
+    if (!hasDownloadableContent(attachment)) {
+      showToast(
+        'دانلود فایل',
+        `محتوای فایل «${attachment.fileName}» در این نسخه ذخیره نشده و فقط مشخصات آن ثبت است.`,
+        'warning'
+      );
+      return;
+    }
+    if (downloadAttachment(attachment)) {
+      showToast('دانلود فایل', `دانلود فایل «${attachment.fileName}» آغاز شد.`, 'success');
+    } else {
+      showToast('دانلود فایل', `دانلود فایل «${attachment.fileName}» انجام نشد.`, 'error');
+    }
   };
 
-  const handleMockUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // بارگذاری چندفایلی و تجمعی: فایل‌های جدید به فایل‌های قبلی اضافه
+  // می‌شوند (Replace نمی‌کنند) — همان قرارداد onAddFiles.
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const files: File[] = Array.from(e.target.files);
-    const newAttachments: Attachment[] = files.map((file, index) => ({
-      id: `att-${Date.now()}-${index}`,
-      fileName: file.name,
-      fileSizeBytes: file.size || 1024 * 500,
-      fileExtension: file.name.split('.').pop() || 'pdf',
-      uploadDate: '۱۴۰۳/۰۶/۲۸',
-      uploadedBy: 'کاربر جاری',
-      downloadUrl: '#',
-    }));
-    if (onAddFiles) {
-      onAddFiles(newAttachments);
+    e.target.value = '';
+
+    const tooLarge = files.filter((file) => file.size > ATTACHMENT_MAX_BYTES);
+    const accepted = files.filter((file) => file.size <= ATTACHMENT_MAX_BYTES);
+    if (tooLarge.length > 0) {
+      showToast(
+        'بارگذاری پیوست',
+        `${tooLarge.map((file) => `«${file.name}»`).join('، ')} بزرگ‌تر از حد مجاز (۱۰ مگابایت) است و پیوست نشد.`,
+        'error'
+      );
     }
+    if (accepted.length === 0) return;
+
+    const built = await Promise.all(
+      accepted.map((file) => buildAttachmentFromFile(file, currentUser?.fullName || 'کاربر جاری', todayJalali()))
+    );
+
+    if (onAddFiles) onAddFiles(built.map((item) => item.attachment));
+
+    const withoutContent = built.filter((item) => !item.contentStored);
     showToast(
       'بارگذاری پیوست',
-      files.length === 1 ? `فایل "${files[0].name}" با موفقیت پیوست شد.` : `${files.length} فایل با موفقیت پیوست شدند.`,
+      accepted.length === 1 ? `فایل «${accepted[0].name}» پیوست شد.` : `${accepted.length} فایل پیوست شدند.`,
       'success'
     );
-    e.target.value = '';
+    if (withoutContent.length > 0) {
+      showToast(
+        'توجه',
+        `محتوای ${withoutContent.map((item) => `«${item.attachment.fileName}»`).join('، ')} برای ذخیره در مرورگر بزرگ است؛ فقط مشخصات فایل ثبت شد و قابل دانلود نیست.`,
+        'warning'
+      );
+    }
   };
 
   return (
@@ -61,7 +98,7 @@ export const AttachmentList: React.FC<AttachmentListProps> = ({
           </div>
           <label className="bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold py-1.5 px-3.5 rounded-xl cursor-pointer transition-colors">
             انتخاب فایل
-            <input type="file" multiple className="hidden" onChange={handleMockUpload} />
+            <input type="file" multiple className="hidden" onChange={handleUpload} />
           </label>
         </div>
       )}
@@ -93,11 +130,15 @@ export const AttachmentList: React.FC<AttachmentListProps> = ({
 
               <div className="flex items-center gap-1 shrink-0">
                 <button
-                  onClick={() => handleMockDownload(att.fileName)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:bg-teal-50 hover:text-teal-700 transition-colors"
-                  title="دانلود فایل"
+                  onClick={() => handleDownload(att)}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    hasDownloadableContent(att)
+                      ? 'text-slate-500 hover:bg-teal-50 hover:text-teal-700'
+                      : 'text-slate-300 hover:bg-amber-50 hover:text-amber-600'
+                  }`}
+                  title={hasDownloadableContent(att) ? 'دانلود فایل' : 'محتوای این فایل ذخیره نشده و قابل دانلود نیست'}
                 >
-                  <Download className="w-3.5 h-3.5" />
+                  {hasDownloadableContent(att) ? <Download className="w-3.5 h-3.5" /> : <FileWarning className="w-3.5 h-3.5" />}
                 </button>
                 {onDelete && (
                   <button

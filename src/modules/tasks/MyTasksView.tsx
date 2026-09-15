@@ -22,6 +22,7 @@ import { toPersianDigits, getPriorityMeta, formatFileSize } from '../../utils/fo
 import { ResolutionDetailModal } from '../resolutions/ResolutionDetailModal';
 import { ListViewActions, ListViewMode } from '../../components/common/ListViewActions';
 import { exportListToPdf } from '../../utils/pdfExport';
+import { buildAttachmentFromFile } from '../../utils/attachmentFile';
 
 export const MyTasksView: React.FC = () => {
   const { currentUser, showToast, refreshTrigger } = useApp();
@@ -85,7 +86,10 @@ export const MyTasksView: React.FC = () => {
     setIsSubmitting(true);
     try {
       const uploadDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()).replace(/[‎‏]/g, '');
-      const attachments: Attachment[] = completionFiles.map((file, index) => ({ id: `completion-attachment-${Date.now()}-${index}`, fileName: file.name, fileSizeBytes: file.size, fileExtension: file.name.split('.').pop() || 'file', uploadDate, uploadedBy: currentUser.fullName, downloadUrl: '#' }));
+      // محتوای واقعی فایل ذخیره می‌شود تا دانلود بعدی فایل واقعی بدهد.
+      const attachments: Attachment[] = (await Promise.all(
+        completionFiles.map((file) => buildAttachmentFromFile(file, currentUser.fullName, uploadDate))
+      )).map((built) => built.attachment);
       const res = await taskService.submitTaskCompletion(activeCompletingTask.id, completionNotes, attachments);
       if (res.isSuccess) {
         showToast(
@@ -119,7 +123,9 @@ export const MyTasksView: React.FC = () => {
     try {
       const now = new Date();
       const uploadDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(now).replace(/[\u200e\u200f]/g, '');
-      const attachments = progressFiles.map((file, index) => ({ id: `progress-attachment-${Date.now()}-${index}`, fileName: file.name, fileSizeBytes: file.size, fileExtension: file.name.split('.').pop() || 'file', uploadDate, uploadedBy: currentUser.fullName, downloadUrl: '#' }));
+      const attachments = (await Promise.all(
+        progressFiles.map((file) => buildAttachmentFromFile(file, currentUser.fullName, uploadDate))
+      )).map((built) => built.attachment);
       await taskService.submitProgressReport(activeProgressTask.id, { progressPercent, status: progressStatus, actionDescription: progressAction, obstacles: progressObstacles, attachments }, currentUser);
       showToast('گزارش پیشرفت', 'گزارش پیشرفت ذخیره و به پرونده مصوبه و Timeline افزوده شد.', 'success');
       setActiveProgressTask(null); await fetchTasks();

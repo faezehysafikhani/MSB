@@ -228,6 +228,19 @@ class MockResolutionService implements IResolutionService {
   }
 
   public async createResolution(dto: CreateResolutionDto): Promise<ApiResponse<Resolution>> {
+    // هر بند دستور جلسه فقط یک مصوبه می‌گیرد. UI دکمه را پنهان می‌کند، اما
+    // Business Logic هم باید جلوی مصوبه دوم را بگیرد تا از مسیر دیگری
+    // (State دستکاری‌شده، Double Submit، فراخوانی مستقیم Service) مصوبه
+    // تکراری برای همان بند ساخته نشود.
+    if (dto.agendaItemId) {
+      const duplicate = this.resolutions.find(
+        (resolution) => resolution.agendaItemId === dto.agendaItemId
+      );
+      if (duplicate) {
+        throw new Error(`برای این بند دستور جلسه قبلاً مصوبه «${duplicate.resolutionNumber}» ثبت شده است و امکان ثبت مصوبه دوم وجود ندارد.`);
+      }
+    }
+
     const nextNum = this.resolutions.length + 98;
     const isApproved = dto.approvalStatus === 'APPROVED';
     const meetingResolutionNumber = this.resolutions.filter((resolution) => resolution.meetingId === dto.meetingId).length + 1;

@@ -9,49 +9,8 @@ import { SearchableUserMultiSelect } from '../../components/common/SearchableUse
 import { AttachmentList } from '../../components/common/AttachmentList';
 import { X, Plus, Trash2, Calendar, Clock, MapPin, Users, FileText, UserCheck, Lightbulb } from 'lucide-react';
 import { MeetingType, MeetingMember, AgendaItem, Proposal, Attachment } from '../../types';
-
-const toEnglishDigits = (value: string): string =>
-  value.replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)));
-
-const getMinutesDiff = (start: string, end: string): number => {
-  const [sh, sm] = toEnglishDigits(start).split(':').map(Number);
-  const [eh, em] = toEnglishDigits(end).split(':').map(Number);
-  const diff = (eh * 60 + em) - (sh * 60 + sm);
-  return diff > 0 ? diff : 30;
-};
-
-const timeToMinutes = (value: string): number => {
-  const [h, m] = toEnglishDigits(value).split(':').map(Number);
-  return h * 60 + m;
-};
-
-// Shared guard for both "add from تایید جلسه" and "add new agenda item":
-// the new slot must fall inside the meeting's own start/end window and must
-// not overlap any agenda item already added.
-const validateAgendaTimeSlot = (
-  slotStart: string,
-  slotEnd: string,
-  meetingStart: string,
-  meetingEnd: string,
-  existingAgendas: AgendaItem[]
-): string | null => {
-  const start = timeToMinutes(slotStart);
-  const end = timeToMinutes(slotEnd);
-  if (end <= start) return 'ساعت پایان بند باید بعد از ساعت شروع آن باشد.';
-  const meetingStartMin = timeToMinutes(meetingStart);
-  const meetingEndMin = timeToMinutes(meetingEnd);
-  if (start < meetingStartMin || end > meetingEndMin) {
-    return `بازه زمانی بند باید بین ساعت شروع (${meetingStart}) و پایان (${meetingEnd}) جلسه باشد.`;
-  }
-  const overlapping = existingAgendas.some((item) => {
-    if (!item.startTime || !item.endTime) return false;
-    const itemStart = timeToMinutes(item.startTime);
-    const itemEnd = timeToMinutes(item.endTime);
-    return start < itemEnd && end > itemStart;
-  });
-  if (overlapping) return 'این بازه زمانی با یکی از بندهای دستور جلسه دیگر همپوشانی دارد.';
-  return null;
-};
+// منطق زمان‌بندی/همپوشانی بندها فقط در همین یک ماژول است (بدون کپی موازی).
+import { getMinutesDiff, validateAgendaTimeSlot, formatAgendaTimeRange } from '../../utils/agendaTime';
 
 export const CreateMeetingModal: React.FC = () => {
   const {
@@ -74,6 +33,9 @@ export const CreateMeetingModal: React.FC = () => {
   const [organizerId, setOrganizerId] = useState('');
   const [secretaryId, setSecretaryId] = useState('');
   const [description, setDescription] = useState('');
+  // پیوست‌های خودِ جلسه (متعلق به توضیحات کلی) — جدا از پیوست بندهای
+  // دستور جلسه که روی همان AgendaItem می‌نشینند.
+  const [meetingAttachments, setMeetingAttachments] = useState<Attachment[]>([]);
 
   // Sync dateJalali when modal opens with custom initial date
   useEffect(() => {
@@ -91,6 +53,7 @@ export const CreateMeetingModal: React.FC = () => {
       setConsumedProposalIds([]);
       setSelectedProposalId('');
       setProposalRelatedUserIds([]);
+      setMeetingAttachments([]);
       setNewAgendaAttachments([]);
       setProposalAgendaAttachments([]);
       setAgendaError(null);
@@ -268,7 +231,7 @@ export const CreateMeetingModal: React.FC = () => {
         description,
         members,
         agendaItems: agendas,
-        attachments: [],
+        attachments: meetingAttachments,
       });
 
       if (res.isSuccess) {
@@ -590,7 +553,7 @@ export const CreateMeetingModal: React.FC = () => {
                     <div>
                       <div className="font-bold text-slate-800">{ag.title}</div>
                       <div className="text-[11px] text-slate-500 mt-0.5">
-                        ارائه‌دهنده: <strong className="text-teal-900">{ag.presenterName || ag.presenter}</strong> ({ag.allocatedMinutes} دقیقه)
+                        ارائه‌دهنده: <strong className="text-teal-900">{ag.presenterName || ag.presenter}</strong> ({formatAgendaTimeRange(ag)})
                       </div>
                       {ag.relatedUsers && ag.relatedUsers.length > 0 && (
                         <div className="text-[10px] text-blue-700 mt-1">افراد مرتبط: {ag.relatedUsers.map((user) => user.fullName).join('، ')}</div>
@@ -614,15 +577,31 @@ export const CreateMeetingModal: React.FC = () => {
           </div>
 
           {/* Description */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">توضیحات و یادداشت تکمیلی جلسه</label>
-            <textarea
-              rows={2}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="نکات قابل توجه پیش از شروع جلسه..."
-              className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
-            />
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">توضیحات و یادداشت تکمیلی جلسه</label>
+              <textarea
+                rows={2}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="نکات قابل توجه پیش از شروع جلسه..."
+                className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">پیوست‌های توضیحات جلسه</label>
+              <p className="text-[10px] text-slate-400 mb-2">
+                این فایل‌ها به خودِ جلسه پیوست می‌شوند، نه به یک بند دستور جلسه. می‌توانید چند فایل را
+                همزمان یا در چند مرحله اضافه کنید؛ فایل جدید جایگزین فایل‌های قبلی نمی‌شود.
+              </p>
+              <AttachmentList
+                attachments={meetingAttachments}
+                canUpload
+                onAddFiles={(files) => setMeetingAttachments((prev) => [...prev, ...files])}
+                onDelete={(id) => setMeetingAttachments((prev) => prev.filter((a) => a.id !== id))}
+              />
+            </div>
           </div>
 
           {/* Footer Submit buttons */}

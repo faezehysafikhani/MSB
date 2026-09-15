@@ -4,7 +4,10 @@ import { useApp } from '../../context/AppContext';
 import { meetingService } from '../../services/meetingService';
 import { Meeting, AgendaItem } from '../../types';
 import { SearchableUserMultiSelect } from '../../components/common/SearchableUserMultiSelect';
+import { PersianTimePicker } from '../../components/common/PersianTimePicker';
 import { toPersianDigits } from '../../utils/formatters';
+// همان Validation ایجاد جلسه — منطق موازی ساخته نمی‌شود.
+import { getMinutesDiff, validateAgendaTimeSlot, formatAgendaTimeRange } from '../../utils/agendaTime';
 
 interface AppendToMeetingModalProps {
   meeting: Meeting;
@@ -27,6 +30,9 @@ export const AppendToMeetingModal: React.FC<AppendToMeetingModalProps> = ({ meet
   const [newAgendaTitle, setNewAgendaTitle] = useState('');
   const [newAgendaPresenterId, setNewAgendaPresenterId] = useState('');
   const [newAgendaDescription, setNewAgendaDescription] = useState('');
+  // بند جدید هم مثل ایجاد جلسه ساعت شروع/پایان می‌گیرد؛ پیش‌فرض روی شروع جلسه.
+  const [newAgendaStartTime, setNewAgendaStartTime] = useState(meeting.startTime);
+  const [newAgendaEndTime, setNewAgendaEndTime] = useState(meeting.endTime);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -51,6 +57,20 @@ export const AppendToMeetingModal: React.FC<AppendToMeetingModalProps> = ({ meet
 
     let newAgendaItem: AgendaItem | undefined;
     if (newAgendaTitle.trim()) {
+      // بازه زمانی بند جدید باید داخل پنجره جلسه باشد و با هیچ بند فعلی
+      // همپوشانی نداشته باشد — دقیقاً همان قاعده ایجاد جلسه.
+      const timeError = validateAgendaTimeSlot(
+        newAgendaStartTime,
+        newAgendaEndTime,
+        meeting.startTime,
+        meeting.endTime,
+        meeting.agendaItems
+      );
+      if (timeError) {
+        setFormError(timeError);
+        return;
+      }
+
       const presenter = availableUsers.find((user) => user.id === newAgendaPresenterId);
       const presenterName = presenter ? presenter.fullName : meeting.secretaryName;
       newAgendaItem = {
@@ -60,6 +80,10 @@ export const AppendToMeetingModal: React.FC<AppendToMeetingModalProps> = ({ meet
         title: newAgendaTitle.trim(),
         presenter: presenterName,
         presenterName,
+        startTime: newAgendaStartTime,
+        endTime: newAgendaEndTime,
+        allocatedMinutes: getMinutesDiff(newAgendaStartTime, newAgendaEndTime),
+        estimatedMinutes: getMinutesDiff(newAgendaStartTime, newAgendaEndTime),
         description: newAgendaDescription.trim() || undefined,
         isDiscussed: false,
         status: 'PENDING',
@@ -159,6 +183,7 @@ export const AppendToMeetingModal: React.FC<AppendToMeetingModalProps> = ({ meet
                     {toPersianDigits(index + 1)}
                   </span>
                   <span className="text-[11px] font-bold text-slate-700">{agenda.title}</span>
+                  <span className="text-[10px] text-slate-500 mr-auto">{toPersianDigits(formatAgendaTimeRange(agenda))}</span>
                 </div>
               ))}
             </div>
@@ -193,6 +218,15 @@ export const AppendToMeetingModal: React.FC<AppendToMeetingModalProps> = ({ meet
                 ))}
               </select>
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <PersianTimePicker label="از ساعت" value={newAgendaStartTime} onChange={setNewAgendaStartTime} />
+              <PersianTimePicker label="تا ساعت" value={newAgendaEndTime} onChange={setNewAgendaEndTime} />
+            </div>
+            <p className="text-[10px] text-slate-500">
+              بازه زمانی باید بین ساعت شروع ({toPersianDigits(meeting.startTime)}) و پایان ({toPersianDigits(meeting.endTime)}) جلسه باشد
+              و با بندهای فعلی همپوشانی نداشته باشد.
+            </p>
+
             <div>
               <label className="block text-[11px] font-bold text-slate-700 mb-1">توضیحات (اختیاری)</label>
               <textarea

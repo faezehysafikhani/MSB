@@ -32,6 +32,20 @@ import { TimelineView } from '../../components/common/TimelineView';
 import { exportHtmlToPdf } from '../../utils/pdfExport';
 import { buildMeetingInvitationDocument, buildMeetingMinutesDocument, openGeneratedDocument } from '../../services/documentService';
 import { AppendToMeetingModal } from './AppendToMeetingModal';
+import { formatAgendaTimeRange } from '../../utils/agendaTime';
+
+// برچسب فارسی نتیجه بند دستور جلسه — همان گزینه‌های فرم «ثبت نتیجه»، تا
+// پس از ثبت (که فرم دیگر نمایش داده نمی‌شود) نتیجه خوانا باقی بماند.
+const AGENDA_OUTCOME_LABELS: Record<NonNullable<AgendaItem['outcomeStatus']>, string> = {
+  APPROVED: 'تصویب شد',
+  NOT_APPROVED: 'تصویب نشد',
+  NEEDS_REVISION: 'نیاز به اصلاح',
+  NEEDS_MORE_REVIEW: 'نیاز به بررسی بیشتر',
+  DEFERRED: 'موکول به جلسه بعد',
+  REFERRED: 'ارجاع به واحد مربوطه',
+  CONDITIONAL: 'تصویب مشروط',
+  CLOSED: 'مختومه',
+};
 
 interface MeetingDetailViewProps {
   meetingId: string;
@@ -64,13 +78,15 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
 
   useEffect(() => {
     loadMeetingDetails();
-  }, [meetingId, refreshTrigger]);
+    // با تعویض کاربر، جلسه دوباره با Scope کاربر جدید خوانده می‌شود.
+  }, [meetingId, refreshTrigger, currentUser.id]);
 
   const loadMeetingDetails = async () => {
     setLoading(true);
     try {
       const [meetRes, resRes, minutesRes, noticesRes, lettersRes] = await Promise.all([
-        meetingService.getMeetingById(meetingId),
+        // actor پاس داده می‌شود تا خود Service بندهای غیرمرتبط را حذف کند.
+        meetingService.getMeetingById(meetingId, currentUser),
         resolutionService.getResolutions({ meetingId, pageSize: 50 }),
         boardSecretariatService.getMinutes(meetingId),
         boardSecretariatService.getNotices(meetingId),
@@ -448,7 +464,7 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
                         <h4 className="text-sm font-extrabold text-slate-900">{ag.title}</h4>
                         <div className="text-[11px] text-slate-500 mt-0.5">
                           ارائه‌دهنده: <strong className="text-teal-900">{ag.presenterName || ag.presenter}</strong> | 
-                          مدت زمان: {toPersianDigits(ag.allocatedMinutes)} دقیقه
+                          ساعت: {toPersianDigits(formatAgendaTimeRange(ag))}
                         </div>
                         {ag.relatedUsers && ag.relatedUsers.length > 0 && (
                           <div className="text-[10px] text-blue-700 mt-1">
@@ -465,7 +481,10 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
                     </div>
 
                     {/* Prominent Button: ثبت مصوبه برای این بند (Requirement 9) */}
-                    {canCreateResolution && !ag.isRemoved && ['APPROVED', 'CONDITIONAL'].includes(ag.outcomeStatus || '') && (
+                    {/* هر بند دستور جلسه فقط یک‌بار مصوبه می‌گیرد: با وجود مصوبه
+                        ثبت‌شده، دکمه دیگر نمایش داده نمی‌شود. همین قاعده در
+                        resolutionService نیز Enforce می‌شود. */}
+                    {canCreateResolution && !ag.isRemoved && relatedResolutions.length === 0 && ['APPROVED', 'CONDITIONAL'].includes(ag.outcomeStatus || '') && (
                       <button
                         onClick={() => handleRegisterResolutionForAgenda(ag.id, ag.title)}
                         className="flex items-center gap-1.5 bg-teal-800 hover:bg-teal-700 text-white font-bold text-xs py-2 px-3.5 rounded-xl shadow-xs transition-all cursor-pointer"
@@ -480,16 +499,24 @@ export const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({ meetingId 
 
                   {ag.isRemoved && <div className="p-2.5 bg-white border border-rose-200 rounded-xl text-rose-700 text-[11px] font-bold">خارج‌شده از دستورکار جاری — دلیل: {ag.removalReason}</div>}
 
-                  {ag.outcomeNotes && (
+                  {(ag.outcomeStatus || ag.outcomeNotes) && (
                     <div className="p-3 bg-white rounded-xl border border-slate-200 text-xs text-slate-700 leading-relaxed">
                       <span className="font-bold text-teal-900 block mb-1">شرح مذاکرات و نتایج بررسی:</span>
-                      {ag.outcomeNotes}
+                      {ag.outcomeStatus && (
+                        <span className="inline-block mb-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
+                          {AGENDA_OUTCOME_LABELS[ag.outcomeStatus]}
+                        </span>
+                      )}
+                      {ag.outcomeNotes && <div>{ag.outcomeNotes}</div>}
                     </div>
                   )}
 
                   {outcomeLetter && <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900"><Mail className="inline w-4 h-4 ml-1" /><strong>{outcomeLetter.letterNumber}</strong> برای {outcomeLetter.recipientName} / {outcomeLetter.recipientDepartment} صادر شد و در سوابق پیشنهاد و جلسه قابل ردیابی است.</div>}
 
-                  {isSecretariat && !ag.isRemoved && ['INVITATION_SENT', 'SCHEDULED', 'IN_PROGRESS', 'HELD'].includes(meeting.status) && (
+                  {/* نتیجه هر بند فقط یک‌بار ثبت می‌شود: پس از ثبت موفق،
+                      فرم و دکمه «ثبت نتیجه» برای همان بند نمایش داده
+                      نمی‌شود و نتیجه ثبت‌شده بالاتر قابل مشاهده می‌ماند. */}
+                  {isSecretariat && !ag.isRemoved && !ag.outcomeStatus && ['INVITATION_SENT', 'SCHEDULED', 'IN_PROGRESS', 'HELD'].includes(meeting.status) && (
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 p-3 bg-white rounded-xl border border-slate-200">
                       <select value={outcomeStatuses[ag.id] || ag.outcomeStatus || 'APPROVED'} onChange={(e) => setOutcomeStatuses((prev) => ({ ...prev, [ag.id]: e.target.value as NonNullable<AgendaItem['outcomeStatus']> }))} className="sm:col-span-3 text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
                         <option value="APPROVED">تصویب شد</option><option value="NOT_APPROVED">تصویب نشد</option><option value="NEEDS_REVISION">نیاز به اصلاح</option><option value="NEEDS_MORE_REVIEW">نیاز به بررسی بیشتر</option><option value="DEFERRED">موکول به جلسه بعد</option><option value="REFERRED">ارجاع به واحد مربوطه</option><option value="CONDITIONAL">تصویب مشروط</option><option value="CLOSED">مختومه</option>

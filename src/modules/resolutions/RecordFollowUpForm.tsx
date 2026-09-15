@@ -6,6 +6,7 @@ import { PersianDatePicker } from '../../components/common/PersianDatePicker';
 import { Attachment } from '../../types';
 import { toPersianDigits } from '../../utils/formatters';
 import { todayJalali } from '../../utils/jalaliDate';
+import { buildAttachmentFromFile } from '../../utils/attachmentFile';
 
 interface RecordFollowUpFormProps {
   resolutionId: string;
@@ -39,17 +40,11 @@ export const RecordFollowUpForm: React.FC<RecordFollowUpFormProps> = ({ resoluti
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // Mirrors the existing mock-upload pattern (AttachmentList/MyTasksView):
-      // file metadata is captured, no real upload backend exists yet.
-      const attachments: Attachment[] = files.map((file, index) => ({
-        id: `att-followup-${Date.now()}-${index}`,
-        fileName: file.name,
-        fileSizeBytes: file.size || 1024 * 500,
-        fileExtension: file.name.split('.').pop() || 'pdf',
-        uploadDate: followUpDateJalali,
-        uploadedBy: currentUser.fullName,
-        downloadUrl: '#',
-      }));
+      // همان مسیر مشترک ساخت پیوست در کل سامانه: محتوای واقعی فایل هم
+      // ذخیره می‌شود تا پیوست پیگیری قابل دانلود واقعی باشد.
+      const attachments: Attachment[] = (await Promise.all(
+        files.map((file) => buildAttachmentFromFile(file, currentUser.fullName, followUpDateJalali))
+      )).map((built) => built.attachment);
 
       await followUpService.recordFollowUp(
         { resolutionId, text, followUpDateJalali, nextDeadlineJalali: nextDeadlineJalali || undefined, notes, attachments },

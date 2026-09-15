@@ -1,4 +1,4 @@
-import { Meeting, Resolution, User, UserRole } from '../types';
+import { AgendaItem, Meeting, Resolution, User, UserRole } from '../types';
 
 // Roles with organization-wide meeting visibility: ADMIN (system-wide), CEO
 // (chairs/approves every meeting's agenda) and SECRETARY (مسئول دفتر — runs
@@ -36,4 +36,44 @@ export const isResolutionRelatedToUser = (resolution: Resolution, user: User): b
     // Department-wide visibility: everyone in the owning department can see the resolution,
     // not just the person it was personally assigned/referred to.
     (Boolean(resolution.responsibleDepartmentId) && resolution.responsibleDepartmentId === user.departmentId);
+};
+
+/**
+ * دید کامل روی همه بندهای دستور جلسه («تایید جلسه»‌های یک جلسه).
+ * نقش‌های مدیریتی موجود (ADMIN / CEO / مسئول دفتر)، برگزارکننده و دبیرِ
+ * خودِ همان جلسه، و دارنده مجوز تأیید نهایی تایید جلسه (دبیر جلسه) —
+ * همگی Scope فعلی‌شان حفظ می‌شود و محدود نمی‌شوند.
+ */
+export const canSeeAllAgendaItems = (meeting: Meeting, user: User): boolean =>
+  hasOrgWideMeetingAccess(user.role) ||
+  meeting.organizerId === user.id ||
+  meeting.secretaryId === user.id ||
+  (user.permissions || []).includes('APPROVE_MEETING_CONFIRMATION');
+
+/**
+ * یک بند دستور جلسه برای کاربر عادی قابل مشاهده است اگر:
+ *  - خودش در «افراد مرتبط» همان بند باشد، یا
+ *  - ارائه‌دهنده همان بند باشد، یا
+ *  - بند اصلاً افراد مرتبط تعریف‌شده نداشته باشد (بند عمومی جلسه).
+ * بندی که افراد مرتبط دارد و کاربر جزو آنها نیست، برای او قابل مشاهده
+ * نیست — نه در UI و نه در داده‌ای که Service برمی‌گرداند.
+ */
+export const isAgendaItemRelatedToUser = (agenda: AgendaItem, user: User): boolean => {
+  const related = agenda.relatedUsers || [];
+  if (related.length === 0) return true;
+  return related.some((item) => item.userId === user.id) ||
+    agenda.presenter === user.fullName ||
+    agenda.presenterName === user.fullName;
+};
+
+/**
+ * فیلتر بندهای دستور جلسه بر اساس کاربر. اگر actor داده نشود (مسیرهای
+ * داخلی/سیستمی) جلسه دست‌نخورده برمی‌گردد.
+ */
+export const scopeMeetingAgendaToUser = (meeting: Meeting, actor?: User): Meeting => {
+  if (!actor || canSeeAllAgendaItems(meeting, actor)) return meeting;
+  return {
+    ...meeting,
+    agendaItems: meeting.agendaItems.filter((agenda) => isAgendaItemRelatedToUser(agenda, actor)),
+  };
 };
