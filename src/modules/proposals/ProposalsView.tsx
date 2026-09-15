@@ -7,6 +7,7 @@ import { proposalService } from '../../services/proposalService';
 import { Proposal, ProposalStatus } from '../../types';
 import { mockDepartments } from '../../mock/data';
 import { toPersianDigits } from '../../utils/formatters';
+import { BulkSelectionBar } from '../../components/common/BulkSelectionBar';
 import { CreateProposalModal } from './CreateProposalModal';
 import { ExcelImportModal } from './ExcelImportModal';
 import { PersianDatePicker } from '../../components/common/PersianDatePicker';
@@ -54,7 +55,21 @@ export const ProposalsView: React.FC = () => {
   // deliberately independent of isOfficeManager/isCeo above.
   const isMeetingSecretaryApprover = hasPermission('APPROVE_MEETING_CONFIRMATION');
 
-  const [tab, setTab] = useState<ProposalTab>(isOfficeManager ? 'OFFICE' : isCeo ? 'CEO' : isMeetingSecretaryApprover ? 'SECRETARY_APPROVAL' : 'MINE');
+  // تب پیش‌فرض: اگر کاربر دبیر جلسه باشد، «دبیر جلسه» — حتی وقتی همزمان
+  // مسئول دفتر هم هست. ترتیب نمایش تب‌ها نیز در visibleTabs همین است.
+  const [tab, setTab] = useState<ProposalTab>(isMeetingSecretaryApprover ? 'SECRETARY_APPROVAL' : isOfficeManager ? 'OFFICE' : isCeo ? 'CEO' : 'MINE');
+  // تب‌های مجاز کاربر فعلی، به همان ترتیب visibleTabs. با تعویض User از
+  // Selector بالای صفحه، Component جدید Mount نمی‌شود و `tab` روی تب کاربر
+  // قبلی می‌ماند؛ چون هر بلوک با `tab === X && isX` رندر می‌شد، صفحه کاملاً
+  // خالی می‌شد. اینجا تب فعال از روی مجوزهای کاربر فعلی مشتق می‌شود تا در
+  // همان اولین Render بعد از تعویض، تب معتبر انتخاب شود (بدون Reload).
+  const allowedTabs: ProposalTab[] = [
+    ...(isMeetingSecretaryApprover ? (['SECRETARY_APPROVAL'] as ProposalTab[]) : []),
+    ...(isOfficeManager ? (['OFFICE'] as ProposalTab[]) : []),
+    ...(isCeo ? (['CEO'] as ProposalTab[]) : []),
+    ...(isRegularUser ? (['MINE'] as ProposalTab[]) : []),
+  ];
+  const activeTab: ProposalTab = allowedTabs.includes(tab) ? tab : (allowedTabs[0] || 'MINE');
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [officeFilter, setOfficeFilter] = useState<OfficeStatusFilter>('APPROVED');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -64,7 +79,7 @@ export const ProposalsView: React.FC = () => {
   const [orderDeadlines, setOrderDeadlines] = useState<Record<string, string>>({});
   const [orderCompletionNotes, setOrderCompletionNotes] = useState<Record<string, string>>({});
   const [ceoViewMode, setCeoViewMode] = useState<'cards' | 'grid'>('cards');
-  const [selectedCeoIds, setSelectedCeoIds] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [orderFormOpen, setOrderFormOpen] = useState<Record<string, boolean>>({});
   const [revisionTitles, setRevisionTitles] = useState<Record<string, string>>({});
   const [revisionDescriptions, setRevisionDescriptions] = useState<Record<string, string>>({});
@@ -83,7 +98,19 @@ export const ProposalsView: React.FC = () => {
 
   useEffect(() => {
     fetchAll();
-  }, [refreshTrigger]);
+  }, [refreshTrigger, currentUser.id]);
+
+  // تعویض User: انتخاب‌های گروهی و یادداشت‌های در حال تایپِ کاربر قبلی نباید
+  // برای کاربر جدید باقی بماند.
+  useEffect(() => {
+    setSelectedIds([]);
+    setDecisionNotes({});
+  }, [currentUser.id]);
+
+  // تعویض تب هم Selection را پاک می‌کند تا دو کارتابل انتخاب مشترک نداشته باشند.
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [activeTab]);
 
   const fetchAll = async () => {
     const res = await proposalService.getProposals({ pageSize: 200 });
@@ -103,22 +130,22 @@ export const ProposalsView: React.FC = () => {
     triggerRefresh();
   };
 
-  const toggleCeoSelect = (id: string) => {
-    setSelectedCeoIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
   // Bulk action is intentionally limited to APPROVED/REJECTED — every other
   // decision (return for revision, no-board, direct order) needs per-item
   // notes/assignee/deadline input and must still be done one at a time.
   const handleBulkReview = async (decision: 'APPROVED' | 'REJECTED') => {
-    const targets = ceoQueue.filter((p) => selectedCeoIds.includes(p.id));
+    const targets = ceoQueue.filter((p) => selectedIds.includes(p.id));
     await Promise.all(targets.map((p) => proposalService.reviewProposal(p.id, decision, decisionNotes[p.id], currentUser)));
     showToast(
       decision === 'APPROVED' ? 'تایید گروهی' : 'رد گروهی',
       `${toPersianDigits(targets.length)} مصوبه پیشنهادی ${decision === 'APPROVED' ? 'تایید شد' : 'رد شد'}.`,
       decision === 'APPROVED' ? 'success' : 'warning'
     );
-    setSelectedCeoIds([]);
+    setSelectedIds([]);
     triggerRefresh();
   };
 
@@ -268,6 +295,28 @@ export const ProposalsView: React.FC = () => {
     }
   };
 
+  // تأیید/رد گروهی کارتابل دبیر جلسه — دقیقاً همان Service Call تک‌موردی،
+  // فقط روی موارد انتخاب‌شده. «برگشت جهت اصلاح» گروهی نیست چون به دلیلِ
+  // جداگانه برای هر مورد نیاز دارد.
+  const handleBulkSecretaryFinalize = async (decision: 'APPROVED' | 'REJECTED') => {
+    const targets = secretaryQueue.filter((p) => selectedIds.includes(p.id));
+    if (targets.length === 0) return;
+    try {
+      await Promise.all(
+        targets.map((p) => proposalService.finalizeMeetingConfirmation(p.id, decision, decisionNotes[p.id], currentUser))
+      );
+      showToast(
+        decision === 'APPROVED' ? 'تأیید نهایی گروهی' : 'رد گروهی',
+        `${toPersianDigits(targets.length)} مورد ${decision === 'APPROVED' ? 'تأیید نهایی شد' : 'رد شد'}.`,
+        decision === 'APPROVED' ? 'success' : 'warning'
+      );
+    } catch (error) {
+      showToast('خطا', error instanceof Error ? error.message : 'ثبت تصمیم گروهی انجام نشد.', 'error');
+    }
+    setSelectedIds([]);
+    triggerRefresh();
+  };
+
   const handleSecretaryFinalize = async (proposal: Proposal, decision: 'APPROVED' | 'REJECTED' | 'RETURNED_FOR_REVISION') => {
     try {
       await proposalService.finalizeMeetingConfirmation(proposal.id, decision, decisionNotes[proposal.id], currentUser);
@@ -295,9 +344,9 @@ export const ProposalsView: React.FC = () => {
   const secretaryQueue = proposals.filter((p) => p.status === 'PENDING_SECRETARY_CONFIRMATION');
 
   const visibleTabs: { id: ProposalTab; label: string; count: number; icon: React.ElementType }[] = [
+    ...(isMeetingSecretaryApprover ? [{ id: 'SECRETARY_APPROVAL' as ProposalTab, label: 'دبیر جلسه', count: secretaryQueue.length, icon: ClipboardCheck }] : []),
     ...(isOfficeManager ? [{ id: 'OFFICE' as ProposalTab, label: 'مسئول دفتر', count: proposals.filter((p) => p.status === 'APPROVED' || p.status === 'RETURNED_BY_SECRETARY').length, icon: Lightbulb }] : []),
     ...(isCeo ? [{ id: 'CEO' as ProposalTab, label: 'کارتابل مدیرعامل', count: ceoQueue.length, icon: Inbox }] : []),
-    ...(isMeetingSecretaryApprover ? [{ id: 'SECRETARY_APPROVAL' as ProposalTab, label: 'دبیر جلسه', count: secretaryQueue.length, icon: ClipboardCheck }] : []),
     ...(isRegularUser ? [{ id: 'MINE' as ProposalTab, label: 'پیشنهادها و دستورات من', count: myProposals.length, icon: Lightbulb }] : []),
   ];
 
@@ -338,13 +387,13 @@ export const ProposalsView: React.FC = () => {
                 key={id}
                 onClick={() => setTab(id)}
                 className={`flex items-center gap-1.5 py-2 px-3.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
-                  tab === id ? 'bg-teal-800 text-white border-teal-800' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  activeTab === id ? 'bg-teal-800 text-white border-teal-800' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
                 <span>{label}</span>
                 {count > 0 && (
-                  <span className={`text-[9px] font-bold px-1.5 rounded-full ${tab === id ? 'bg-white/20' : 'bg-slate-100'}`}>
+                  <span className={`text-[9px] font-bold px-1.5 rounded-full ${activeTab === id ? 'bg-white/20' : 'bg-slate-100'}`}>
                     {toPersianDigits(count)}
                   </span>
                 )}
@@ -354,7 +403,7 @@ export const ProposalsView: React.FC = () => {
         )}
       </div>
 
-      {tab === 'OFFICE' && isOfficeManager && (
+      {activeTab === 'OFFICE' && isOfficeManager && (
         <div className="bg-white rounded-2xl shadow-xs border border-slate-100">
           <div className="p-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100">
             <select
@@ -455,7 +504,7 @@ export const ProposalsView: React.FC = () => {
         </div>
       )}
 
-      {tab === 'CEO' && isCeo && (
+      {activeTab === 'CEO' && isCeo && (
         <div className="space-y-3">
           {ceoQueue.length > 0 && (
             <div className="flex flex-wrap items-center justify-between gap-2.5 bg-white rounded-2xl p-3 shadow-xs border border-slate-100">
@@ -478,18 +527,14 @@ export const ProposalsView: React.FC = () => {
                 </button>
               </div>
 
-              {selectedCeoIds.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-slate-500">{toPersianDigits(selectedCeoIds.length)} مورد انتخاب شده</span>
-                  <button onClick={() => handleBulkReview('APPROVED')} className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold py-1.5 px-3 rounded-full cursor-pointer">
-                    <CheckCircle2 className="w-3.5 h-3.5" />تایید گروهی
-                  </button>
-                  <button onClick={() => handleBulkReview('REJECTED')} className="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold py-1.5 px-3 rounded-full cursor-pointer">
-                    <XCircle className="w-3.5 h-3.5" />رد گروهی
-                  </button>
-                  <button onClick={() => setSelectedCeoIds([])} className="text-[11px] font-bold text-slate-500 hover:text-slate-700 px-2 cursor-pointer">لغو انتخاب</button>
-                </div>
-              )}
+              <BulkSelectionBar
+                totalCount={ceoQueue.length}
+                selectedCount={selectedIds.length}
+                onToggleAll={(selectAll) => setSelectedIds(selectAll ? ceoQueue.map((p) => p.id) : [])}
+                onApprove={() => handleBulkReview('APPROVED')}
+                onReject={() => handleBulkReview('REJECTED')}
+                onClear={() => setSelectedIds([])}
+              />
             </div>
           )}
 
@@ -515,7 +560,7 @@ export const ProposalsView: React.FC = () => {
                     <React.Fragment key={p.id}>
                       <tr className="hover:bg-slate-50/70 align-top">
                         <td className="py-3 px-3">
-                          <input type="checkbox" checked={selectedCeoIds.includes(p.id)} onChange={() => toggleCeoSelect(p.id)} className="w-4 h-4 text-teal-700 rounded-md cursor-pointer" />
+                          <input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => toggleSelect(p.id)} className="w-4 h-4 text-teal-700 rounded-md cursor-pointer" />
                         </td>
                         <td className="py-3 px-3">
                           <div className="font-bold text-slate-800">{p.title}</div>
@@ -576,7 +621,7 @@ export const ProposalsView: React.FC = () => {
           ) : ceoQueue.map((p) => (
             <div key={p.id} className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100 space-y-2.5">
               <div className="flex items-start gap-2.5">
-                <input type="checkbox" checked={selectedCeoIds.includes(p.id)} onChange={() => toggleCeoSelect(p.id)} className="w-4 h-4 mt-1 text-teal-700 rounded-md cursor-pointer shrink-0" />
+                <input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => toggleSelect(p.id)} className="w-4 h-4 mt-1 text-teal-700 rounded-md cursor-pointer shrink-0" />
                 <div className="flex-1">
               <h4 className="text-sm font-bold text-slate-800">{p.title}</h4>
               <div className="text-[10px] font-bold text-teal-700">{p.proposalNumber}</div>
@@ -666,15 +711,31 @@ export const ProposalsView: React.FC = () => {
         </div>
       )}
 
-      {tab === 'SECRETARY_APPROVAL' && isMeetingSecretaryApprover && (
+      {activeTab === 'SECRETARY_APPROVAL' && isMeetingSecretaryApprover && (
         <div className="space-y-3">
+          {secretaryQueue.length > 0 && (
+            <div className="bg-white rounded-2xl px-4 py-3 shadow-xs border border-slate-100">
+              <BulkSelectionBar
+                totalCount={secretaryQueue.length}
+                selectedCount={selectedIds.length}
+                onToggleAll={(selectAll) => setSelectedIds(selectAll ? secretaryQueue.map((p) => p.id) : [])}
+                onApprove={() => handleBulkSecretaryFinalize('APPROVED')}
+                onReject={() => handleBulkSecretaryFinalize('REJECTED')}
+                onClear={() => setSelectedIds([])}
+                approveLabel="تأیید نهایی گروهی"
+              />
+            </div>
+          )}
           {secretaryQueue.length === 0 ? (
             <div className="bg-white rounded-2xl p-10 text-center border border-slate-100 shadow-xs text-xs text-slate-400">
               موردی در انتظار تأیید نهایی نیست.
             </div>
           ) : secretaryQueue.map((p) => (
             <div key={p.id} className="bg-white rounded-2xl p-4 shadow-xs border border-slate-100 space-y-2.5">
-              <h4 className="text-sm font-bold text-slate-800">{p.title}</h4>
+              <div className="flex items-start gap-2.5">
+                <input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => toggleSelect(p.id)} className="w-4 h-4 mt-1 text-teal-700 rounded-md cursor-pointer shrink-0" />
+                <h4 className="text-sm font-bold text-slate-800">{p.title}</h4>
+              </div>
               <div className="text-[10px] font-bold text-teal-700">{p.proposalNumber}</div>
               <p className="text-xs text-slate-600">{p.description}</p>
               <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-slate-500">
@@ -708,7 +769,7 @@ export const ProposalsView: React.FC = () => {
         </div>
       )}
 
-      {tab === 'MINE' && isRegularUser && (
+      {activeTab === 'MINE' && isRegularUser && (
         <div className="space-y-3">
           <div className="flex justify-end">
             <button onClick={() => setIsCreateOpen(true)} className="flex items-center gap-1.5 bg-teal-800 hover:bg-teal-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-xs cursor-pointer">

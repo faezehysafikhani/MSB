@@ -4,7 +4,6 @@ import {
   Calendar,
   FileCheck2,
   CheckSquare,
-  BookOpen,
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
@@ -14,7 +13,6 @@ import {
   Settings,
   Lightbulb,
   Archive,
-  PieChart,
   Send,
   ClipboardList
 } from 'lucide-react';
@@ -22,7 +20,6 @@ import { useApp, AppRoute } from '../../context/AppContext';
 import { toPersianDigits } from '../../utils/formatters';
 import { meetingService, resolutionService, taskService, approvalService } from '../../services';
 import { followUpService } from '../../services/followUpService';
-import { GUIDE_SLIDES } from '../../modules/guide/UserGuideView';
 import { hasOrgWideMeetingAccess } from '../../services/userScope';
 
 interface NavGroup {
@@ -180,26 +177,13 @@ export const Sidebar: React.FC = () => {
           title: 'گزارش عملکرد',
           icon: FileSpreadsheet,
         },
+        // «اینفوگراف» و «راهنمای کاربری سامانه» از منو برداشته شده‌اند و حالا
+        // داخل «تنظیمات» تب مستقل دارند؛ بنابراین این گزینه برای همه کاربران
+        // نمایش داده می‌شود. تب‌های مدیریتی درون خود Settings محدود می‌مانند.
         {
-          route: 'infographics' as AppRoute,
-          title: 'اینفوگراف',
-          icon: PieChart,
-        },
-        ...(currentUser.role === 'ADMIN' || hasPermission('MANAGE_USERS')
-          ? [
-              {
-                route: 'settings' as AppRoute,
-                title: 'تنظیمات',
-                icon: Settings,
-              },
-            ]
-          : []),
-        {
-          route: 'guide' as AppRoute,
-          title: 'راهنمای کاربری سامانه',
-          icon: BookOpen,
-          badge: GUIDE_SLIDES.length,
-          badgeColor: 'bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 text-[9px] border border-teal-200 dark:border-teal-800',
+          route: 'settings' as AppRoute,
+          title: 'تنظیمات',
+          icon: Settings,
         },
       ],
     },

@@ -1,12 +1,34 @@
 import React, { useState } from 'react';
-import { Settings, Users2 } from 'lucide-react';
+import { Settings, Users2, PieChart, BookOpen } from 'lucide-react';
 import { GeneralSettingsTab } from './GeneralSettingsTab';
 import { UserManagementTab } from './UserManagementTab';
+import { InfographicsView } from '../infographics/InfographicsView';
+import { UserGuideView } from '../guide/UserGuideView';
+import { useApp } from '../../context/AppContext';
 
-type SettingsMainTab = 'GENERAL' | 'USERS';
+type SettingsMainTab = 'GENERAL' | 'USERS' | 'INFOGRAPHICS' | 'GUIDE';
 
 export const SettingsView: React.FC = () => {
-  const [mainTab, setMainTab] = useState<SettingsMainTab>('GENERAL');
+  const { currentUser, hasPermission } = useApp();
+
+  // اینفوگراف و راهنمای کاربری از منوی اصلی به اینجا منتقل شده‌اند. آنها
+  // مثل قبل برای همه کاربران در دسترس‌اند؛ تنظیمات عمومی و مدیریت کاربران
+  // دقیقاً همان محدودیت قبلی خود را نگه می‌دارند.
+  const canManageSystem = currentUser.role === 'ADMIN' || hasPermission('MANAGE_USERS');
+
+  const tabs: { id: SettingsMainTab; label: string; icon: React.ElementType }[] = [
+    ...(canManageSystem
+      ? [
+          { id: 'GENERAL' as SettingsMainTab, label: 'تنظیمات عمومی', icon: Settings },
+          { id: 'USERS' as SettingsMainTab, label: 'مدیریت کاربران', icon: Users2 },
+        ]
+      : []),
+    { id: 'INFOGRAPHICS' as SettingsMainTab, label: 'اینفوگراف', icon: PieChart },
+    { id: 'GUIDE' as SettingsMainTab, label: 'راهنمای کاربری', icon: BookOpen },
+  ];
+
+  const [mainTab, setMainTab] = useState<SettingsMainTab>(tabs[0].id);
+  const activeTab = tabs.some((t) => t.id === mainTab) ? mainTab : tabs[0].id;
 
   return (
     <div className="space-y-5 pb-12">
@@ -16,32 +38,34 @@ export const SettingsView: React.FC = () => {
           <span>تنظیمات سامانه</span>
         </h1>
         <p className="text-xs text-slate-400 font-medium mt-0.5">
-          مدیریت اطلاعات سازمان، پنل پیامکی، تقویم، تم سامانه و مدیریت کاربران
+          {canManageSystem
+            ? 'مدیریت اطلاعات سازمان، پنل پیامکی، تقویم، تم سامانه، مدیریت کاربران، اینفوگراف و راهنمای کاربری'
+            : 'اینفوگراف سامانه و راهنمای کاربری'}
         </p>
 
-        <div className="flex bg-slate-100 p-1 rounded-2xl gap-1 text-xs font-bold mt-4 w-fit">
-          <button
-            onClick={() => setMainTab('GENERAL')}
-            className={`flex items-center gap-1.5 py-2 px-4 rounded-xl transition-all cursor-pointer ${
-              mainTab === 'GENERAL' ? 'bg-white text-teal-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Settings className="w-3.5 h-3.5" />
-            <span>تنظیمات عمومی</span>
-          </button>
-          <button
-            onClick={() => setMainTab('USERS')}
-            className={`flex items-center gap-1.5 py-2 px-4 rounded-xl transition-all cursor-pointer ${
-              mainTab === 'USERS' ? 'bg-white text-teal-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Users2 className="w-3.5 h-3.5" />
-            <span>مدیریت کاربران</span>
-          </button>
+        <div className="flex flex-wrap bg-slate-100 p-1 rounded-2xl gap-1 text-xs font-bold mt-4 w-fit">
+          {tabs.map((tabItem) => {
+            const Icon = tabItem.icon;
+            return (
+              <button
+                key={tabItem.id}
+                onClick={() => setMainTab(tabItem.id)}
+                className={`flex items-center gap-1.5 py-2 px-4 rounded-xl transition-all cursor-pointer ${
+                  activeTab === tabItem.id ? 'bg-white text-teal-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{tabItem.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {mainTab === 'GENERAL' ? <GeneralSettingsTab /> : <UserManagementTab />}
+      {activeTab === 'GENERAL' && <GeneralSettingsTab />}
+      {activeTab === 'USERS' && <UserManagementTab />}
+      {activeTab === 'INFOGRAPHICS' && <InfographicsView />}
+      {activeTab === 'GUIDE' && <UserGuideView />}
     </div>
   );
 };
