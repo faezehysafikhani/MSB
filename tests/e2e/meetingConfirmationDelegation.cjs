@@ -1,7 +1,9 @@
 /**
- * باگ گزارش‌شده: پس از تعیین جانشین برای دبیر جلسه، «تایید جلسه»ای که
- * مسئول دفتر می‌زند همچنان فقط به کارتابل دبیر جلسه می‌رفت و جانشین آن را
- * نمی‌دید. این Suite همان سناریو را از ابتدا تا انتها می‌سنجد.
+ * «تأیید نهایی تایید جلسه» یک تصمیم اداری است و امضا محسوب نمی‌شود، پس
+ * «جانشین امضا» نباید هیچ اثری روی آن داشته باشد.
+ *
+ * این Suite همین قاعده را قفل می‌کند تا دوباره سهواً به هم وصل نشوند، و
+ * در کنارش تأیید می‌کند که جانشینی روی مراحل واقعی امضا همچنان کار می‌کند.
  */
 const { chromium } = require('playwright');
 const BASE = process.env.E2E_BASE_URL || 'http://localhost:4183';
@@ -30,29 +32,30 @@ const check = (name, ok, extra = '') => { results.push(ok); console.log(`[${ok ?
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForTimeout(900);
 
-  // user-8 دبیر جلسه (دارنده APPROVE_MEETING_CONFIRMATION)، user-9 کاربر عادی
-  const whoHasPermission = await page.evaluate(async () => {
-    const users = await window.loadUsers();
-    const s = users.find((u) => u.id === 'user-8');
-    const d = users.find((u) => u.id === 'user-9');
-    return {
-      secretaryHas: (s.permissions || []).includes('APPROVE_MEETING_CONFIRMATION'),
-      delegateHas: (d.permissions || []).includes('APPROVE_MEETING_CONFIRMATION'),
-      secretaryName: s.fullName, delegateName: d.fullName,
-    };
+  const names = await page.evaluate(async () => {
+    const s = await window.actor('user-8');
+    const d = await window.actor('user-9');
+    return { secretary: s.fullName, delegate: d.fullName };
   });
-  check('دبیر جلسه مجوز تأیید تایید جلسه را دارد', whoHasPermission.secretaryHas, whoHasPermission.secretaryName);
-  check('کاربر جانشین این مجوز را ندارد (باید صرفاً از راه جانشینی برسد)',
-    whoHasPermission.delegateHas === false, whoHasPermission.delegateName);
 
-  // پیشنهاد، تأیید مدیرعامل، و «تبدیل به تایید جلسه» توسط مسئول دفتر
+  // دبیر جلسه، یک کاربر عادی را جانشین امضای خود می‌کند (جانشینی فعال).
+  const delegated = await page.evaluate(async () => {
+    const mod = await import('/src/services/signatureDelegationService.ts');
+    try {
+      mod.setDelegation({ ownerUserId: 'user-8', delegateUserId: 'user-9', isActive: true }, await window.actor('user-8'));
+      return 'OK';
+    } catch (e) { return e.message; }
+  });
+  check('جانشین امضای دبیر جلسه تعیین شد (جانشینی فعال است)', delegated === 'OK', delegated);
+
+  // پیشنهاد تا مرحله «در انتظار تأیید نهایی دبیر جلسه» پیش می‌رود.
   const propId = await page.evaluate(async () => {
     const mod = await import('/src/services/proposalService.ts');
     const res = await mod.proposalService.createProposal({
-      title: 'پیشنهاد تست جانشینی تایید جلسه', description: 'شرح', rationale: 'دلیل',
-      proposerName: 'مهندس سارا نیک‌نام', proposerUserId: 'user-9',
+      title: 'پیشنهاد تست تایید جلسه اداری', description: 'شرح', rationale: 'دلیل',
+      proposerName: 'مهندس آرش کریمی', proposerUserId: 'user-10',
       proposerDepartmentId: 'dept-1', proposerDepartmentName: 'اداره کل فناوری اطلاعات',
-      presenterUserId: 'user-9', presenterName: 'مهندس سارا نیک‌نام',
+      presenterUserId: 'user-10', presenterName: 'مهندس آرش کریمی',
     });
     const id = res.data.id;
     await mod.proposalService.reviewProposal(id, 'APPROVED', 'تأیید', await window.actor('user-16'));
@@ -61,16 +64,18 @@ const check = (name, ok, extra = '') => { results.push(ok); console.log(`[${ok ?
   });
   const statusOf = async () => page.evaluate((id) =>
     JSON.parse(localStorage.getItem('postbank-mosavabat-v1:proposals') || '[]').find((p) => p.id === id)?.status, propId);
-  check('«تبدیل به تایید جلسه» توسط مسئول دفتر انجام شد',
+  check('پیشنهاد در انتظار تأیید نهایی دبیر جلسه است',
     await statusOf() === 'PENDING_SECRETARY_CONFIRMATION', await statusOf());
 
-  // ——— پیش از تعیین جانشین: جانشین نباید دسترسی داشته باشد ———
-  const beforeDelegation = await page.evaluate(async (id) => {
+  // ===== قاعده اصلی: جانشین امضا نباید بتواند تایید جلسه را نهایی کند =====
+  const delegateTry = await page.evaluate(async (id) => {
     const mod = await import('/src/services/proposalService.ts');
     try { await mod.proposalService.finalizeMeetingConfirmation(id, 'APPROVED', undefined, await window.actor('user-9')); return 'ALLOWED'; }
     catch (e) { return e.message; }
   }, propId);
-  check('پیش از تعیین جانشین، کاربر عادی نمی‌تواند تأیید کند', beforeDelegation !== 'ALLOWED', beforeDelegation);
+  check('جانشین امضا نمی‌تواند تأیید نهایی تایید جلسه را انجام دهد', delegateTry !== 'ALLOWED', delegateTry);
+  check('وضعیت پیشنهاد پس از تلاش جانشین دست‌نخورده ماند',
+    await statusOf() === 'PENDING_SECRETARY_CONFIRMATION', await statusOf());
 
   const switchUser = async (label) => {
     await page.locator('button:has-text("کاربر:")').first().click();
@@ -82,109 +87,64 @@ const check = (name, ok, extra = '') => { results.push(ok); console.log(`[${ok ?
     await page.locator('aside button:has-text("مصوبات پیشنهادی")').first().click();
     await page.waitForTimeout(1000);
   };
+  // متن دکمه‌های تب مستقیماً خوانده می‌شود؛ «دبیر جلسه» در برچسب وضعیت
+  // آیتم‌ها هم می‌آید، پس فقط دکمه‌هایی که با آن شروع می‌شوند شمرده می‌شوند.
+  const secretaryTabs = async () =>
+    (await page.locator('main button').allInnerTexts())
+      .map((t) => t.trim())
+      .filter((t) => t.startsWith('دبیر جلسه'));
 
-  await switchUser(whoHasPermission.delegateName);
+  await switchUser(names.delegate);
   await openProposals();
-  // عبارت «دبیر جلسه» در برچسب وضعیت آیتم‌ها هم می‌آید، پس دقیقاً روی
-  // دکمه تب بررسی می‌شود نه کل متن صفحه.
-  const secretaryTab = () => page.locator('main button').filter({ hasText: /^دبیر جلسه( \(جانشینی\))?( |\n|$)/ });
-  check('پیش از تعیین جانشین، تب «دبیر جلسه» برای این کاربر دیده نمی‌شود',
-    await secretaryTab().count() === 0, `tabs=${await secretaryTab().count()}`);
+  check('کارتابل «دبیر جلسه» برای جانشین امضا نمایش داده نمی‌شود',
+    (await secretaryTabs()).length === 0, JSON.stringify(await secretaryTabs()));
   let body = await page.locator('main').first().innerText();
+  check('مورد تایید جلسه در کارتابل جانشین دیده نمی‌شود',
+    !body.includes('پیشنهاد تست تایید جلسه اداری'));
+  check('هیچ برچسب «جانشینی» در کارتابل مصوبات پیشنهادی نیست', !body.includes('جانشینی'));
 
-  // ——— دبیر جلسه، این کاربر را جانشین خود می‌کند ———
-  const delegated = await page.evaluate(async () => {
-    const mod = await import('/src/services/signatureDelegationService.ts');
-    const secretary = await window.actor('user-8');
-    try {
-      mod.setDelegation({ ownerUserId: 'user-8', delegateUserId: 'user-9', isActive: true }, secretary);
-      return 'OK';
-    } catch (e) { return e.message; }
-  });
-  check('دبیر جلسه جانشین خود را تعیین کرد', delegated === 'OK', delegated);
-
-  // ——— باگ اصلی: حالا باید در کارتابل جانشین دیده شود ———
-  await page.reload({ waitUntil: 'networkidle' });
-  await page.waitForTimeout(900);
+  // ===== خود دبیر جلسه مثل قبل کار می‌کند =====
+  await switchUser(names.secretary);
   await openProposals();
-  body = await page.locator('main').first().innerText();
-  check('باگ اصلی رفع شد: تب «دبیر جلسه» در کارتابل جانشین ظاهر شد',
-    await secretaryTab().count() > 0, `tabs=${await secretaryTab().count()}`);
-  check('تب به‌وضوح «جانشینی» را نشان می‌دهد', body.includes('جانشینی'), body.match(/دبیر جلسه[^\n]*/)?.[0]);
-  check('مورد «تایید جلسه» در کارتابل جانشین دیده می‌شود', body.includes('پیشنهاد تست جانشینی تایید جلسه'));
-  check('کارتابل صریحاً می‌گوید به جانشینی از چه کسی است',
-    body.includes(`به جانشینی از ${whoHasPermission.secretaryName}`), body.match(/به جانشینی از[^\n]*/)?.[0]);
+  const ownerTabs = await secretaryTabs();
+  check('کارتابل «دبیر جلسه» برای خود دبیر جلسه هست', ownerTabs.length === 1, JSON.stringify(ownerTabs));
+  check('برچسب تب بدون پسوند جانشینی است',
+    ownerTabs.length === 1 && !ownerTabs[0].includes('جانشینی'), JSON.stringify(ownerTabs));
 
-  // ——— جانشین اقدام می‌کند ———
-  await page.locator('main button').filter({ hasText: 'تأیید نهایی' }).first().click();
-  await page.waitForTimeout(1400);
-  check('جانشین توانست تأیید نهایی تایید جلسه را انجام دهد',
-    await statusOf() === 'CONFIRMED_FOR_MEETING', await statusOf());
-
-  const history = await page.evaluate((id) =>
-    JSON.parse(localStorage.getItem('postbank-mosavabat-v1:proposals') || '[]')
-      .find((p) => p.id === id)?.history || [], propId);
-  const entry = history.find((h) => String(h.action).includes('تأیید نهایی تایید جلسه'));
-  check('سابقه می‌گوید اقدام به جانشینی انجام شده', Boolean(entry) && entry.action.includes('به جانشینی از'), entry?.action);
-  check('سابقه نام اقدام‌کننده واقعی را ثبت کرده',
-    Boolean(entry) && entry.actorName === whoHasPermission.delegateName, entry?.actorName);
-  check('سابقه نام شخص اصلی را هم نگه داشته',
-    Boolean(entry) && entry.action.includes(whoHasPermission.secretaryName), entry?.action);
-
-  // ——— دبیر جلسه خودش همچنان می‌تواند کار کند ———
-  const ownerStillWorks = await page.evaluate(async () => {
+  const ownerResult = await page.evaluate(async (id) => {
     const mod = await import('/src/services/proposalService.ts');
-    const p = await mod.proposalService.createProposal({
-      title: 'پیشنهاد دوم', description: 'شرح', proposerName: 'مهندس سارا نیک‌نام', proposerUserId: 'user-9',
-      proposerDepartmentId: 'dept-1', proposerDepartmentName: 'اداره کل فناوری اطلاعات',
-      presenterUserId: 'user-9', presenterName: 'مهندس سارا نیک‌نام',
-    });
-    await mod.proposalService.reviewProposal(p.data.id, 'APPROVED', 'ok', await window.actor('user-16'));
-    await mod.proposalService.confirmForMeeting(p.data.id, await window.actor('user-17'));
-    await mod.proposalService.finalizeMeetingConfirmation(p.data.id, 'APPROVED', undefined, await window.actor('user-8'));
-    const stored = JSON.parse(localStorage.getItem('postbank-mosavabat-v1:proposals') || '[]').find((x) => x.id === p.data.id);
+    await mod.proposalService.finalizeMeetingConfirmation(id, 'APPROVED', undefined, await window.actor('user-8'));
+    const stored = JSON.parse(localStorage.getItem('postbank-mosavabat-v1:proposals') || '[]').find((p) => p.id === id);
     const h = (stored.history || []).find((x) => String(x.action).includes('تأیید نهایی تایید جلسه'));
     return { status: stored.status, action: h?.action, actor: h?.actorName };
-  });
-  check('دبیر جلسه خودش همچنان می‌تواند تأیید کند', ownerStillWorks.status === 'CONFIRMED_FOR_MEETING', ownerStillWorks.status);
-  check('اقدام مستقیم دبیر جلسه برچسب جانشینی نمی‌گیرد',
-    !String(ownerStillWorks.action).includes('به جانشینی'), ownerStillWorks.action);
+  }, propId);
+  check('دبیر جلسه خودش تأیید نهایی را انجام داد', ownerResult.status === 'CONFIRMED_FOR_MEETING', ownerResult.status);
+  check('سابقه دقیقاً مثل قبل و بدون اشاره به جانشینی ثبت شد',
+    ownerResult.action === 'تأیید نهایی تایید جلسه توسط دبیر جلسه', ownerResult.action);
+  check('نام اقدام‌کننده در سابقه خود دبیر جلسه است', ownerResult.actor === names.secretary, ownerResult.actor);
 
-  // ——— جانشینی غیرفعال → دسترسی قطع می‌شود ———
-  const afterDeactivate = await page.evaluate(async () => {
+  // ===== جانشینی روی مراحل واقعی امضا همچنان کار می‌کند =====
+  const signingStillDelegated = await page.evaluate(async () => {
     const del = await import('/src/services/signatureDelegationService.ts');
-    const prop = await import('/src/services/proposalService.ts');
-    del.setDelegation({ ownerUserId: 'user-8', delegateUserId: 'user-9', isActive: false }, await window.actor('user-8'));
-    const p = await prop.proposalService.createProposal({
-      title: 'پیشنهاد سوم', description: 'شرح', proposerName: 'مهندس سارا نیک‌نام', proposerUserId: 'user-9',
-      proposerDepartmentId: 'dept-1', proposerDepartmentName: 'اداره کل فناوری اطلاعات',
-      presenterUserId: 'user-9', presenterName: 'مهندس سارا نیک‌نام',
-    });
-    await prop.proposalService.reviewProposal(p.data.id, 'APPROVED', 'ok', await window.actor('user-16'));
-    await prop.proposalService.confirmForMeeting(p.data.id, await window.actor('user-17'));
-    try { await prop.proposalService.finalizeMeetingConfirmation(p.data.id, 'APPROVED', undefined, await window.actor('user-9')); return 'ALLOWED'; }
-    catch (e) { return e.message; }
-  });
-  check('با غیرفعال شدن جانشینی، دسترسی جانشین قطع می‌شود', afterDeactivate !== 'ALLOWED', afterDeactivate);
-
-  // ——— جانشینی هیچ مجوز دیگری منتقل نمی‌کند ———
-  const noPermissionLeak = await page.evaluate(async () => {
-    const del = await import('/src/services/signatureDelegationService.ts');
-    del.setDelegation({ ownerUserId: 'user-8', delegateUserId: 'user-9', isActive: true }, await window.actor('user-8'));
-    // user-8 مجوز NOTIFY_RESOLUTION ندارد؛ جانشینی نباید مجوزی بسازد که وجود ندارد
     return {
-      forConfirmation: Boolean(del.getDelegationGrantingPermission('user-9', 'APPROVE_MEETING_CONFIRMATION')),
-      forNotify: Boolean(del.getDelegationGrantingPermission('user-9', 'NOTIFY_RESOLUTION')),
-      forUsers: Boolean(del.getDelegationGrantingPermission('user-9', 'MANAGE_USERS')),
+      // قاعده امضا: جانشین فعالِ همان امضاکننده مجاز است
+      delegateAllowed: del.resolveSigningAuthority('user-8', 'user-9'),
+      ownerAllowed: del.resolveSigningAuthority('user-8', 'user-8'),
+      strangerAllowed: del.resolveSigningAuthority('user-8', 'user-13'),
+      // تابع مخصوص مجوزها باید حذف شده باشد تا دوباره به تایید جلسه وصل نشود
+      permissionHelperRemoved: typeof del.getDelegationGrantingPermission === 'undefined',
     };
   });
-  check('جانشینی فقط همان مجوزِ شخص اصلی را پوشش می‌دهد', noPermissionLeak.forConfirmation === true);
-  check('جانشینی مجوزی که شخص اصلی ندارد را نمی‌سازد',
-    noPermissionLeak.forNotify === false && noPermissionLeak.forUsers === false, JSON.stringify(noPermissionLeak));
+  check('جانشینی روی امضا دست‌نخورده است: جانشین مجاز به امضاست',
+    signingStillDelegated.delegateAllowed.allowed === true && signingStillDelegated.delegateAllowed.asDelegate === true);
+  check('امضاکننده اصلی همچنان مستقیم امضا می‌کند',
+    signingStillDelegated.ownerAllowed.allowed === true && signingStillDelegated.ownerAllowed.asDelegate === false);
+  check('کاربر غیرمرتبط همچنان مجاز به امضا نیست', signingStillDelegated.strangerAllowed.allowed === false);
+  check('تابع اتصال جانشینی به مجوزها حذف شد', signingStillDelegated.permissionHelperRemoved === true);
 
   check('Regression: هیچ Crash/Runtime Error رخ نداد', pageErrors.length === 0, pageErrors.join(' | '));
 
-  console.log(`\nMEETING CONFIRMATION DELEGATION: ${results.filter(Boolean).length}/${results.length} passed`);
+  console.log(`\nMEETING CONFIRMATION vs SIGNATURE DELEGATION: ${results.filter(Boolean).length}/${results.length} passed`);
   await browser.close();
   process.exit(results.every(Boolean) ? 0 : 1);
 })();

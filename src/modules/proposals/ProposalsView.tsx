@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Lightbulb, Plus, Calendar, CheckCircle2, XCircle, Inbox, FileCheck2, X, RotateCcw, ClipboardCheck, FileSpreadsheet, Download, Undo2, UploadCloud, Edit3, LayoutGrid, Table2
 } from 'lucide-react';
@@ -12,7 +12,6 @@ import { CreateProposalModal } from './CreateProposalModal';
 import { ExcelImportModal } from './ExcelImportModal';
 import { PersianDatePicker } from '../../components/common/PersianDatePicker';
 import { downloadProposalExcelTemplate, parseProposalExcelFile, ProposalImportParseResult } from '../../services/proposalExcelImportService';
-import { getDelegationGrantingPermission } from '../../services/signatureDelegationService';
 
 type ProposalTab = 'OFFICE' | 'CEO' | 'SECRETARY_APPROVAL' | 'MINE';
 type OfficeStatusFilter = 'APPROVED' | 'PENDING_SECRETARY_CONFIRMATION' | 'RETURNED_BY_SECRETARY' | 'CONFIRMED_FOR_MEETING' | 'CONVERTED_TO_AGENDA' | 'NO_BOARD_REQUIRED' | 'ALL';
@@ -54,15 +53,9 @@ export const ProposalsView: React.FC = () => {
   const canImportFromExcel = hasPermission('IMPORT_PROPOSALS_FROM_EXCEL');
   // Final approval of Meeting Confirmation — a دبیر جلسه permission,
   // deliberately independent of isOfficeManager/isCeo above.
-  // جانشین فعالِ دبیر جلسه هم این کارتابل را می‌بیند — همان قاعده‌ای که
-  // finalizeMeetingConfirmation در Service Layer نیز Enforce می‌کند.
-  const meetingConfirmationDelegation = useMemo(
-    () => (hasPermission('APPROVE_MEETING_CONFIRMATION')
-      ? undefined
-      : getDelegationGrantingPermission(currentUser.id, 'APPROVE_MEETING_CONFIRMATION')),
-    [currentUser.id, hasPermission]
-  );
-  const isMeetingSecretaryApprover = hasPermission('APPROVE_MEETING_CONFIRMATION') || Boolean(meetingConfirmationDelegation);
+  // این مرحله یک تصمیم اداری است و ربطی به امضا ندارد، پس «جانشین امضا»
+  // عمداً روی آن اثری نمی‌گذارد.
+  const isMeetingSecretaryApprover = hasPermission('APPROVE_MEETING_CONFIRMATION');
 
   // تب پیش‌فرض: اگر کاربر دبیر جلسه باشد، «دبیر جلسه» — حتی وقتی همزمان
   // مسئول دفتر هم هست. ترتیب نمایش تب‌ها نیز در visibleTabs همین است.
@@ -353,7 +346,7 @@ export const ProposalsView: React.FC = () => {
   const secretaryQueue = proposals.filter((p) => p.status === 'PENDING_SECRETARY_CONFIRMATION');
 
   const visibleTabs: { id: ProposalTab; label: string; count: number; icon: React.ElementType }[] = [
-    ...(isMeetingSecretaryApprover ? [{ id: 'SECRETARY_APPROVAL' as ProposalTab, label: meetingConfirmationDelegation ? 'دبیر جلسه (جانشینی)' : 'دبیر جلسه', count: secretaryQueue.length, icon: ClipboardCheck }] : []),
+    ...(isMeetingSecretaryApprover ? [{ id: 'SECRETARY_APPROVAL' as ProposalTab, label: 'دبیر جلسه', count: secretaryQueue.length, icon: ClipboardCheck }] : []),
     ...(isOfficeManager ? [{ id: 'OFFICE' as ProposalTab, label: 'مسئول دفتر', count: proposals.filter((p) => p.status === 'APPROVED' || p.status === 'RETURNED_BY_SECRETARY').length, icon: Lightbulb }] : []),
     ...(isCeo ? [{ id: 'CEO' as ProposalTab, label: 'کارتابل مدیرعامل', count: ceoQueue.length, icon: Inbox }] : []),
     ...(isRegularUser ? [{ id: 'MINE' as ProposalTab, label: 'پیشنهادها و دستورات من', count: myProposals.length, icon: Lightbulb }] : []),
@@ -722,11 +715,6 @@ export const ProposalsView: React.FC = () => {
 
       {activeTab === 'SECRETARY_APPROVAL' && isMeetingSecretaryApprover && (
         <div className="space-y-3">
-          {meetingConfirmationDelegation && (
-            <div className="bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-2.5 text-[11px] font-bold text-indigo-900">
-              این موارد به جانشینی از {meetingConfirmationDelegation.ownerName} در اختیار شماست و اقدام شما به نام خودتان ثبت می‌شود.
-            </div>
-          )}
           {secretaryQueue.length > 0 && (
             <div className="bg-white rounded-2xl px-4 py-3 shadow-xs border border-slate-100">
               <BulkSelectionBar

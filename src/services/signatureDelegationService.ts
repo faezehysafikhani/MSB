@@ -115,27 +115,6 @@ export const clearDelegation = (ownerUserId: string, actor: User): void => {
 };
 
 /**
- * جانشینیِ فعالی که مالک آن، دارنده مجوز موردنظر است.
- *
- * بعضی مراحل امضا/تأیید به‌جای یک کاربر مشخص، به «هر کسی که فلان مجوز را
- * دارد» تخصیص می‌یابند (مثل تأیید نهایی تایید جلسه که با
- * APPROVE_MEETING_CONFIRMATION گیت شده است). در این حالت مرجع تصمیم‌گیری
- * این است که آیا کاربر جاری جانشین فعالِ یکی از دارندگان همان مجوز هست
- * یا نه. جانشینی هیچ مجوز دیگری را منتقل نمی‌کند.
- */
-export const getDelegationGrantingPermission = (
-  actorUserId: string,
-  permission: string
-): SignatureDelegation | undefined => {
-  const users = loadLocalCollection('users', mockUsers);
-  return getOwnersDelegatedTo(actorUserId).find((delegation) => {
-    const owner = users.find((user) => user.id === delegation.ownerUserId);
-    if (!owner) return false;
-    return owner.role === 'ADMIN' || (owner.permissions || []).includes(permission);
-  });
-};
-
-/**
  * آیا این کاربر مجاز به امضای درخواستی است که به assignedSignerUserId
  * تخصیص یافته؟ نتیجه می‌گوید امضا مستقیم است یا به جانشینی.
  * تنها مرجع تصمیم‌گیری برای همه Signature Stageها.
