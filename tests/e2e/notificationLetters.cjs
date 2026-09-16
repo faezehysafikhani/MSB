@@ -10,6 +10,12 @@ const readLS = (page, key) => page.evaluate((k) => JSON.parse(localStorage.getIt
   const page = await browser.newPage();
   page.on('pageerror', (e) => console.log('PAGEERROR:', String(e)));
   page.on('dialog', async (d) => { await d.accept(); });
+  // این Suite یک مرورگرِ از قبل Reset‌شده را شبیه‌سازی می‌کند: Marker پیش از
+  // بارگذاری هر صفحه ثبت می‌شود تا Reset یک‌باره داده‌های Seed تست را پاک نکند.
+  await page.addInitScript(() => {
+    localStorage.setItem('postbank-mosavabat-v1:operationalResetVersion', '1');
+  });
+
 
   await page.goto(BASE, { waitUntil: 'networkidle' });
   await page.evaluate(() => localStorage.clear());
