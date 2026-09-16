@@ -41,7 +41,7 @@ const OFFICE_FILTERS: { id: OfficeStatusFilter; label: string }[] = [
   { id: 'RETURNED_BY_SECRETARY', label: 'برگشت از دبیر جلسه' },
   { id: 'CONFIRMED_FOR_MEETING', label: 'تایید جلسه شده' },
   { id: 'CONVERTED_TO_AGENDA', label: 'تبدیل شده به جلسه' },
-  { id: 'NO_BOARD_REQUIRED', label: 'عدم نیاز به طرح (قابل بازیافت)' },
+  { id: 'NO_BOARD_REQUIRED', label: 'عدم نیاز به طرح (قابل بازیابی)' },
   { id: 'ALL', label: 'همه موارد' },
 ];
 
@@ -271,10 +271,10 @@ export const ProposalsView: React.FC = () => {
   const handleRecoverProposal = async (proposal: Proposal) => {
     try {
       await proposalService.recoverProposal(proposal.id, currentUser);
-      showToast('بازیافت پیشنهاد', `«${proposal.title}» بازیافت شد و دوباره به کارتابل مدیرعامل ارسال شد.`, 'success');
+      showToast('بازیابی پیشنهاد', `«${proposal.title}» بازیابی شد و دوباره به کارتابل مدیرعامل ارسال شد.`, 'success');
       triggerRefresh();
     } catch (error) {
-      showToast('خطا', error instanceof Error ? error.message : 'بازیافت انجام نشد.', 'error');
+      showToast('خطا', error instanceof Error ? error.message : 'بازیابی انجام نشد.', 'error');
     }
   };
 
@@ -501,7 +501,7 @@ export const ProposalsView: React.FC = () => {
                       {p.status === 'NO_BOARD_REQUIRED' && (
                         <button onClick={() => handleRecoverProposal(p)} className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold py-1.5 px-3 rounded-xl cursor-pointer">
                           <Undo2 className="w-3.5 h-3.5" />
-                          <span>بازیافت</span>
+                          <span>بازیابی</span>
                         </button>
                       )}
                     </td>

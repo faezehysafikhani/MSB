@@ -144,7 +144,7 @@ export interface Organization {
 export type ProposalStatus =
   | 'PENDING_OFFICE_REVIEW'  // ثبت شده توسط کاربر عادی، در انتظار بررسی مسئول دفتر
   | 'PENDING_CEO_REVIEW'     // در انتظار بررسی مدیرعامل
-  | 'REJECTED'               // رد شده (فقط قابل بازیافت)
+  | 'REJECTED'               // رد شده (فقط قابل بازیابی)
   | 'APPROVED'               // تایید شده توسط مدیرعامل، در انتظار تبدیل به تایید جلسه توسط مسئول دفتر
   | 'RETURNED_FOR_REVISION'  // برگشت به پیشنهاددهنده برای اصلاح
   | 'RESUBMITTED'            // اصلاح و مجدداً برای مدیرعامل ارسال شده
