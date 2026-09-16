@@ -21,6 +21,15 @@ export const isMeetingRelatedToUser = (meeting: Meeting, userId: string): boolea
   meeting.secretaryId === userId ||
   meeting.members.some((member) => member.userId === userId);
 
+/**
+ * دید سازمانی روی «بانک مصوبات» — همتای hasOrgWideMeetingAccess برای مصوبات.
+ * دارنده مجوز VIEW_RESOLUTIONS (مثل دبیر جلسه و مسئول دفتر) باید فهرست
+ * مصوبات را ببیند، نه فقط مصوباتی که شخصاً در آنها نقش دارد. ADMIN طبق
+ * روال سایر بخش‌های سامانه دسترسی کامل دارد.
+ */
+export const hasOrgWideResolutionAccess = (user: User): boolean =>
+  user.role === 'ADMIN' || (user.permissions || []).includes('VIEW_RESOLUTIONS');
+
 export const isResolutionRelatedToUser = (resolution: Resolution, user: User): boolean => {
   const userName = normalizeName(user.fullName);
 

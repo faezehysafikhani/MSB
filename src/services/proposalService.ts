@@ -213,10 +213,10 @@ class MockProposalService implements IProposalService {
     const proposals = this.getData();
     const proposal = proposals.find((p) => p.id === id);
     if (!proposal) throw new Error('مصوبه پیشنهادی یافت نشد');
-    if (proposal.status !== 'NO_BOARD_REQUIRED') throw new Error('فقط موارد «عدم نیاز به طرح در هیأت‌مدیره» قابل بازیافت هستند');
+    if (proposal.status !== 'NO_BOARD_REQUIRED') throw new Error('فقط موارد «عدم نیاز به طرح در هیأت‌مدیره» قابل بازیابی هستند');
     const previousStatus = proposal.status;
     proposal.status = 'PENDING_CEO_REVIEW';
-    this.addHistory(proposal, actor, 'بازیافت پیشنهاد و ارسال مجدد برای بررسی مدیرعامل', previousStatus);
+    this.addHistory(proposal, actor, 'بازیابی پیشنهاد و ارسال مجدد برای بررسی مدیرعامل', previousStatus);
     this.saveData(proposals);
     return apiClient.simulateNetwork(proposal, 120);
   }

@@ -175,9 +175,9 @@ const buildProposalSteps = (proposal: Proposal): WorkflowStep[] => {
     note: status === 'RESUBMITTED' ? 'پس از اصلاح، مجدداً برای مدیرعامل ارسال شده است' : proposal.managementDecisionNotes,
     branches: [
       { action: 'تأیید', outcome: 'ورود به کارتابل مسئول دفتر برای تبدیل به تایید جلسه', taken: passedCeo || undefined },
-      { action: 'رد', outcome: 'پایان مسیر پیشنهاد (قابل بازیافت)', taken: isRejected || undefined },
+      { action: 'رد', outcome: 'خاتمه بدون تشکیل جلسه', taken: isRejected || undefined },
       { action: 'برگشت برای اصلاح', outcome: 'بازگشت به پیشنهاددهنده جهت اصلاح و ارسال مجدد', taken: status === 'RETURNED_FOR_REVISION' || undefined },
-      { action: 'عدم نیاز به طرح در هیأت‌مدیره', outcome: 'خاتمه بدون تشکیل جلسه', taken: status === 'NO_BOARD_REQUIRED' || undefined },
+      { action: 'عدم نیاز به طرح در هیأت‌مدیره', outcome: 'پایان مسیر پیشنهاد (قابل بازیابی)', taken: status === 'NO_BOARD_REQUIRED' || undefined },
       { action: 'صدور دستور مستقیم', outcome: 'تبدیل به دستور مدیرعامل و ارجاع مستقیم به مجری', taken: status === 'CEO_ORDER_ISSUED' || undefined },
     ],
   });

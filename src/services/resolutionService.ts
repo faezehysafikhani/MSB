@@ -20,7 +20,7 @@ import type { ResolutionProgressReport } from '../types';
 import { mockResolutions, mockActivityLogs, mockTasks, mockApprovals, mockMeetings, mockNotifications } from '../mock/data';
 import { apiClient } from './api/apiClient';
 import { mockUsers } from '../mock/data';
-import { isResolutionRelatedToUser } from './userScope';
+import { hasOrgWideResolutionAccess, isResolutionRelatedToUser } from './userScope';
 import { loadLocalCollection, saveLocalCollection } from './localStore';
 import { issueNotificationLetterNumber } from './notificationLetterNumbering';
 import { resolveSignatureImageUrl } from '../utils/signatureImage';
@@ -156,7 +156,14 @@ class MockResolutionService implements IResolutionService {
     if (params?.relatedUserId) {
       const users = loadLocalCollection('users', mockUsers);
       const relatedUser = users.find((user) => user.id === params.relatedUserId);
-      filtered = relatedUser ? filtered.filter((resolution) => isResolutionRelatedToUser(resolution, relatedUser)) : [];
+      // دارنده مجوز مشاهده مصوبات، کل بانک مصوبات را می‌بیند؛ بقیه فقط
+      // مصوباتی که شخصاً با آنها مرتبط‌اند. با اعمال این قاعده در همین‌جا،
+      // فهرست، شمارنده منو، داشبورد و جستجو همگی یکسان عمل می‌کنند.
+      filtered = relatedUser
+        ? (hasOrgWideResolutionAccess(relatedUser)
+            ? filtered
+            : filtered.filter((resolution) => isResolutionRelatedToUser(resolution, relatedUser)))
+        : [];
     }
 
     if (params?.searchTerm) {
