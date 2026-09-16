@@ -4,6 +4,7 @@ import { apiClient } from './api/apiClient';
 import { loadLocalValue, saveLocalValue, loadLocalCollection, saveLocalCollection } from './localStore';
 import { toPersianDigits } from '../utils/formatters';
 import { smsService } from './smsService';
+import { getDelegationGrantingPermission } from './signatureDelegationService';
 
 const STORAGE_KEY = 'proposals';
 
@@ -312,7 +313,13 @@ class MockProposalService implements IProposalService {
     // usual implicit-superuser access, matching every other permission
     // check across the app.
     const canFinalize = actor.role === 'ADMIN' || (actor.permissions || []).includes('APPROVE_MEETING_CONFIRMATION');
-    if (!canFinalize) throw new Error('شما مجاز به تأیید نهایی تایید جلسه نیستید.');
+    // این مرحله به «هر دارنده APPROVE_MEETING_CONFIRMATION» تخصیص دارد، نه به
+    // یک کاربر مشخص؛ پس جانشینِ فعالِ دبیر جلسه هم باید بتواند آن را انجام
+    // دهد. جانشینی هیچ مجوز دیگری را منتقل نمی‌کند.
+    const delegation = canFinalize
+      ? undefined
+      : getDelegationGrantingPermission(actor.id, 'APPROVE_MEETING_CONFIRMATION');
+    if (!canFinalize && !delegation) throw new Error('شما مجاز به تأیید نهایی تایید جلسه نیستید.');
     if (decision === 'RETURNED_FOR_REVISION' && !notes?.trim()) throw new Error('ثبت دلیل برگشت الزامی است');
     const proposals = this.getData();
     const proposal = proposals.find((item) => item.id === id);
@@ -332,7 +339,10 @@ class MockProposalService implements IProposalService {
         : 'REJECTED';
     if (notes?.trim()) proposal.managementDecisionNotes = notes.trim();
     const labels = { APPROVED: 'تأیید نهایی تایید جلسه توسط دبیر جلسه', REJECTED: 'رد تایید جلسه توسط دبیر جلسه', RETURNED_FOR_REVISION: 'برگشت تایید جلسه توسط دبیر جلسه جهت اصلاح' };
-    this.addHistory(proposal, actor, labels[decision], previousStatus, notes?.trim());
+    // سابقه باید بگوید واقعاً چه کسی اقدام کرده است؛ اقدام جانشینی نباید
+    // به‌نام شخص اصلی ثبت شود.
+    const action = delegation ? `${labels[decision]} (به جانشینی از ${delegation.ownerName})` : labels[decision];
+    this.addHistory(proposal, actor, action, previousStatus, notes?.trim());
     this.saveData(proposals);
     return apiClient.simulateNetwork(proposal, 120);
   }
