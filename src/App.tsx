@@ -25,6 +25,7 @@ import { CalendarView } from './modules/calendar/CalendarView';
 import { UsersView } from './modules/users/UsersView';
 import { UserGuideView } from './modules/guide/UserGuideView';
 import { SettingsView } from './modules/settings/SettingsView';
+import { WorkflowMapLauncher } from './modules/workflowMap/WorkflowMapLauncher';
 
 import { Sparkles, Bot, ShieldAlert } from 'lucide-react';
 
@@ -129,6 +130,11 @@ const AppContent: React.FC = () => {
           <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
         </button>
       </div>
+
+      {/* «نقشه گردش کار» — قابلیت مستقل و Read-Only برای Demo.
+          تنها نقطه اتصال این Feature به سامانه همین یک خط است؛ حذف این خط
+          و پوشه src/modules/workflowMap آن را کاملاً برمی‌دارد. */}
+      <WorkflowMapLauncher />
 
       {/* Global Modals & Notifications */}
       <ToastContainer />
