@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { Settings, Users2, PieChart, BookOpen, Network } from 'lucide-react';
+import { Settings, Users2, PieChart, BookOpen, Network, PenTool, UserCheck } from 'lucide-react';
 import { GeneralSettingsTab } from './GeneralSettingsTab';
 import { UserManagementTab } from './UserManagementTab';
 import { LdapSettingsTab } from './LdapSettingsTab';
+import { SignatureWorkflowTab } from './SignatureWorkflowTab';
+import { SignatureDelegationTab } from './SignatureDelegationTab';
 import { InfographicsView } from '../infographics/InfographicsView';
 import { UserGuideView } from '../guide/UserGuideView';
 import { useApp } from '../../context/AppContext';
 
-type SettingsMainTab = 'GENERAL' | 'USERS' | 'LDAP' | 'INFOGRAPHICS' | 'GUIDE';
+type SettingsMainTab = 'GENERAL' | 'USERS' | 'SIGNATURE_WORKFLOW' | 'LDAP' | 'DELEGATION' | 'INFOGRAPHICS' | 'GUIDE';
 
 export const SettingsView: React.FC = () => {
   const { currentUser, hasPermission } = useApp();
@@ -24,9 +26,13 @@ export const SettingsView: React.FC = () => {
           { id: 'USERS' as SettingsMainTab, label: 'مدیریت کاربران', icon: Users2 },
           // LDAP مثل بقیه تب‌های مدیریتی فقط برای مدیر سیستم / دارنده مجوز
           // مدیریت تنظیمات نمایش داده می‌شود.
+          // تنظیمات گردش امضا مثل سایر تب‌های مدیریتی، همان گیت فعلی را دارد.
+          { id: 'SIGNATURE_WORKFLOW' as SettingsMainTab, label: 'تنظیمات گردش امضا', icon: PenTool },
           { id: 'LDAP' as SettingsMainTab, label: 'LDAP', icon: Network },
         ]
       : []),
+    // «جانشین امضا» تنظیم شخصی هر کاربر است و برای همه در دسترس است.
+    { id: 'DELEGATION' as SettingsMainTab, label: 'جانشین امضا', icon: UserCheck },
     { id: 'INFOGRAPHICS' as SettingsMainTab, label: 'اینفوگراف', icon: PieChart },
     { id: 'GUIDE' as SettingsMainTab, label: 'راهنمای کاربری', icon: BookOpen },
   ];
@@ -68,7 +74,9 @@ export const SettingsView: React.FC = () => {
 
       {activeTab === 'GENERAL' && <GeneralSettingsTab />}
       {activeTab === 'USERS' && <UserManagementTab />}
+      {activeTab === 'SIGNATURE_WORKFLOW' && <SignatureWorkflowTab />}
       {activeTab === 'LDAP' && <LdapSettingsTab />}
+      {activeTab === 'DELEGATION' && <SignatureDelegationTab />}
       {activeTab === 'INFOGRAPHICS' && <InfographicsView />}
       {activeTab === 'GUIDE' && <UserGuideView />}
     </div>

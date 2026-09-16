@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PenLine, FileDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { resolutionService } from '../../services/resolutionService';
@@ -6,6 +6,7 @@ import { meetingService } from '../../services/meetingService';
 import { boardSecretariatService } from '../../services/boardSecretariatService';
 import { buildResolutionNotificationDocument, openGeneratedDocument } from '../../services/documentService';
 import { Resolution } from '../../types';
+import { getActiveDelegationFor } from '../../services/signatureDelegationService';
 
 interface SignNotificationLetterActionProps {
   resolution: Resolution;
@@ -21,6 +22,25 @@ interface SignNotificationLetterActionProps {
 export const SignNotificationLetterAction: React.FC<SignNotificationLetterActionProps> = ({ resolution, onSigned }) => {
   const { currentUser, showToast } = useApp();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // اگر این درخواست به امضاکننده دیگری تخصیص یافته و کاربر جاری جانشین
+  // فعال اوست، در کارتابل صریحاً نشان داده می‌شود.
+  const [delegation, setDelegation] = useState<{ ownerName: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const resolveDelegation = async () => {
+      const notices = await boardSecretariatService.getNotices(undefined, resolution.id);
+      const assignedSignerId = notices.data[0]?.secretaryUserId;
+      if (cancelled || !assignedSignerId || assignedSignerId === currentUser.id) {
+        if (!cancelled) setDelegation(null);
+        return;
+      }
+      const active = getActiveDelegationFor(assignedSignerId);
+      setDelegation(active && active.delegateUserId === currentUser.id ? { ownerName: active.ownerName } : null);
+    };
+    void resolveDelegation();
+    return () => { cancelled = true; };
+  }, [resolution.id, currentUser.id]);
 
   const handlePreview = async () => {
     const [meetingRes, noticesRes] = await Promise.all([
@@ -42,7 +62,9 @@ export const SignNotificationLetterAction: React.FC<SignNotificationLetterAction
 
   const handleSign = async () => {
     const confirmed = window.confirm(
-      `آیا ابلاغیه مصوبه «${resolution.resolutionNumber}» را امضا می‌کنید؟ پس از امضا، مصوبه وارد فاز اجرا می‌شود.`
+      delegation
+        ? `آیا ابلاغیه مصوبه «${resolution.resolutionNumber}» را به جانشینی از ${delegation.ownerName} امضا می‌کنید؟ پس از امضا، مصوبه وارد فاز اجرا می‌شود.`
+        : `آیا ابلاغیه مصوبه «${resolution.resolutionNumber}» را امضا می‌کنید؟ پس از امضا، مصوبه وارد فاز اجرا می‌شود.`
     );
     if (!confirmed) return;
 
@@ -60,6 +82,11 @@ export const SignNotificationLetterAction: React.FC<SignNotificationLetterAction
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {delegation && (
+        <span className="w-full text-[10px] font-bold text-indigo-700">
+          امضا به جانشینی از {delegation.ownerName}
+        </span>
+      )}
       <button
         type="button"
         onClick={handlePreview}
@@ -75,7 +102,7 @@ export const SignNotificationLetterAction: React.FC<SignNotificationLetterAction
         className="flex items-center gap-1.5 bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold py-2 px-3.5 rounded-xl shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <PenLine className="w-3.5 h-3.5" />
-        <span>{isSubmitting ? 'در حال ثبت امضا...' : 'امضای ابلاغیه'}</span>
+        <span>{isSubmitting ? 'در حال ثبت امضا...' : delegation ? 'امضا به جانشینی' : 'امضای ابلاغیه'}</span>
       </button>
     </div>
   );

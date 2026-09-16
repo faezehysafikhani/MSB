@@ -85,29 +85,52 @@ const signatureBlock = (
   name: string,
   role: string,
   imageUrl: string | undefined,
-  when?: string
+  when?: string,
+  /** وقتی امضا به جانشینی انجام شده: نام شخصی که واقعاً امضا کرده است. */
+  delegateNote?: string
 ) => `
   <div class="sign">
     <div class="who">${escapeHtml(name)}</div>
     <div class="role">${escapeHtml(role)}</div>
     ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="امضای ${escapeHtml(name)}" />` : '<div class="note" style="height:62px;line-height:62px">در انتظار امضا</div>'}
+    ${delegateNote ? `<div class="note">${escapeHtml(delegateNote)}</div>` : ''}
     ${when ? `<div class="when">${fa(when)}</div>` : ''}
     ${imageUrl === SAMPLE_SIGNATURE_DATA_URL ? '<div class="sample-note">نمونه امضا — کاربر هنوز امضای خود را بارگذاری نکرده است</div>' : ''}
   </div>
 `;
 
-const documentSignatureBlock = (signature?: DocumentSignature, fallbackName?: string, fallbackRole?: string) =>
-  signature
-    ? signatureBlock(signature.signerName, signature.signerTitle, signature.signatureImageUrl, `${signature.signedDateJalali} — ${signature.signedTimeString}`)
-    : signatureBlock(fallbackName || '—', fallbackRole || 'دبیر جلسه', undefined);
-
-const resolutionSignatureBlock = (step: ResolutionSignature) =>
-  signatureBlock(
-    step.signerName,
-    step.signerTitle,
-    step.status === 'SIGNED' ? (step.signatureImageUrl || SAMPLE_SIGNATURE_DATA_URL) : undefined,
-    step.status === 'SIGNED' ? `${step.signedDateJalali} — ${step.signedTimeString}` : undefined
+const documentSignatureBlock = (signature?: DocumentSignature, fallbackName?: string, fallbackRole?: string) => {
+  if (!signature) return signatureBlock(fallbackName || '—', fallbackRole || 'دبیر جلسه', undefined);
+  // امضای جانشینی: سند نام و تصویر امضای کسی را نشان می‌دهد که واقعاً امضا
+  // کرده، و صریحاً می‌گوید به جانشینی از چه کسی بوده است.
+  if (signature.signedAsDelegate && signature.actualSignerName) {
+    return signatureBlock(
+      signature.actualSignerName,
+      signature.actualSignerTitle || signature.signerTitle,
+      signature.signatureImageUrl,
+      `${signature.signedDateJalali} — ${signature.signedTimeString}`,
+      `به جانشینی از: ${signature.signerName}`
+    );
+  }
+  return signatureBlock(
+    signature.signerName,
+    signature.signerTitle,
+    signature.signatureImageUrl,
+    `${signature.signedDateJalali} — ${signature.signedTimeString}`
   );
+};
+
+const resolutionSignatureBlock = (step: ResolutionSignature) => {
+  const isSigned = step.status === 'SIGNED';
+  const byDelegate = isSigned && step.signedAsDelegate && step.actualSignerName;
+  return signatureBlock(
+    byDelegate ? step.actualSignerName! : step.signerName,
+    byDelegate ? (step.actualSignerTitle || step.signerTitle) : step.signerTitle,
+    isSigned ? (step.signatureImageUrl || SAMPLE_SIGNATURE_DATA_URL) : undefined,
+    isSigned ? `${step.signedDateJalali} — ${step.signedTimeString}` : undefined,
+    byDelegate ? `به جانشینی از: ${step.signerName}` : undefined
+  );
+};
 
 // ————————————————————————— Permission gates —————————————————————————
 // Downloading a document is exactly as restricted as viewing the entity it
