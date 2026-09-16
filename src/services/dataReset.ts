@@ -38,6 +38,8 @@ export const PRESERVED_STORAGE_KEYS = [
   'calendars',        // تقویم‌های سازمانی
   'smsSettings',      // تنظیمات پنل پیامکی
   'ldapSettings',     // تنظیمات دایرکتوری سازمانی
+  'signatureWorkflowSettings', // امضاکننده هر مرحله گردش امضا (تنظیم سامانه)
+  'signatureDelegations',      // جانشین امضای کاربران (تنظیم شخصی کاربر)
 ] as const;
 
 /**

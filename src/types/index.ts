@@ -471,6 +471,7 @@ export type DocumentSignatureContext =
  * a signature later never rewrites documents already signed with the old one.
  */
 export interface DocumentSignature {
+  /** امضاکننده تعیین‌شده این سند (Assigned Signer). */
   signerUserId: string;
   signerName: string;
   signerTitle: string;
@@ -479,6 +480,13 @@ export interface DocumentSignature {
   signedDateJalali: string;
   signedTimeString: string;
   signatureImageUrl: string;
+  // ——— Audit Trail امضای جانشینی (اختیاری؛ امضای مستقیم آنها را پر نمی‌کند) ———
+  actualSignerUserId?: string;
+  actualSignerName?: string;
+  actualSignerTitle?: string;
+  signedAsDelegate?: boolean;
+  delegateForUserId?: string;
+  delegateForName?: string;
 }
 
 export interface BoardMinutes {
@@ -604,6 +612,9 @@ export type ResolutionSignatureStatus = 'WAITING_TURN' | 'PENDING' | 'SIGNED';
 
 export interface ResolutionSignature {
   id: string;
+  /** امضاکننده تعیین‌شده این مرحله (Assigned Signer) — در لحظه ایجاد مصوبه
+   *  از روی «تنظیمات گردش امضا» Resolve و Snapshot می‌شود، پس تغییر بعدی
+   *  تنظیمات، پرونده‌های در حال گردش را جابه‌جا نمی‌کند. */
   signerUserId: string;
   signerName: string;
   signerTitle: string;
@@ -616,6 +627,17 @@ export interface ResolutionSignature {
   // Snapshot of the signer's signature image at the moment they signed, so an
   // official document keeps showing the signature it was actually signed with.
   signatureImageUrl?: string;
+  // ——— Audit Trail امضای جانشینی (همه اختیاری؛ امضای مستقیم آنها را پر
+  // نمی‌کند و رفتار قبلی دست‌نخورده می‌ماند) ———
+  /** کسی که واقعاً امضا کرد. در امضای مستقیم برابر signerUserId است. */
+  actualSignerUserId?: string;
+  actualSignerName?: string;
+  actualSignerTitle?: string;
+  /** true فقط وقتی امضا به جانشینی انجام شده باشد. */
+  signedAsDelegate?: boolean;
+  /** کسی که جانشینی از طرف او انجام شده (همان Assigned Signer). */
+  delegateForUserId?: string;
+  delegateForName?: string;
 }
 
 export interface ResolutionSignatureWorkflow {

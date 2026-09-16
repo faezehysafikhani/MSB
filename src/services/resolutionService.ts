@@ -24,6 +24,8 @@ import { isResolutionRelatedToUser } from './userScope';
 import { loadLocalCollection, saveLocalCollection } from './localStore';
 import { issueNotificationLetterNumber } from './notificationLetterNumbering';
 import { resolveSignatureImageUrl } from '../utils/signatureImage';
+import { resolveStageSigner } from './signatureWorkflowSettingsService';
+import { resolveSigningAuthority } from './signatureDelegationService';
 
 export interface CreateResolutionDto {
   meetingId: string;
@@ -98,19 +100,25 @@ class MockResolutionService implements IResolutionService {
     saveLocalCollection('activityLogs', this.activityLogs);
   }
 
+  /**
+   * سه امضای اصلی مصوبه — ترتیب، تعداد، وضعیت‌ها و شکل داده دقیقاً مثل قبل.
+   * تنها تفاوت: امضاکننده هر مرحله به‌جای Hardcode بودن، از «تنظیمات گردش
+   * امضا» Resolve می‌شود و همان‌جا روی خود مصوبه Snapshot می‌گردد؛ پس تغییر
+   * بعدی تنظیمات، مصوبات در حال گردش را جابه‌جا نمی‌کند.
+   * پیش‌فرض تنظیمات همان مسئول دفتر → مدیرعامل → مدیر سیستم است.
+   */
   private createSignatureWorkflow() {
-    const users = loadLocalCollection('users', mockUsers);
-    const officeManager = users.find((user) => user.username === 'office-manager') || users.find((user) => user.role === 'SECRETARY');
-    const ceo = users.find((user) => user.username === 'ceo') || users.find((user) => user.role === 'CEO');
-    const admin = users.find((user) => user.id === 'user-admin') || users.find((user) => user.role === 'ADMIN');
-    if (!officeManager || !ceo || !admin) throw new Error('امضاکنندگان موردنیاز در فهرست کاربران تعریف نشده‌اند');
+    const stage1 = resolveStageSigner('RESOLUTION_STEP_1');
+    const stage2 = resolveStageSigner('RESOLUTION_STEP_2');
+    const stage3 = resolveStageSigner('RESOLUTION_STEP_3');
+    if (!stage1 || !stage2 || !stage3) throw new Error('امضاکنندگان موردنیاز در فهرست کاربران تعریف نشده‌اند');
     return {
       status: 'PENDING_OFFICE_SIGNATURE' as const,
       currentStepIndex: 0,
       steps: [
-        { id: `sig-${Date.now()}-1`, signerUserId: officeManager.id, signerName: officeManager.fullName, signerTitle: officeManager.title, signerRole: 'OFFICE_MANAGER' as const, order: 1 as const, status: 'PENDING' as const },
-        { id: `sig-${Date.now()}-2`, signerUserId: ceo.id, signerName: ceo.fullName, signerTitle: ceo.title, signerRole: 'CEO' as const, order: 2 as const, status: 'WAITING_TURN' as const },
-        { id: `sig-${Date.now()}-3`, signerUserId: admin.id, signerName: admin.fullName, signerTitle: admin.title, signerRole: 'ADMIN' as const, order: 3 as const, status: 'WAITING_TURN' as const },
+        { id: `sig-${Date.now()}-1`, signerUserId: stage1.userId, signerName: stage1.name, signerTitle: stage1.title, signerRole: 'OFFICE_MANAGER' as const, order: 1 as const, status: 'PENDING' as const },
+        { id: `sig-${Date.now()}-2`, signerUserId: stage2.userId, signerName: stage2.name, signerTitle: stage2.title, signerRole: 'CEO' as const, order: 2 as const, status: 'WAITING_TURN' as const },
+        { id: `sig-${Date.now()}-3`, signerUserId: stage3.userId, signerName: stage3.name, signerTitle: stage3.title, signerRole: 'ADMIN' as const, order: 3 as const, status: 'WAITING_TURN' as const },
       ],
     };
   }
@@ -332,29 +340,51 @@ class MockResolutionService implements IResolutionService {
     const currentIndex = resolution.signatureWorkflow.currentStepIndex;
     const currentStep = resolution.signatureWorkflow.steps[currentIndex];
     if (!currentStep || currentStep.status !== 'PENDING') throw new Error('مرحله فعالی برای امضا وجود ندارد');
-    if (currentStep.signerUserId !== signerUserId) throw new Error('نوبت امضای این کاربر نیست');
+    // امضاکننده تعیین‌شده، یا جانشین فعال او. بررسی در همین Service Layer
+    // انجام می‌شود، نه فقط در UI.
+    const authority = resolveSigningAuthority(currentStep.signerUserId, signerUserId);
+    if (!authority.allowed) throw new Error('نوبت امضای این کاربر نیست');
+
+    const users = loadLocalCollection('users', mockUsers);
+    const actualSigner = users.find((user) => user.id === signerUserId);
 
     const now = new Date();
     currentStep.status = 'SIGNED';
     currentStep.signedAt = now.toISOString();
     currentStep.signedDateJalali = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(now).replace(/[\u200e\u200f]/g, '');
     currentStep.signedTimeString = now.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
-    // Snapshot of THIS signer's own signature image (never the acting user's),
-    // taken at signing time so replacing a signature later cannot rewrite a
-    // document that was already signed.
-    const signerRecord = loadLocalCollection('users', mockUsers).find((user) => user.id === currentStep.signerUserId);
+
+    // Audit Trail: امضاکننده تعیین‌شده (signerUserId) دست‌نخورده می‌ماند و
+    // جدا از آن ثبت می‌شود که واقعاً چه کسی امضا کرده است.
+    currentStep.actualSignerUserId = signerUserId;
+    currentStep.actualSignerName = actualSigner?.fullName || currentStep.signerName;
+    currentStep.actualSignerTitle = actualSigner?.title || currentStep.signerTitle;
+    currentStep.signedAsDelegate = authority.asDelegate;
+    if (authority.asDelegate) {
+      currentStep.delegateForUserId = currentStep.signerUserId;
+      currentStep.delegateForName = currentStep.signerName;
+    }
+
+    // Snapshot تصویر امضای کسی که واقعاً امضا کرد — در امضای مستقیم همان
+    // امضاکننده تعیین‌شده است و رفتار قبلی تغییری نمی‌کند؛ در امضای جانشینی
+    // سند باید امضای شخص جانشین را نشان دهد، نه شخص اصلی.
+    const signerRecord = users.find((user) => user.id === signerUserId);
     currentStep.signatureImageUrl = resolveSignatureImageUrl(signerRecord?.signatureUrl);
 
     this.activityLogs.unshift({
       id: `log-${Date.now()}`,
       targetType: 'RESOLUTION',
       targetId: resolution.id,
-      action: `${currentStep.signerTitle} صورت‌جلسه مصوبه را امضا کرد`,
-      actorName: currentStep.signerName,
-      actorRole: currentStep.signerTitle,
+      action: authority.asDelegate
+        ? `${currentStep.actualSignerTitle} صورت‌جلسه مصوبه را به جانشینی از ${currentStep.signerName} امضا کرد`
+        : `${currentStep.signerTitle} صورت‌جلسه مصوبه را امضا کرد`,
+      actorName: currentStep.actualSignerName,
+      actorRole: currentStep.actualSignerTitle,
       timestampJalali: currentStep.signedDateJalali,
       timeString: currentStep.signedTimeString,
-      details: `امضای دیجیتال Mock مرحله ${currentStep.order} با شناسه کاربر ${currentStep.signerUserId} ثبت شد.`,
+      details: authority.asDelegate
+        ? `امضای مرحله ${currentStep.order} — امضاکننده تعیین‌شده: ${currentStep.signerName} | امضا توسط: ${currentStep.actualSignerName} (به جانشینی)`
+        : `امضای دیجیتال Mock مرحله ${currentStep.order} با شناسه کاربر ${currentStep.signerUserId} ثبت شد.`,
       badgeColor: 'teal',
     });
 
@@ -362,7 +392,10 @@ class MockResolutionService implements IResolutionService {
     if (nextStep) {
       nextStep.status = 'PENDING';
       resolution.signatureWorkflow.currentStepIndex = currentIndex + 1;
-      resolution.signatureWorkflow.status = nextStep.signerRole === 'CEO' ? 'PENDING_CEO_SIGNATURE' : 'PENDING_ADMIN_SIGNATURE';
+      // ترتیب Sequential دست‌نخورده است؛ برچسب وضعیت از شماره مرحله مشتق
+      // می‌شود تا با تغییر نقش امضاکننده توسط Admin هم درست بماند (برای
+      // تنظیمات پیش‌فرض دقیقاً همان مقدار قبلی تولید می‌شود).
+      resolution.signatureWorkflow.status = nextStep.order === 2 ? 'PENDING_CEO_SIGNATURE' : 'PENDING_ADMIN_SIGNATURE';
       resolution.executionStatus = resolution.signatureWorkflow.status;
     } else {
       resolution.signatureWorkflow.status = 'COMPLETED';
@@ -593,6 +626,7 @@ class MockResolutionService implements IResolutionService {
     // دبیر جلسه فقط به‌عنوان «امضاکننده موردانتظار» ثبت می‌شود؛ رکورد امضا
     // (secretarySignature) عمداً اینجا ساخته نمی‌شود، چون هنوز امضایی انجام
     // نشده است و PDF نباید امضای جعلی/زودهنگام نشان دهد.
+    const noticeSigner = resolveStageSigner('RESOLUTION_NOTICE', { meeting });
     const recipientName = resolution.mainResponsibleName || resolution.proposerName;
     const recipientDepartment = resolution.responsibleDepartmentName || resolution.proposerDepartment;
     // Reserved only now — every validation above has already passed, so an
@@ -614,8 +648,11 @@ class MockResolutionService implements IResolutionService {
       status: 'SENT',
       sentAt: now.toISOString(),
       createdByUserId: actor.id,
-      secretaryUserId: meeting?.secretaryId,
-      secretaryName: meeting?.secretaryName,
+      // امضاکننده ابلاغیه در همین لحظه از «تنظیمات گردش امضا» Resolve و روی
+      // خود ابلاغیه Snapshot می‌شود؛ تغییر بعدی تنظیمات، ابلاغیه‌های صادرشده
+      // را جابه‌جا نمی‌کند. پیش‌فرض تنظیمات همان دبیر جلسهِ جلسه است.
+      secretaryUserId: noticeSigner?.userId || meeting?.secretaryId,
+      secretaryName: noticeSigner?.name || meeting?.secretaryName,
       // بدون امضا صادر می‌شود؛ با امضای واقعی دبیر جلسه پر خواهد شد.
       secretarySignature: undefined,
     };
@@ -633,7 +670,7 @@ class MockResolutionService implements IResolutionService {
       actorRole: actor.title,
       timestampJalali: dateJalali,
       timeString,
-      details: `ابلاغ توسط ${actor.fullName} در تاریخ ${dateJalali} ساعت ${timeString} | شماره نامه ابلاغیه: ${notificationLetterNumber}${meeting?.secretaryName ? ` | در انتظار امضای دبیر جلسه: ${meeting.secretaryName}` : ''}`,
+      details: `ابلاغ توسط ${actor.fullName} در تاریخ ${dateJalali} ساعت ${timeString} | شماره نامه ابلاغیه: ${notificationLetterNumber}${noticeSigner?.name || meeting?.secretaryName ? ` | در انتظار امضای: ${noticeSigner?.name || meeting?.secretaryName}` : ''}`,
       badgeColor: 'teal',
     });
 
@@ -655,7 +692,10 @@ class MockResolutionService implements IResolutionService {
       const notice = notices.find((item) => item.resolutionId === resolution.id);
       const meeting = meetings.find((item) => item.id === resolution.meetingId);
       const expectedSignerId = notice?.secretaryUserId || meeting?.secretaryId;
-      return Boolean(expectedSignerId) && expectedSignerId === actor.id;
+      if (!expectedSignerId) return false;
+      // امضاکننده تعیین‌شده، یا جانشین فعال او — همان قاعده‌ای که
+      // signNotificationLetter هم Enforce می‌کند.
+      return resolveSigningAuthority(expectedSignerId, actor.id).allowed;
     });
   }
 
@@ -684,15 +724,24 @@ class MockResolutionService implements IResolutionService {
     // امضاکننده موردانتظار: دبیر جلسهِ همان جلسه. اگر جلسه‌ای دبیر ثبت‌شده
     // نداشته باشد، مصوبه نباید برای همیشه پشت این مرحله بماند — در آن حالت
     // مدیر سیستم می‌تواند با هویت خودش امضا کند و بن‌بست را باز کند.
+    // امضاکننده تعیین‌شده این ابلاغیه در لحظه ثبت ابلاغ Snapshot شده است
+    // (notice.secretaryUserId). اگر رکورد قدیمی این Snapshot را نداشته
+    // باشد، به رفتار تاریخی یعنی دبیر جلسهِ همان جلسه برمی‌گردیم.
     const expectedSignerId = notice.secretaryUserId || meeting?.secretaryId;
     const isAdmin = actor.role === 'ADMIN';
     if (!expectedSignerId && !isAdmin) {
-      throw new Error('دبیر جلسه برای این ابلاغیه تعیین نشده است.');
+      throw new Error('امضاکننده این ابلاغیه تعیین نشده است.');
     }
-    if (!isAdmin && actor.id !== expectedSignerId) {
-      throw new Error('فقط دبیر جلسه همین جلسه مجاز به امضای این ابلاغیه است.');
+    // امضاکننده تعیین‌شده، یا جانشین فعال او — Enforce در Service Layer.
+    const authority = expectedSignerId
+      ? resolveSigningAuthority(expectedSignerId, actor.id)
+      : { allowed: false, asDelegate: false };
+    if (!authority.allowed && !isAdmin) {
+      throw new Error('فقط امضاکننده تعیین‌شده این ابلاغیه یا جانشین فعال او مجاز به امضا است.');
     }
-    const signerId = expectedSignerId || actor.id;
+    const assignedSignerId = expectedSignerId || actor.id;
+    const actualSignerId = actor.id;
+    const signedAsDelegate = authority.asDelegate;
 
     const now = new Date();
     const dateJalali = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(now).replace(/[‎‏]/g, '');
@@ -700,18 +749,27 @@ class MockResolutionService implements IResolutionService {
 
     // تصویر امضا از منبع مرکزی امضای همان کاربر (مدیریت‌شده توسط Admin)
     // خوانده و همین‌جا Snapshot می‌شود تا تعویض بعدی امضا، اسناد امضاشده
-    // قبلی را تغییر ندهد.
+    // قبلی را تغییر ندهد. در امضای جانشینی، تصویر امضای شخصی که واقعاً
+    // امضا کرده روی سند می‌نشیند، نه شخص اصلی.
     const users = loadLocalCollection('users', mockUsers);
-    const signerUser = users.find((user) => user.id === signerId);
+    const assignedUser = users.find((user) => user.id === assignedSignerId);
+    const actualUser = users.find((user) => user.id === actualSignerId);
+    const assignedName = assignedUser?.fullName || notice.secretaryName || meeting?.secretaryName || 'دبیر جلسه';
+    const assignedTitle = assignedUser?.title || 'دبیر جلسه';
     notice.secretarySignature = {
-      signerUserId: signerId,
-      signerName: signerUser?.fullName || notice.secretaryName || meeting?.secretaryName || 'دبیر جلسه',
-      signerTitle: signerUser?.title || 'دبیر جلسه',
+      signerUserId: assignedSignerId,
+      signerName: assignedName,
+      signerTitle: assignedTitle,
       context: 'RESOLUTION_NOTIFICATION',
       signedAt: now.toISOString(),
       signedDateJalali: dateJalali,
       signedTimeString: timeString,
-      signatureImageUrl: resolveSignatureImageUrl(signerUser?.signatureUrl),
+      signatureImageUrl: resolveSignatureImageUrl(actualUser?.signatureUrl),
+      actualSignerUserId: actualSignerId,
+      actualSignerName: actualUser?.fullName || assignedName,
+      actualSignerTitle: actualUser?.title || assignedTitle,
+      signedAsDelegate,
+      ...(signedAsDelegate ? { delegateForUserId: assignedSignerId, delegateForName: assignedName } : {}),
     };
     saveLocalCollection('resolutionNotices', notices);
 
@@ -720,12 +778,16 @@ class MockResolutionService implements IResolutionService {
       id: `log-notice-sign-${resolution.id}-${Date.now()}`,
       targetType: 'RESOLUTION',
       targetId: resolution.id,
-      action: 'امضای ابلاغیه توسط دبیر جلسه',
-      actorName: notice.secretarySignature.signerName,
-      actorRole: notice.secretarySignature.signerTitle,
+      action: signedAsDelegate
+        ? `امضای ابلاغیه به جانشینی از ${assignedName}`
+        : 'امضای ابلاغیه توسط دبیر جلسه',
+      actorName: notice.secretarySignature.actualSignerName || assignedName,
+      actorRole: notice.secretarySignature.actualSignerTitle || assignedTitle,
       timestampJalali: dateJalali,
       timeString,
-      details: `ابلاغیه ${notice.notificationLetterNumber || notice.noticeNumber} توسط ${notice.secretarySignature.signerName} در تاریخ ${dateJalali} ساعت ${timeString} امضا شد و مصوبه وارد فاز اجرا گردید.`,
+      details: signedAsDelegate
+        ? `ابلاغیه ${notice.notificationLetterNumber || notice.noticeNumber} — امضاکننده تعیین‌شده: ${assignedName} | امضا توسط: ${notice.secretarySignature.actualSignerName} (به جانشینی) در تاریخ ${dateJalali} ساعت ${timeString}. مصوبه وارد فاز اجرا شد.`
+        : `ابلاغیه ${notice.notificationLetterNumber || notice.noticeNumber} توسط ${notice.secretarySignature.signerName} در تاریخ ${dateJalali} ساعت ${timeString} امضا شد و مصوبه وارد فاز اجرا گردید.`,
       badgeColor: 'purple',
     });
 

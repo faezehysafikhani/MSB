@@ -42,6 +42,7 @@ import { ArchiveResolutionAction } from './ArchiveResolutionAction';
 import { RecordFollowUpForm } from './RecordFollowUpForm';
 import { buildAttachmentFromFile } from '../../utils/attachmentFile';
 import { SignNotificationLetterAction } from './SignNotificationLetterAction';
+import { resolveSigningAuthority } from '../../services/signatureDelegationService';
 
 interface ResolutionDetailModalProps {
   resolutionId: string | null;
@@ -122,7 +123,14 @@ export const ResolutionDetailModal: React.FC<ResolutionDetailModalProps> = ({
   // sufficient — SIGN_RESOLUTION must also be granted (via سطح دسترسی),
   // so signing can be enabled for any role through the permission screen
   // instead of being hardcoded to a fixed set of roles.
-  const canSign = activeSignature?.status === 'PENDING' && activeSignature.signerUserId === currentUser.id && hasPermission('SIGN_RESOLUTION');
+  // امضاکننده تعیین‌شده، یا جانشین فعال او. جانشینی هیچ Permission دیگری
+  // را منتقل نمی‌کند: SIGN_RESOLUTION همچنان لازم است و همین قاعده در
+  // Service Layer نیز Enforce می‌شود.
+  const signingAuthority = activeSignature
+    ? resolveSigningAuthority(activeSignature.signerUserId, currentUser.id)
+    : { allowed: false, asDelegate: false };
+  const canSign = activeSignature?.status === 'PENDING' && signingAuthority.allowed && hasPermission('SIGN_RESOLUTION');
+  const isSigningAsDelegate = canSign && signingAuthority.asDelegate;
   const invitees = Array.from(new Map([
     ...(resolution.mainResponsibleName ? [{
       id: resolution.mainResponsibleUserId || resolution.mainResponsibleName,
@@ -383,6 +391,14 @@ export const ResolutionDetailModal: React.FC<ResolutionDetailModalProps> = ({
                           <strong className="block text-slate-900 mt-2">{step.signerName}</strong>
                           <span className="block text-[10px] text-slate-600 mt-0.5">{step.signerTitle}</span>
                           <span className={`inline-block mt-3 px-2 py-1 rounded-full border text-[10px] font-bold ${statusClass}`}>{statusLabel}</span>
+                          {/* Audit Trail: امضاکننده تعیین‌شده بالا نمایش داده می‌شود و
+                              اگر امضا به جانشینی انجام شده باشد، صریحاً گفته می‌شود
+                              چه کسی واقعاً امضا کرده است. */}
+                          {step.status === 'SIGNED' && step.signedAsDelegate && step.actualSignerName && (
+                            <span className="block text-[10px] font-bold text-indigo-700 mt-2">
+                              امضا توسط: {step.actualSignerName} (به جانشینی)
+                            </span>
+                          )}
                           {step.status === 'SIGNED' && <span className="block text-[10px] text-slate-500 mt-2">{toPersianDigits(step.signedDateJalali || '—')}، ساعت {toPersianDigits(step.signedTimeString || '—')}</span>}
                           {/* The signer's own snapshotted signature image — always
                               resolved from the signature record, never from the
@@ -397,12 +413,16 @@ export const ResolutionDetailModal: React.FC<ResolutionDetailModalProps> = ({
                 {signatureWorkflow.status !== 'COMPLETED' && (
                   <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-amber-50 border border-amber-200">
                     <span className="text-amber-900 font-bold">
-                      {canSign ? 'نوبت امضای شماست. پس از تأیید، سند به امضاکننده بعدی ارسال می‌شود.' : `در انتظار امضای ${activeSignature?.signerName || 'امضاکننده بعدی'}`}
+                      {isSigningAsDelegate
+                        ? `امضا به جانشینی از ${activeSignature?.signerName}. امضای شما به نام خودتان و به‌عنوان جانشین ثبت می‌شود.`
+                        : canSign
+                          ? 'نوبت امضای شماست. پس از تأیید، سند به امضاکننده بعدی ارسال می‌شود.'
+                          : `در انتظار امضای ${activeSignature?.signerName || 'امضاکننده بعدی'}`}
                     </span>
                     {canSign && (
                       <button type="button" onClick={handleSignResolution} disabled={isSigning} className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white px-5 py-2.5 rounded-xl font-extrabold">
                         <PenTool className="w-4 h-4" />
-                        {isSigning ? 'در حال ثبت امضا...' : 'امضای دیجیتال مصوبه'}
+                        {isSigning ? 'در حال ثبت امضا...' : isSigningAsDelegate ? 'امضا به جانشینی' : 'امضای دیجیتال مصوبه'}
                       </button>
                     )}
                   </div>
