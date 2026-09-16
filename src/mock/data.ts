@@ -397,323 +397,28 @@ export const mockUsers: User[] = [
   }
 ];
 
-export const mockMeetings: Meeting[] = [
-  {
-    id: 'meet-1001', meetingNumber: 'جلسه-۱۴۰۵-۱۴۲', title: 'هیئت مدیره - بررسی زیرساخت ابری و امنیت داده',
-    type: 'BOARD_OF_DIRECTORS', dateJalali: '۱۴۰۵/۰۱/۱۸', startTime: '۰۹:۰۰', endTime: '۱۱:۰۰', location: 'سالن جلسات طبقه پنجم',
-    organizerId: 'user-1', organizerName: 'دکتر علیرضا رستمی', secretaryId: 'user-8', secretaryName: 'مهندس جواد صادقی',
-    departmentId: 'dept-1', departmentName: 'اداره کل فناوری اطلاعات و ارتباطات', status: 'HELD',
-    description: 'بررسی طرح مهاجرت به سرویس‌های ابری و تدوین سیاست امنیت داده‌ها',
-    members: [
-      { userId: 'user-1', fullName: 'دکتر علیرضا رستمی', roleTitle: 'رئیس سازمان', departmentName: 'معاونت برنامه‌ریزی', attendanceType: 'ORGANIZER', presenceStatus: 'PRESENT' },
-      { userId: 'user-8', fullName: 'مهندس جواد صادقی', roleTitle: 'دبیر شورا', departmentName: 'مدیریت طرح و پشتیبانی', attendanceType: 'SECRETARY', presenceStatus: 'PRESENT' },
-      { userId: 'user-2', fullName: 'مهندس پوریا حسینی', roleTitle: 'مدیر کل فناوری اطلاعات', departmentName: 'اداره کل فناوری اطلاعات', attendanceType: 'MEMBER', presenceStatus: 'PRESENT' },
-      { userId: 'user-7', fullName: 'مهندس سعید تقوی', roleTitle: 'رئیس مرکز امنیت', departmentName: 'مرکز امنیت اطلاعات', attendanceType: 'MEMBER', presenceStatus: 'PRESENT' },
-    ],
-    agendaItems: [
-      { id: 'ag-1001-1', order: 1, rowNumber: 1, title: 'مهاجرت زیرساخت به سرویس‌های ابری', presenter: 'user-2', presenterName: 'مهندس پوریا حسینی', isDiscussed: true, outcomeStatus: 'APPROVED', startTime: '۰۹:۰۰', endTime: '۰۹:۴۵' },
-      { id: 'ag-1001-2', order: 2, rowNumber: 2, title: 'تدوین سیاست امنیت داده‌ها', presenter: 'user-7', presenterName: 'مهندس سعید تقوی', isDiscussed: true, outcomeStatus: 'APPROVED', startTime: '۰۹:۴۵', endTime: '۱۰:۳۰' },
-    ],
-    guests: [], invitations: [], resolutionsCount: 2, attachments: [], createdAt: '2026-03-20T06:00:00.000Z', updatedAt: '2026-04-08T07:00:00.000Z',
-  },
-  {
-    id: 'meet-1002', meetingNumber: 'جلسه-۱۴۰۵-۱۴۳', title: 'شورای مدیران - بودجه توسعه فناوری',
-    type: 'MANAGEMENT_COUNCIL', dateJalali: '۱۴۰۵/۰۲/۰۹', startTime: '۱۰:۰۰', endTime: '۱۲:۰۰', location: 'سالن جلسات طبقه سوم',
-    organizerId: 'user-16', organizerName: 'مدیرعامل', secretaryId: 'user-17', secretaryName: 'مسئول دفتر',
-    departmentId: 'dept-4', departmentName: 'اداره کل امور مالی و ذی‌حسابی', status: 'HELD',
-    description: 'بررسی و تخصیص بودجه سالانه توسعه فناوری اطلاعات',
-    members: [
-      { userId: 'user-16', fullName: 'مدیرعامل', roleTitle: 'مدیرعامل', departmentName: 'معاونت برنامه‌ریزی', attendanceType: 'ORGANIZER', presenceStatus: 'PRESENT' },
-      { userId: 'user-17', fullName: 'مسئول دفتر', roleTitle: 'مسئول دفتر مدیرعامل', departmentName: 'معاونت برنامه‌ریزی', attendanceType: 'SECRETARY', presenceStatus: 'PRESENT' },
-      { userId: 'user-5', fullName: 'آقای بهزاد شریفی', roleTitle: 'مدیر کل امور مالی', departmentName: 'اداره کل امور مالی', attendanceType: 'MEMBER', presenceStatus: 'PRESENT' },
-    ],
-    agendaItems: [
-      { id: 'ag-1002-1', order: 1, rowNumber: 1, title: 'تخصیص بودجه توسعه فناوری اطلاعات', presenter: 'user-5', presenterName: 'آقای بهزاد شریفی', isDiscussed: true, outcomeStatus: 'APPROVED', startTime: '۱۰:۰۰', endTime: '۱۰:۴۰' },
-    ],
-    guests: [], invitations: [], resolutionsCount: 1, attachments: [], createdAt: '2026-04-15T06:00:00.000Z', updatedAt: '2026-04-29T07:00:00.000Z',
-  },
-  {
-    id: 'meet-1003', meetingNumber: 'جلسه-۱۴۰۵-۱۴۴', title: 'کمیته فنی - ارزیابی زیرساخت شبکه',
-    type: 'TECHNICAL_COMMITTEE', dateJalali: '۱۴۰۵/۰۳/۰۵', startTime: '۰۹:۳۰', endTime: '۱۱:۳۰', location: 'سالن جلسات طبقه پنجم',
-    organizerId: 'user-2', organizerName: 'مهندس پوریا حسینی', secretaryId: 'user-8', secretaryName: 'مهندس جواد صادقی',
-    departmentId: 'dept-1', departmentName: 'اداره کل فناوری اطلاعات و ارتباطات', status: 'HELD',
-    description: 'بررسی وضعیت زیرساخت شبکه و تجهیزات پشتیبان مرکز داده',
-    members: [
-      { userId: 'user-2', fullName: 'مهندس پوریا حسینی', roleTitle: 'مدیر کل فناوری اطلاعات', departmentName: 'اداره کل فناوری اطلاعات', attendanceType: 'ORGANIZER', presenceStatus: 'PRESENT' },
-      { userId: 'user-8', fullName: 'مهندس جواد صادقی', roleTitle: 'دبیر شورا', departmentName: 'مدیریت طرح و پشتیبانی', attendanceType: 'SECRETARY', presenceStatus: 'PRESENT' },
-      { userId: 'user-9', fullName: 'مهندس سارا نیک‌نام', roleTitle: 'کارشناس ارشد زیرساخت', departmentName: 'اداره کل فناوری اطلاعات', attendanceType: 'MEMBER', presenceStatus: 'PRESENT' },
-      { userId: 'user-10', fullName: 'مهندس آرش کریمی', roleTitle: 'کارشناس ارشد توسعه نرم‌افزار', departmentName: 'اداره کل فناوری اطلاعات', attendanceType: 'MEMBER', presenceStatus: 'PRESENT' },
-    ],
-    agendaItems: [
-      { id: 'ag-1003-1', order: 1, rowNumber: 1, title: 'ارتقا زیرساخت شبکه مرکز داده', presenter: 'user-10', presenterName: 'مهندس آرش کریمی', isDiscussed: true, outcomeStatus: 'APPROVED', startTime: '۰۹:۳۰', endTime: '۱۰:۱۵' },
-      { id: 'ag-1003-2', order: 2, rowNumber: 2, title: 'خرید تجهیزات پشتیبان شبکه', presenter: 'user-9', presenterName: 'مهندس سارا نیک‌نام', isDiscussed: true, outcomeStatus: 'DEFERRED', startTime: '۱۰:۱۵', endTime: '۱۱:۰۰' },
-    ],
-    guests: [], invitations: [], resolutionsCount: 2, attachments: [], createdAt: '2026-05-10T06:00:00.000Z', updatedAt: '2026-05-25T07:00:00.000Z',
-  },
-  {
-    id: 'meet-1004', meetingNumber: 'جلسه-۱۴۰۵-۱۴۵', title: 'شورای مدیران - ارزیابی عملکرد سه‌ماهه',
-    type: 'MANAGEMENT_COUNCIL', dateJalali: '۱۴۰۵/۰۴/۱۲', startTime: '۰۸:۳۰', endTime: '۱۰:۳۰', location: 'سالن جلسات طبقه سوم',
-    organizerId: 'user-16', organizerName: 'مدیرعامل', secretaryId: 'user-17', secretaryName: 'مسئول دفتر',
-    departmentId: 'dept-3', departmentName: 'مدیریت منابع انسانی و آموزش', status: 'HELD',
-    description: 'بررسی گزارش عملکرد سه‌ماهه واحدهای سازمانی',
-    members: [
-      { userId: 'user-16', fullName: 'مدیرعامل', roleTitle: 'مدیرعامل', departmentName: 'معاونت برنامه‌ریزی', attendanceType: 'ORGANIZER', presenceStatus: 'PRESENT' },
-      { userId: 'user-17', fullName: 'مسئول دفتر', roleTitle: 'مسئول دفتر مدیرعامل', departmentName: 'معاونت برنامه‌ریزی', attendanceType: 'SECRETARY', presenceStatus: 'PRESENT' },
-      { userId: 'user-4', fullName: 'سرکار خانم مهندس مریم مرادی', roleTitle: 'مدیر منابع انسانی', departmentName: 'مدیریت منابع انسانی', attendanceType: 'MEMBER', presenceStatus: 'PRESENT' },
-    ],
-    agendaItems: [
-      { id: 'ag-1004-1', order: 1, rowNumber: 1, title: 'اصلاح فرآیند ارزیابی عملکرد کارکنان', presenter: 'user-4', presenterName: 'سرکار خانم مهندس مریم مرادی', isDiscussed: true, outcomeStatus: 'APPROVED', startTime: '۰۸:۳۰', endTime: '۰۹:۱۵' },
-    ],
-    guests: [], invitations: [], resolutionsCount: 1, attachments: [], createdAt: '2026-06-18T06:00:00.000Z', updatedAt: '2026-07-02T07:00:00.000Z',
-  },
-  {
-    id: 'meet-1005', meetingNumber: 'جلسه-۱۴۰۵-۱۴۶', title: 'کمیته بحران - رخداد امنیتی مرکز داده',
-    type: 'CRISIS_MANAGEMENT', dateJalali: '۱۴۰۵/۰۵/۰۲', startTime: '۱۴:۰۰', endTime: '۱۶:۰۰', location: 'اتاق موقعیت (وب‌کنفرانس)',
-    organizerId: 'user-1', organizerName: 'دکتر علیرضا رستمی', secretaryId: 'user-8', secretaryName: 'مهندس جواد صادقی',
-    departmentId: 'dept-6', departmentName: 'مرکز امنیت اطلاعات و حراست', status: 'HELD',
-    description: 'بررسی رخداد امنیتی و تصمیم‌گیری درباره ارتقا سامانه پایش',
-    members: [
-      { userId: 'user-1', fullName: 'دکتر علیرضا رستمی', roleTitle: 'رئیس سازمان', departmentName: 'معاونت برنامه‌ریزی', attendanceType: 'ORGANIZER', presenceStatus: 'PRESENT' },
-      { userId: 'user-8', fullName: 'مهندس جواد صادقی', roleTitle: 'دبیر شورا', departmentName: 'مدیریت طرح و پشتیبانی', attendanceType: 'SECRETARY', presenceStatus: 'PRESENT' },
-      { userId: 'user-7', fullName: 'مهندس سعید تقوی', roleTitle: 'رئیس مرکز امنیت', departmentName: 'مرکز امنیت اطلاعات', attendanceType: 'MEMBER', presenceStatus: 'PRESENT' },
-      { userId: 'user-13', fullName: 'مهندس مهدی کمالی', roleTitle: 'کارشناس امنیت سامانه', departmentName: 'مرکز امنیت اطلاعات', attendanceType: 'MEMBER', presenceStatus: 'PRESENT' },
-    ],
-    agendaItems: [
-      { id: 'ag-1005-1', order: 1, rowNumber: 1, title: 'ارتقا سامانه پایش امنیت سایبری', presenter: 'user-13', presenterName: 'مهندس مهدی کمالی', isDiscussed: true, outcomeStatus: 'APPROVED', startTime: '۱۴:۰۰', endTime: '۱۴:۴۵' },
-    ],
-    guests: [], invitations: [], resolutionsCount: 1, attachments: [], createdAt: '2026-07-15T06:00:00.000Z', updatedAt: '2026-07-24T07:00:00.000Z',
-  },
-  {
-    id: 'meet-1006', meetingNumber: 'جلسه-۱۴۰۵-۱۴۷', title: 'جلسه فوق‌العاده - تمدید قرارداد پیمانکار',
-    type: 'EXTRAORDINARY', dateJalali: '۱۴۰۵/۰۶/۰۸', startTime: '۱۱:۰۰', endTime: '۱۲:۳۰', location: 'سالن جلسات طبقه پنجم',
-    organizerId: 'user-16', organizerName: 'مدیرعامل', secretaryId: 'user-17', secretaryName: 'مسئول دفتر',
-    departmentId: 'dept-5', departmentName: 'اداره حقوقی و امور قراردادها', status: 'HELD',
-    description: 'بررسی تمدید و اصلاح قرارداد پیمانکار داده‌پردازی',
-    members: [
-      { userId: 'user-16', fullName: 'مدیرعامل', roleTitle: 'مدیرعامل', departmentName: 'معاونت برنامه‌ریزی', attendanceType: 'ORGANIZER', presenceStatus: 'PRESENT' },
-      { userId: 'user-17', fullName: 'مسئول دفتر', roleTitle: 'مسئول دفتر مدیرعامل', departmentName: 'معاونت برنامه‌ریزی', attendanceType: 'SECRETARY', presenceStatus: 'PRESENT' },
-      { userId: 'user-6', fullName: 'دکتر حمید کاظمی', roleTitle: 'رئیس اداره حقوقی', departmentName: 'اداره حقوقی و قراردادها', attendanceType: 'MEMBER', presenceStatus: 'PRESENT' },
-    ],
-    agendaItems: [
-      { id: 'ag-1006-1', order: 1, rowNumber: 1, title: 'تمدید و اصلاح قرارداد پیمانکار داده‌پردازی', presenter: 'user-6', presenterName: 'دکتر حمید کاظمی', isDiscussed: true, outcomeStatus: 'APPROVED', startTime: '۱۱:۰۰', endTime: '۱۱:۴۰' },
-    ],
-    guests: [], invitations: [], resolutionsCount: 1, attachments: [], createdAt: '2026-08-20T06:00:00.000Z', updatedAt: '2026-08-30T07:00:00.000Z',
-  },
-  {
-    id: 'meet-1007', meetingNumber: 'جلسه-۱۴۰۵-۱۴۸', title: 'هیئت مدیره - گزارش نیمه‌سال',
-    type: 'BOARD_OF_DIRECTORS', dateJalali: '۱۴۰۵/۰۶/۲۰', startTime: '۰۹:۰۰', endTime: '۱۱:۰۰', location: 'سالن جلسات طبقه پنجم',
-    organizerId: 'user-16', organizerName: 'مدیرعامل', secretaryId: 'user-17', secretaryName: 'مسئول دفتر',
-    departmentId: 'dept-2', departmentName: 'معاونت برنامه‌ریزی و تحول سازمانی', status: 'INVITATION_SENT',
-    description: 'ارائه گزارش عملکرد نیمه‌سال به هیئت مدیره', agendaApprovalNotes: 'دستورکار تایید شد',
-    members: [
-      { userId: 'user-16', fullName: 'مدیرعامل', roleTitle: 'مدیرعامل', departmentName: 'معاونت برنامه‌ریزی', attendanceType: 'ORGANIZER', presenceStatus: 'PRESENT' },
-      { userId: 'user-17', fullName: 'مسئول دفتر', roleTitle: 'مسئول دفتر مدیرعامل', departmentName: 'معاونت برنامه‌ریزی', attendanceType: 'SECRETARY', presenceStatus: 'PRESENT' },
-      { userId: 'user-3', fullName: 'دکتر مسعود احمدی', roleTitle: 'معاون برنامه‌ریزی', departmentName: 'معاونت برنامه‌ریزی', attendanceType: 'MEMBER', presenceStatus: 'PRESENT' },
-    ],
-    agendaItems: [
-      { id: 'ag-1007-1', order: 1, rowNumber: 1, title: 'ارائه گزارش عملکرد نیمه‌سال', presenter: 'user-3', presenterName: 'دکتر مسعود احمدی', isDiscussed: false, startTime: '۰۹:۰۰', endTime: '۱۰:۰۰' },
-    ],
-    guests: [],
-    invitations: [
-      { id: 'inv-1007-user-16', recipientType: 'MEMBER', recipientId: 'user-16', recipientName: 'مدیرعامل', status: 'SENT', sentAt: '2026-09-05T06:00:00.000Z', attachmentIds: [] },
-      { id: 'inv-1007-user-3', recipientType: 'MEMBER', recipientId: 'user-3', recipientName: 'دکتر مسعود احمدی', status: 'SENT', sentAt: '2026-09-05T06:00:00.000Z', attachmentIds: [] },
-    ],
-    resolutionsCount: 0, attachments: [], createdAt: '2026-09-01T06:00:00.000Z', updatedAt: '2026-09-05T06:00:00.000Z',
-  },
-  {
-    id: 'meet-1008', meetingNumber: 'جلسه-۱۴۰۵-۱۴۹', title: 'شورای مدیران - طرح توسعه منابع انسانی',
-    type: 'MANAGEMENT_COUNCIL', dateJalali: '۱۴۰۵/۰۶/۲۵', startTime: '۱۰:۰۰', endTime: '۱۱:۳۰', location: 'سالن جلسات طبقه سوم',
-    organizerId: 'user-3', organizerName: 'دکتر مسعود احمدی', secretaryId: 'user-8', secretaryName: 'مهندس جواد صادقی',
-    departmentId: 'dept-3', departmentName: 'مدیریت منابع انسانی و آموزش', status: 'WAITING_FOR_CEO_APPROVAL',
-    description: 'بررسی طرح جامع توسعه منابع انسانی سال آینده',
-    members: [
-      { userId: 'user-3', fullName: 'دکتر مسعود احمدی', roleTitle: 'معاون برنامه‌ریزی', departmentName: 'معاونت برنامه‌ریزی', attendanceType: 'ORGANIZER', presenceStatus: 'PRESENT' },
-      { userId: 'user-8', fullName: 'مهندس جواد صادقی', roleTitle: 'دبیر شورا', departmentName: 'مدیریت طرح و پشتیبانی', attendanceType: 'SECRETARY', presenceStatus: 'PRESENT' },
-      { userId: 'user-4', fullName: 'سرکار خانم مهندس مریم مرادی', roleTitle: 'مدیر منابع انسانی', departmentName: 'مدیریت منابع انسانی', attendanceType: 'MEMBER', presenceStatus: 'PRESENT' },
-    ],
-    agendaItems: [
-      { id: 'ag-1008-1', order: 1, rowNumber: 1, title: 'طرح جامع توسعه منابع انسانی', presenter: 'user-4', presenterName: 'سرکار خانم مهندس مریم مرادی', isDiscussed: false, startTime: '۱۰:۰۰', endTime: '۱۰:۴۵' },
-    ],
-    guests: [], invitations: [], resolutionsCount: 0, attachments: [], createdAt: '2026-09-08T06:00:00.000Z', updatedAt: '2026-09-08T06:00:00.000Z',
-  },
-];
+// جلسات — داده عملیاتی است و عمداً خالی است تا سامانه از صفر شروع شود.
+export const mockMeetings: Meeting[] = [];
 
 const emptyVerification = () => ({ requiresVerification: false, mode: 'SEQUENTIAL' as const, currentStepIndex: 0, steps: [] });
 
-export const mockResolutions: Resolution[] = [
-  {
-    id: 'res-2001', resolutionNumber: 'مصوبه-۱۴۰۵-۹۸', meetingId: 'meet-1001', meetingTitle: 'هیئت مدیره - بررسی زیرساخت ابری و امنیت داده', meetingNumber: 'جلسه-۱۴۰۵-۱۴۲',
-    agendaItemId: 'ag-1001-1', agendaItemTitle: 'مهاجرت زیرساخت به سرویس‌های ابری', topicTitle: 'مهاجرت زیرساخت به سرویس‌های ابری',
-    proposerName: 'مهندس پوریا حسینی', proposerDepartment: 'اداره کل فناوری اطلاعات', requestDescription: 'مهاجرت سرویس‌های حیاتی به زیرساخت ابری برای افزایش تاب‌آوری',
-    approvalStatus: 'APPROVED', executionDescription: 'پیاده‌سازی مرحله‌ای مهاجرت سرویس‌ها به ابر خصوصی سازمان',
-    mainResponsibleUserId: 'user-9', mainResponsibleName: 'مهندس سارا نیک‌نام', responsibleDepartmentId: 'dept-1', responsibleDepartmentName: 'اداره کل فناوری اطلاعات',
-    assignedDateJalali: '۱۴۰۵/۰۱/۲۰', deadlineJalali: '۱۴۰۵/۰۷/۱۵', priority: 'HIGH', executionStatus: 'IN_PROGRESS',
-    referrals: [], verificationConfig: emptyVerification(), attachments: [], progressPercent: 45, lastAction: 'تکمیل فاز اول مهاجرت سرویس‌های غیرحیاتی', createdAt: '2026-04-08T07:00:00.000Z',
-  },
-  {
-    id: 'res-2002', resolutionNumber: 'مصوبه-۱۴۰۵-۹۹', meetingId: 'meet-1001', meetingTitle: 'هیئت مدیره - بررسی زیرساخت ابری و امنیت داده', meetingNumber: 'جلسه-۱۴۰۵-۱۴۲',
-    agendaItemId: 'ag-1001-2', agendaItemTitle: 'تدوین سیاست امنیت داده‌ها', topicTitle: 'تدوین سیاست امنیت داده‌ها',
-    proposerName: 'مهندس سعید تقوی', proposerDepartment: 'مرکز امنیت اطلاعات', requestDescription: 'تدوین و ابلاغ سیاست جامع امنیت و طبقه‌بندی داده‌ها',
-    approvalStatus: 'APPROVED', executionDescription: 'تدوین سند سیاست امنیت داده و ارائه برای تصویب نهایی',
-    mainResponsibleUserId: 'user-13', mainResponsibleName: 'مهندس مهدی کمالی', responsibleDepartmentId: 'dept-6', responsibleDepartmentName: 'مرکز امنیت اطلاعات و حراست',
-    assignedDateJalali: '۱۴۰۵/۰۱/۲۰', deadlineJalali: '۱۴۰۵/۰۳/۰۱', priority: 'URGENT', executionStatus: 'OVERDUE',
-    referrals: [], verificationConfig: emptyVerification(), attachments: [], progressPercent: 30, lastAction: 'پیش‌نویس اولیه سند در دست بررسی', obstacles: 'تاخیر در دریافت نظر واحد حقوقی', createdAt: '2026-04-08T07:00:00.000Z',
-  },
-  {
-    id: 'res-2003', resolutionNumber: 'مصوبه-۱۴۰۵-۱۰۰', meetingId: 'meet-1002', meetingTitle: 'شورای مدیران - بودجه توسعه فناوری', meetingNumber: 'جلسه-۱۴۰۵-۱۴۳',
-    agendaItemId: 'ag-1002-1', agendaItemTitle: 'تخصیص بودجه توسعه فناوری اطلاعات', topicTitle: 'تخصیص بودجه توسعه فناوری اطلاعات',
-    proposerName: 'آقای بهزاد شریفی', proposerDepartment: 'اداره کل امور مالی', requestDescription: 'تخصیص بودجه سالانه برای پروژه‌های توسعه فناوری اطلاعات',
-    approvalStatus: 'APPROVED', executionDescription: 'تخصیص و ابلاغ ردیف بودجه به واحد فناوری اطلاعات',
-    mainResponsibleUserId: 'user-12', mainResponsibleName: 'مهندس نیما انصاری', responsibleDepartmentId: 'dept-4', responsibleDepartmentName: 'اداره کل امور مالی و ذی‌حسابی',
-    assignedDateJalali: '۱۴۰۵/۰۲/۱۰', deadlineJalali: '۱۴۰۵/۰۳/۱۰', priority: 'MEDIUM', executionStatus: 'PENDING_APPROVAL',
-    referrals: [], verificationConfig: { requiresVerification: true, mode: 'SEQUENTIAL', currentStepIndex: 0, steps: [
-      { stepNumber: 1, approverType: 'USER', approverId: 'user-3', approverName: 'دکتر مسعود احمدی', approverRoleTitle: 'معاون برنامه‌ریزی', status: 'PENDING' },
-    ] }, attachments: [], progressPercent: 100, completionNotes: 'تخصیص بودجه نهایی و آماده تایید', createdAt: '2026-04-29T07:00:00.000Z',
-  },
-  {
-    id: 'res-2004', resolutionNumber: 'مصوبه-۱۴۰۵-۱۰۱', meetingId: 'meet-1003', meetingTitle: 'کمیته فنی - ارزیابی زیرساخت شبکه', meetingNumber: 'جلسه-۱۴۰۵-۱۴۴',
-    agendaItemId: 'ag-1003-1', agendaItemTitle: 'ارتقا زیرساخت شبکه مرکز داده', topicTitle: 'ارتقا زیرساخت شبکه مرکز داده',
-    proposerName: 'مهندس آرش کریمی', proposerDepartment: 'اداره کل فناوری اطلاعات', requestDescription: 'ارتقا تجهیزات سوئیچینگ و پهنای باند مرکز داده',
-    approvalStatus: 'APPROVED', executionDescription: 'خرید و نصب تجهیزات شبکه جدید', mainResponsibleUserId: 'user-10', mainResponsibleName: 'مهندس آرش کریمی',
-    responsibleDepartmentId: 'dept-1', responsibleDepartmentName: 'اداره کل فناوری اطلاعات', assignedDateJalali: '۱۴۰۵/۰۳/۰۶', deadlineJalali: '۱۴۰۵/۰۴/۲۰',
-    priority: 'HIGH', executionStatus: 'APPROVED_CLOSED', referrals: [], verificationConfig: emptyVerification(), attachments: [], progressPercent: 100,
-    completionNotes: 'تجهیزات نصب و راه‌اندازی و تست شد', completionDateJalali: '۱۴۰۵/۰۴/۱۸', createdAt: '2026-05-25T07:00:00.000Z',
-  },
-  {
-    id: 'res-2005', resolutionNumber: 'مصوبه-۱۴۰۵-۱۰۲', meetingId: 'meet-1003', meetingTitle: 'کمیته فنی - ارزیابی زیرساخت شبکه', meetingNumber: 'جلسه-۱۴۰۵-۱۴۴',
-    agendaItemId: 'ag-1003-2', agendaItemTitle: 'خرید تجهیزات پشتیبان شبکه', topicTitle: 'خرید تجهیزات پشتیبان شبکه',
-    proposerName: 'مهندس سارا نیک‌نام', proposerDepartment: 'اداره کل فناوری اطلاعات', requestDescription: 'تامین تجهیزات پشتیبان برای تضمین تداوم خدمات شبکه',
-    approvalStatus: 'NOT_APPROVED', mainResponsibleUserId: 'user-9', mainResponsibleName: 'مهندس سارا نیک‌نام', responsibleDepartmentId: 'dept-1', responsibleDepartmentName: 'اداره کل فناوری اطلاعات',
-    assignedDateJalali: '۱۴۰۵/۰۳/۰۶', deadlineJalali: '۱۴۰۵/۰۸/۰۱', priority: 'LOW', executionStatus: 'NOT_STARTED',
-    referrals: [], verificationConfig: emptyVerification(), attachments: [], progressPercent: 0, createdAt: '2026-05-25T07:00:00.000Z',
-  },
-  {
-    id: 'res-2006', resolutionNumber: 'مصوبه-۱۴۰۵-۱۰۳', meetingId: 'meet-1004', meetingTitle: 'شورای مدیران - ارزیابی عملکرد سه‌ماهه', meetingNumber: 'جلسه-۱۴۰۵-۱۴۵',
-    agendaItemId: 'ag-1004-1', agendaItemTitle: 'اصلاح فرآیند ارزیابی عملکرد کارکنان', topicTitle: 'اصلاح فرآیند ارزیابی عملکرد کارکنان',
-    proposerName: 'سرکار خانم مهندس مریم مرادی', proposerDepartment: 'مدیریت منابع انسانی', requestDescription: 'بازطراحی فرم‌ها و شاخص‌های ارزیابی عملکرد سالانه کارکنان',
-    approvalStatus: 'APPROVED', executionDescription: 'تدوین و ابلاغ فرآیند اصلاح‌شده ارزیابی عملکرد',
-    mainResponsibleUserId: 'user-11', mainResponsibleName: 'خانم الهام فراهانی', responsibleDepartmentId: 'dept-3', responsibleDepartmentName: 'مدیریت منابع انسانی و آموزش',
-    assignedDateJalali: '۱۴۰۵/۰۴/۱۳', deadlineJalali: '۱۴۰۵/۰۷/۰۱', priority: 'MEDIUM', executionStatus: 'IN_PROGRESS',
-    referrals: [], verificationConfig: emptyVerification(), attachments: [], progressPercent: 60, lastAction: 'جمع‌بندی نظرات واحدها روی فرم پیشنهادی', createdAt: '2026-07-02T07:00:00.000Z',
-  },
-  {
-    id: 'res-2007', resolutionNumber: 'مصوبه-۱۴۰۵-۱۰۴', meetingId: 'meet-1005', meetingTitle: 'کمیته بحران - رخداد امنیتی مرکز داده', meetingNumber: 'جلسه-۱۴۰۵-۱۴۶',
-    agendaItemId: 'ag-1005-1', agendaItemTitle: 'ارتقا سامانه پایش امنیت سایبری', topicTitle: 'ارتقا سامانه پایش امنیت سایبری',
-    proposerName: 'مهندس مهدی کمالی', proposerDepartment: 'مرکز امنیت اطلاعات', requestDescription: 'استقرار سامانه پایش و هشداردهی رخدادهای امنیتی',
-    approvalStatus: 'APPROVED', executionDescription: 'خرید، نصب و پیکربندی سامانه پایش امنیت سایبری',
-    mainResponsibleUserId: 'user-13', mainResponsibleName: 'مهندس مهدی کمالی', responsibleDepartmentId: 'dept-6', responsibleDepartmentName: 'مرکز امنیت اطلاعات و حراست',
-    assignedDateJalali: '۱۴۰۵/۰۵/۰۳', deadlineJalali: '۱۴۰۵/۰۶/۱۵', priority: 'CRITICAL', executionStatus: 'APPROVED_CLOSED',
-    referrals: [], verificationConfig: emptyVerification(), attachments: [], progressPercent: 100, completionNotes: 'سامانه پایش نصب و به بهره‌برداری رسید', completionDateJalali: '۱۴۰۵/۰۶/۱۲', createdAt: '2026-07-24T07:00:00.000Z',
-  },
-  {
-    id: 'res-2008', resolutionNumber: 'مصوبه-۱۴۰۵-۱۰۵', meetingId: 'meet-1006', meetingTitle: 'جلسه فوق‌العاده - تمدید قرارداد پیمانکار', meetingNumber: 'جلسه-۱۴۰۵-۱۴۷',
-    agendaItemId: 'ag-1006-1', agendaItemTitle: 'تمدید و اصلاح قرارداد پیمانکار داده‌پردازی', topicTitle: 'تمدید و اصلاح قرارداد پیمانکار داده‌پردازی',
-    proposerName: 'دکتر حمید کاظمی', proposerDepartment: 'اداره حقوقی و قراردادها', requestDescription: 'تمدید یک‌ساله قرارداد پیمانکار با اصلاح بندهای SLA',
-    approvalStatus: 'APPROVED', executionDescription: 'ابلاغ متن اصلاحی قرارداد به پیمانکار برای امضا',
-    mainResponsibleUserId: 'user-6', mainResponsibleName: 'دکتر حمید کاظمی', responsibleDepartmentId: 'dept-5', responsibleDepartmentName: 'اداره حقوقی و امور قراردادها',
-    assignedDateJalali: '۱۴۰۵/۰۶/۰۹', deadlineJalali: '۱۴۰۵/۰۷/۰۹', priority: 'MEDIUM', executionStatus: 'NOTIFIED',
-    referrals: [], verificationConfig: emptyVerification(), attachments: [], progressPercent: 0, createdAt: '2026-08-30T07:00:00.000Z',
-  },
-];
+// مصوبات — داده عملیاتی است و عمداً خالی است تا سامانه از صفر شروع شود.
+export const mockResolutions: Resolution[] = [];
 
-export const mockTasks: Task[] = [
-  { id: 'task-3001', resolutionId: 'res-2001', resolutionNumber: 'مصوبه-۱۴۰۵-۹۸', resolutionTitle: 'مهاجرت زیرساخت به سرویس‌های ابری', meetingId: 'meet-1001', meetingTitle: 'هیئت مدیره - بررسی زیرساخت ابری و امنیت داده',
-    assignedToUserId: 'user-9', assignedToName: 'مهندس سارا نیک‌نام', departmentId: 'dept-1', departmentName: 'اداره کل فناوری اطلاعات', referralDateJalali: '۱۴۰۵/۰۱/۲۰', deadlineJalali: '۱۴۰۵/۰۷/۱۵',
-    priority: 'HIGH', status: 'IN_PROGRESS', requiresVerification: false, instructions: 'اجرای مرحله‌ای مهاجرت سرویس‌ها به ابر خصوصی سازمان', progressPercent: 45, lastAction: 'تکمیل فاز اول مهاجرت سرویس‌های غیرحیاتی', attachments: [] },
-  { id: 'task-3002', resolutionId: 'res-2002', resolutionNumber: 'مصوبه-۱۴۰۵-۹۹', resolutionTitle: 'تدوین سیاست امنیت داده‌ها', meetingId: 'meet-1001', meetingTitle: 'هیئت مدیره - بررسی زیرساخت ابری و امنیت داده',
-    assignedToUserId: 'user-13', assignedToName: 'مهندس مهدی کمالی', departmentId: 'dept-6', departmentName: 'مرکز امنیت اطلاعات و حراست', referralDateJalali: '۱۴۰۵/۰۱/۲۰', deadlineJalali: '۱۴۰۵/۰۳/۰۱',
-    priority: 'URGENT', status: 'OVERDUE', requiresVerification: false, instructions: 'تدوین سند سیاست امنیت و طبقه‌بندی داده‌ها', progressPercent: 30, obstacles: 'تاخیر در دریافت نظر واحد حقوقی', attachments: [] },
-  { id: 'task-3003', resolutionId: 'res-2003', resolutionNumber: 'مصوبه-۱۴۰۵-۱۰۰', resolutionTitle: 'تخصیص بودجه توسعه فناوری اطلاعات', meetingId: 'meet-1002', meetingTitle: 'شورای مدیران - بودجه توسعه فناوری',
-    assignedToUserId: 'user-12', assignedToName: 'مهندس نیما انصاری', departmentId: 'dept-4', departmentName: 'اداره کل امور مالی و ذی‌حسابی', referralDateJalali: '۱۴۰۵/۰۲/۱۰', deadlineJalali: '۱۴۰۵/۰۳/۱۰',
-    priority: 'MEDIUM', status: 'PENDING_APPROVAL', requiresVerification: true, verificationCurrentStepTitle: 'تایید معاون برنامه‌ریزی', instructions: 'تخصیص و ابلاغ ردیف بودجه به واحد فناوری اطلاعات', completionNotes: 'تخصیص بودجه نهایی انجام و برای تایید ارسال شد', progressPercent: 100, attachments: [] },
-  { id: 'task-3004', resolutionId: 'res-2004', resolutionNumber: 'مصوبه-۱۴۰۵-۱۰۱', resolutionTitle: 'ارتقا زیرساخت شبکه مرکز داده', meetingId: 'meet-1003', meetingTitle: 'کمیته فنی - ارزیابی زیرساخت شبکه',
-    assignedToUserId: 'user-10', assignedToName: 'مهندس آرش کریمی', departmentId: 'dept-1', departmentName: 'اداره کل فناوری اطلاعات', referralDateJalali: '۱۴۰۵/۰۳/۰۶', deadlineJalali: '۱۴۰۵/۰۴/۲۰',
-    priority: 'HIGH', status: 'CLOSED', requiresVerification: false, instructions: 'خرید و نصب تجهیزات شبکه جدید', completionNotes: 'تجهیزات نصب و راه‌اندازی و تست شد', completionDateJalali: '۱۴۰۵/۰۴/۱۸', progressPercent: 100, attachments: [] },
-  { id: 'task-3005', resolutionId: 'res-2005', resolutionNumber: 'مصوبه-۱۴۰۵-۱۰۲', resolutionTitle: 'خرید تجهیزات پشتیبان شبکه', meetingId: 'meet-1003', meetingTitle: 'کمیته فنی - ارزیابی زیرساخت شبکه',
-    assignedToUserId: 'user-9', assignedToName: 'مهندس سارا نیک‌نام', departmentId: 'dept-1', departmentName: 'اداره کل فناوری اطلاعات', referralDateJalali: '۱۴۰۵/۰۳/۰۶', deadlineJalali: '۱۴۰۵/۰۸/۰۱',
-    priority: 'LOW', status: 'NEW', requiresVerification: false, instructions: 'استعلام قیمت و تامین تجهیزات پشتیبان شبکه', progressPercent: 0, attachments: [] },
-  { id: 'task-3006', resolutionId: 'res-2006', resolutionNumber: 'مصوبه-۱۴۰۵-۱۰۳', resolutionTitle: 'اصلاح فرآیند ارزیابی عملکرد کارکنان', meetingId: 'meet-1004', meetingTitle: 'شورای مدیران - ارزیابی عملکرد سه‌ماهه',
-    assignedToUserId: 'user-11', assignedToName: 'خانم الهام فراهانی', departmentId: 'dept-3', departmentName: 'مدیریت منابع انسانی و آموزش', referralDateJalali: '۱۴۰۵/۰۴/۱۳', deadlineJalali: '۱۴۰۵/۰۷/۰۱',
-    priority: 'MEDIUM', status: 'IN_PROGRESS', requiresVerification: false, instructions: 'بازطراحی فرم‌ها و شاخص‌های ارزیابی عملکرد سالانه', progressPercent: 60, lastAction: 'جمع‌بندی نظرات واحدها روی فرم پیشنهادی', attachments: [] },
-  { id: 'task-3007', resolutionId: 'res-2007', resolutionNumber: 'مصوبه-۱۴۰۵-۱۰۴', resolutionTitle: 'ارتقا سامانه پایش امنیت سایبری', meetingId: 'meet-1005', meetingTitle: 'کمیته بحران - رخداد امنیتی مرکز داده',
-    assignedToUserId: 'user-13', assignedToName: 'مهندس مهدی کمالی', departmentId: 'dept-6', departmentName: 'مرکز امنیت اطلاعات و حراست', referralDateJalali: '۱۴۰۵/۰۵/۰۳', deadlineJalali: '۱۴۰۵/۰۶/۱۵',
-    priority: 'CRITICAL', status: 'COMPLETED', requiresVerification: false, instructions: 'خرید، نصب و پیکربندی سامانه پایش امنیت سایبری', completionNotes: 'سامانه پایش نصب و به بهره‌برداری رسید', completionDateJalali: '۱۴۰۵/۰۶/۱۲', progressPercent: 100, attachments: [] },
-  { id: 'task-3008', resolutionId: 'res-2008', resolutionNumber: 'مصوبه-۱۴۰۵-۱۰۵', resolutionTitle: 'تمدید و اصلاح قرارداد پیمانکار داده‌پردازی', meetingId: 'meet-1006', meetingTitle: 'جلسه فوق‌العاده - تمدید قرارداد پیمانکار',
-    assignedToUserId: 'user-6', assignedToName: 'دکتر حمید کاظمی', departmentId: 'dept-5', departmentName: 'اداره حقوقی و امور قراردادها', referralDateJalali: '۱۴۰۵/۰۶/۰۹', deadlineJalali: '۱۴۰۵/۰۷/۰۹',
-    priority: 'MEDIUM', status: 'WAITING_RESPONSE', requiresVerification: false, instructions: 'پیگیری امضای متن اصلاحی قرارداد توسط پیمانکار', progressPercent: 0, attachments: [] },
-];
+// وظایف اجرایی — داده عملیاتی است و عمداً خالی است تا سامانه از صفر شروع شود.
+export const mockTasks: Task[] = [];
 
-export const mockApprovals: ApprovalCartableItem[] = [
-  { id: 'appr-4001', resolutionId: 'res-2003', resolutionNumber: 'مصوبه-۱۴۰۵-۱۰۰', resolutionTitle: 'تخصیص بودجه توسعه فناوری اطلاعات', meetingTitle: 'شورای مدیران - بودجه توسعه فناوری',
-    responsibleName: 'مهندس نیما انصاری', responsibleDepartment: 'اداره کل امور مالی و ذی‌حسابی', completedDateJalali: '۱۴۰۵/۰۳/۰۹', submittedForApprovalDateJalali: '۱۴۰۵/۰۳/۰۹',
-    stepNumber: 1, totalSteps: 1, stepTitle: 'تایید معاون برنامه‌ریزی', assignedApproverId: 'user-3', status: 'PENDING', completionReport: 'تخصیص بودجه نهایی انجام و مستندات پیوست شد', attachments: [] },
-  { id: 'appr-4002', resolutionId: 'res-2004', resolutionNumber: 'مصوبه-۱۴۰۵-۱۰۱', resolutionTitle: 'ارتقا زیرساخت شبکه مرکز داده', meetingTitle: 'کمیته فنی - ارزیابی زیرساخت شبکه',
-    responsibleName: 'مهندس آرش کریمی', responsibleDepartment: 'اداره کل فناوری اطلاعات', completedDateJalali: '۱۴۰۵/۰۴/۱۷', submittedForApprovalDateJalali: '۱۴۰۵/۰۴/۱۷',
-    stepNumber: 1, totalSteps: 1, stepTitle: 'تایید مدیر کل فناوری اطلاعات', assignedApproverId: 'user-2', status: 'APPROVED', completionReport: 'تجهیزات نصب و تست عملکرد با موفقیت انجام شد', attachments: [] },
-  { id: 'appr-4003', resolutionId: 'res-2007', resolutionNumber: 'مصوبه-۱۴۰۵-۱۰۴', resolutionTitle: 'ارتقا سامانه پایش امنیت سایبری', meetingTitle: 'کمیته بحران - رخداد امنیتی مرکز داده',
-    responsibleName: 'مهندس مهدی کمالی', responsibleDepartment: 'مرکز امنیت اطلاعات و حراست', completedDateJalali: '۱۴۰۵/۰۶/۱۱', submittedForApprovalDateJalali: '۱۴۰۵/۰۶/۱۱',
-    stepNumber: 1, totalSteps: 1, stepTitle: 'تایید رئیس مرکز امنیت', assignedApproverId: 'user-7', status: 'APPROVED', completionReport: 'سامانه پایش نصب، پیکربندی و آماده بهره‌برداری است', attachments: [] },
-  { id: 'appr-4004', resolutionId: 'res-2002', resolutionNumber: 'مصوبه-۱۴۰۵-۹۹', resolutionTitle: 'تدوین سیاست امنیت داده‌ها', meetingTitle: 'هیئت مدیره - بررسی زیرساخت ابری و امنیت داده',
-    responsibleName: 'مهندس مهدی کمالی', responsibleDepartment: 'مرکز امنیت اطلاعات و حراست', completedDateJalali: '۱۴۰۵/۰۲/۲۵', submittedForApprovalDateJalali: '۱۴۰۵/۰۲/۲۵',
-    stepNumber: 1, totalSteps: 1, stepTitle: 'تایید رئیس مرکز امنیت', assignedApproverId: 'user-7', status: 'PENDING', completionReport: 'پیش‌نویس اولیه سند سیاست امنیت داده برای بررسی ارسال شد', attachments: [] },
-  { id: 'appr-4005', resolutionId: 'res-2006', resolutionNumber: 'مصوبه-۱۴۰۵-۱۰۳', resolutionTitle: 'اصلاح فرآیند ارزیابی عملکرد کارکنان', meetingTitle: 'شورای مدیران - ارزیابی عملکرد سه‌ماهه',
-    responsibleName: 'خانم الهام فراهانی', responsibleDepartment: 'مدیریت منابع انسانی و آموزش', completedDateJalali: '۱۴۰۵/۰۵/۲۰', submittedForApprovalDateJalali: '۱۴۰۵/۰۵/۲۰',
-    stepNumber: 1, totalSteps: 1, stepTitle: 'تایید مدیر منابع انسانی', assignedApproverId: 'user-4', status: 'REJECTED', completionReport: 'فرم پیشنهادی نیاز به بازنگری شاخص‌های ارزیابی دارد', attachments: [] },
-];
+// کارتابل صحه‌گذاری — داده عملیاتی است و عمداً خالی است تا سامانه از صفر شروع شود.
+export const mockApprovals: ApprovalCartableItem[] = [];
 
-export const mockActivityLogs: ActivityLog[] = [
-  { id: 'log-6001', targetType: 'MEETING', targetId: 'meet-1007', action: 'ارسال دعوتنامه اعضا و مدعوین', actorName: 'مسئول دفتر', actorRole: 'دبیرخانه', timestampJalali: '۱۴۰۵/۰۶/۲۰', timeString: '۰۸:۱۵', badgeColor: 'teal' },
-  { id: 'log-6002', targetType: 'RESOLUTION', targetId: 'res-2001', action: 'ثبت گزارش پیشرفت اجرا', actorName: 'مهندس سارا نیک‌نام', actorRole: 'کارشناس ارشد زیرساخت', timestampJalali: '۱۴۰۵/۰۶/۱۸', timeString: '۱۱:۴۰', badgeColor: 'blue' },
-  { id: 'log-6003', targetType: 'RESOLUTION', targetId: 'res-2004', action: 'خاتمه اجرا و ثبت گزارش پایانی', actorName: 'مهندس آرش کریمی', actorRole: 'کارشناس ارشد توسعه', timestampJalali: '۱۴۰۵/۰۴/۱۸', timeString: '۱۳:۰۵', badgeColor: 'green' },
-  { id: 'log-6004', targetType: 'APPROVAL', targetId: 'appr-4005', action: 'رد گزارش تکمیل و بازگشت برای اصلاح', actorName: 'سرکار خانم مهندس مریم مرادی', actorRole: 'مدیر منابع انسانی', timestampJalali: '۱۴۰۵/۰۵/۲۱', timeString: '۰۹:۳۰', badgeColor: 'red' },
-  { id: 'log-6005', targetType: 'MEETING', targetId: 'meet-1008', action: 'ارسال دستورکار برای تایید مدیرعامل', actorName: 'مهندس جواد صادقی', actorRole: 'دبیر شورا', timestampJalali: '۱۴۰۵/۰۶/۲۵', timeString: '۱۰:۲۰', badgeColor: 'amber' },
-  { id: 'log-6006', targetType: 'TASK', targetId: 'task-3002', action: 'ثبت مانع اجرایی و درخواست پیگیری', actorName: 'مهندس مهدی کمالی', actorRole: 'کارشناس امنیت سامانه', timestampJalali: '۱۴۰۵/۰۳/۰۲', timeString: '۱۵:۱۰', badgeColor: 'purple' },
-];
+// Timeline / تاریخچه — داده عملیاتی است و عمداً خالی است تا سامانه از صفر شروع شود.
+export const mockActivityLogs: ActivityLog[] = [];
 
-export const mockNotifications: AppNotification[] = [
-  { id: 'notif-7001', recipientUserId: 'user-9', title: 'ارجاع مصوبه جدید', message: 'مصوبه «مهاجرت زیرساخت به سرویس‌های ابری» به شما ارجاع شد.', dateJalali: '۱۴۰۵/۰۱/۲۰', timeString: '۰۹:۱۰', isRead: true, type: 'ASSIGNMENT', targetResolutionId: 'res-2001' },
-  { id: 'notif-7002', recipientUserId: 'user-13', title: 'یادآوری موعد مقرر', message: 'موعد اجرای مصوبه «تدوین سیاست امنیت داده‌ها» گذشته است.', dateJalali: '۱۴۰۵/۰۳/۰۲', timeString: '۰۸:۰۰', isRead: false, type: 'DEADLINE', targetResolutionId: 'res-2002' },
-  { id: 'notif-7003', recipientUserId: 'user-3', title: 'درخواست تایید', message: 'گزارش تکمیل مصوبه «تخصیص بودجه توسعه فناوری اطلاعات» در انتظار تایید شماست.', dateJalali: '۱۴۰۵/۰۳/۰۹', timeString: '۱۴:۲۰', isRead: false, type: 'APPROVAL_REQUEST', targetResolutionId: 'res-2003' },
-  { id: 'notif-7004', recipientUserId: 'user-10', title: 'تایید گزارش تکمیل', message: 'گزارش تکمیل مصوبه «ارتقا زیرساخت شبکه مرکز داده» تایید شد.', dateJalali: '۱۴۰۵/۰۴/۱۸', timeString: '۱۳:۱۰', isRead: true, type: 'APPROVED', targetResolutionId: 'res-2004' },
-  { id: 'notif-7005', recipientUserId: 'user-11', title: 'رد گزارش تکمیل', message: 'گزارش تکمیل مصوبه «اصلاح فرآیند ارزیابی عملکرد کارکنان» رد شد.', dateJalali: '۱۴۰۵/۰۵/۲۱', timeString: '۰۹:۳۵', isRead: false, type: 'REJECTED', targetResolutionId: 'res-2006' },
-  { id: 'notif-7006', recipientUserId: 'user-3', title: 'دعوتنامه جلسه', message: 'دعوتنامه جلسه «هیئت مدیره - گزارش نیمه‌سال» برای شما ارسال شد.', dateJalali: '۱۴۰۵/۰۶/۲۰', timeString: '۰۸:۱۵', isRead: false, type: 'MEETING', targetRoute: 'meeting-details' },
-];
+// اعلان‌ها — داده عملیاتی است و عمداً خالی است تا سامانه از صفر شروع شود.
+export const mockNotifications: AppNotification[] = [];
 
-export const mockProposals: Proposal[] = [
-  { id: 'prop-5001', proposalNumber: 'پیشنهاد-۱۴۰۵-۲۱', title: 'درخواست تدوین دوره آموزشی امنیت سایبری', proposerName: 'مهندس آرش کریمی', proposerUserId: 'user-10',
-    proposerDepartmentId: 'dept-1', proposerDepartmentName: 'اداره کل فناوری اطلاعات', presenterUserId: 'user-10', presenterName: 'مهندس آرش کریمی',
-    description: 'برگزاری دوره آموزشی آگاهی‌رسانی امنیت سایبری برای کلیه کارکنان', dateJalali: '۱۴۰۵/۰۶/۰۱', attachments: [], status: 'PENDING_OFFICE_REVIEW', createdAt: '2026-08-23T06:00:00.000Z' },
-  { id: 'prop-5002', proposalNumber: 'پیشنهاد-۱۴۰۵-۲۲', title: 'ایجاد سامانه پایش الکترونیکی تدارکات', proposerName: 'مسئول دفتر', proposerUserId: 'user-17',
-    proposerDepartmentId: 'dept-2', proposerDepartmentName: 'معاونت برنامه‌ریزی و تحول سازمانی', presenterUserId: 'user-17', presenterName: 'مسئول دفتر',
-    description: 'استقرار سامانه الکترونیکی برای پایش فرآیند تدارکات و خرید', dateJalali: '۱۴۰۵/۰۶/۰۵', attachments: [], status: 'PENDING_CEO_REVIEW', createdAt: '2026-08-27T06:00:00.000Z' },
-  { id: 'prop-5003', proposalNumber: 'پیشنهاد-۱۴۰۵-۲۳', title: 'تشکیل جلسه بررسی بودجه توسعه فناوری', proposerName: 'آقای بهزاد شریفی', proposerUserId: 'user-5',
-    proposerDepartmentId: 'dept-4', proposerDepartmentName: 'اداره کل امور مالی و ذی‌حسابی', presenterUserId: 'user-5', presenterName: 'آقای بهزاد شریفی',
-    description: 'درخواست تشکیل جلسه شورای مدیران برای بررسی و تصویب بودجه توسعه فناوری', dateJalali: '۱۴۰۵/۰۲/۰۲', attachments: [], status: 'APPROVED', createdAt: '2026-04-21T06:00:00.000Z' },
-  { id: 'prop-5004', proposalNumber: 'پیشنهاد-۱۴۰۵-۲۴', title: 'خرید خودرو استیجاری برای دفتر مرکزی', proposerName: 'دکتر حمید کاظمی', proposerUserId: 'user-6',
-    proposerDepartmentId: 'dept-5', proposerDepartmentName: 'اداره حقوقی و امور قراردادها', presenterUserId: 'user-6', presenterName: 'دکتر حمید کاظمی',
-    description: 'درخواست تامین خودرو استیجاری برای ماموریت‌های اداری دفتر مرکزی', dateJalali: '۱۴۰۵/۰۵/۱۰', attachments: [], status: 'REJECTED',
-    managementDecisionNotes: 'با توجه به محدودیت بودجه جاری، این درخواست تایید نمی‌شود.', createdAt: '2026-07-31T06:00:00.000Z' },
-  { id: 'prop-5005', proposalNumber: 'پیشنهاد-۱۴۰۵-۲۵', title: 'برون‌سپاری پشتیبانی نرم‌افزار مالی', proposerName: 'آقای بهزاد شریفی', proposerUserId: 'user-5',
-    proposerDepartmentId: 'dept-4', proposerDepartmentName: 'اداره کل امور مالی و ذی‌حسابی', presenterUserId: 'user-5', presenterName: 'آقای بهزاد شریفی',
-    description: 'برون‌سپاری خدمات پشتیبانی و نگهداری سامانه مالی به شرکت پیمانکار', dateJalali: '۱۴۰۵/۰۵/۱۸', attachments: [], status: 'RETURNED_FOR_REVISION',
-    managementDecisionNotes: 'لطفا برآورد هزینه سالانه و مقایسه با وضع موجود را تکمیل کنید.', createdAt: '2026-08-08T06:00:00.000Z' },
-  { id: 'prop-5006', proposalNumber: 'پیشنهاد-۱۴۰۵-۲۶', title: 'تمدید قرارداد اینترنت پرسرعت دفتر مرکزی', proposerName: 'مهندس پوریا حسینی', proposerUserId: 'user-2',
-    proposerDepartmentId: 'dept-1', proposerDepartmentName: 'اداره کل فناوری اطلاعات', presenterUserId: 'user-2', presenterName: 'مهندس پوریا حسینی',
-    description: 'تمدید یک‌ساله قرارداد ارائه اینترنت پرسرعت دفتر مرکزی با همان تعرفه فعلی', dateJalali: '۱۴۰۵/۰۶/۰۳', attachments: [], status: 'NO_BOARD_REQUIRED', createdAt: '2026-08-25T06:00:00.000Z' },
-  { id: 'prop-5007', proposalNumber: 'پیشنهاد-۱۴۰۵-۲۷', title: 'پیگیری فوری رفع اختلال سرور ایمیل سازمانی', proposerName: 'مهندس سارا نیک‌نام', proposerUserId: 'user-9',
-    proposerDepartmentId: 'dept-1', proposerDepartmentName: 'اداره کل فناوری اطلاعات', presenterUserId: 'user-9', presenterName: 'مهندس سارا نیک‌نام',
-    description: 'اختلال در سرویس ایمیل سازمانی نیازمند دستور فوری و اقدام بدون طرح در جلسه است', dateJalali: '۱۴۰۵/۰۶/۱۵', attachments: [], status: 'CEO_ORDER_ISSUED',
-    ceoOrder: { text: 'در اسرع وقت نسبت به رفع اختلال سرور ایمیل اقدام و نتیجه به دفتر مدیرعامل گزارش شود.', assigneeUserId: 'user-9', assigneeName: 'مهندس سارا نیک‌نام', deadlineJalali: '۱۴۰۵/۰۶/۳۰', status: 'IN_PROGRESS' },
-    createdAt: '2026-09-06T06:00:00.000Z' },
-  { id: 'prop-5008', proposalNumber: 'پیشنهاد-۱۴۰۵-۲۸', title: 'برگزاری دوره ارزیابی و ارتقا سامانه انبارداری', proposerName: 'مهندس نیما انصاری', proposerUserId: 'user-12',
-    proposerDepartmentId: 'dept-4', proposerDepartmentName: 'اداره کل امور مالی و ذی‌حسابی', presenterUserId: 'user-12', presenterName: 'مهندس نیما انصاری',
-    description: 'ارزیابی وضعیت موجود سامانه انبارداری و تدوین طرح ارتقا', dateJalali: '۱۴۰۵/۰۶/۱۰', attachments: [], status: 'CONFIRMED_FOR_MEETING',
-    confirmedPresenterId: 'user-12', confirmedPresenterName: 'مهندس نیما انصاری', confirmedDateJalali: '۱۴۰۵/۰۶/۱۲', confirmedTimeString: '۱۰:۰۰', createdAt: '2026-09-01T06:00:00.000Z' },
-  { id: 'prop-5009', proposalNumber: 'پیشنهاد-۱۴۰۵-۲۹', title: 'طرح جامع توسعه منابع انسانی', proposerName: 'سرکار خانم مهندس مریم مرادی', proposerUserId: 'user-4',
-    proposerDepartmentId: 'dept-3', proposerDepartmentName: 'مدیریت منابع انسانی و آموزش', presenterUserId: 'user-4', presenterName: 'سرکار خانم مهندس مریم مرادی',
-    description: 'ارائه طرح جامع توسعه منابع انسانی برای بررسی در شورای مدیران', dateJalali: '۱۴۰۵/۰۶/۲۰', attachments: [], status: 'CONVERTED_TO_AGENDA',
-    assignedMeetingId: 'meet-1008', assignedMeetingTitle: 'شورای مدیران - طرح توسعه منابع انسانی', createdAt: '2026-09-08T06:00:00.000Z' },
-];
+// مصوبات پیشنهادی — داده عملیاتی است و عمداً خالی است تا سامانه از صفر شروع شود.
+export const mockProposals: Proposal[] = [];
 
 export interface LoginHistoryEntry {
   id: string;
@@ -726,22 +431,11 @@ export interface LoginHistoryEntry {
   status: 'SUCCESS' | 'FAILED';
 }
 
-export const mockLoginHistory: LoginHistoryEntry[] = [
-  { id: 'login-8001', userId: 'user-16', userName: 'مدیرعامل', dateJalali: '۱۴۰۵/۰۶/۲۵', timeString: '۰۸:۰۲', ip: '10.10.1.14', device: 'Chrome / Windows', status: 'SUCCESS' },
-  { id: 'login-8002', userId: 'user-17', userName: 'مسئول دفتر', dateJalali: '۱۴۰۵/۰۶/۲۵', timeString: '۰۷:۵۵', ip: '10.10.1.22', device: 'Chrome / Windows', status: 'SUCCESS' },
-  { id: 'login-8003', userId: 'user-2', userName: 'مهندس پوریا حسینی', dateJalali: '۱۴۰۵/۰۶/۲۴', timeString: '۰۹:۱۰', ip: '10.10.2.8', device: 'Firefox / Windows', status: 'SUCCESS' },
-  { id: 'login-8004', userId: 'user-9', userName: 'مهندس سارا نیک‌نام', dateJalali: '۱۴۰۵/۰۶/۲۴', timeString: '۰۸:۴۰', ip: '10.10.2.19', device: 'Chrome / Android', status: 'SUCCESS' },
-  { id: 'login-8005', userId: 'user-admin', userName: 'مدیر کل سیستم (Admin)', dateJalali: '۱۴۰۵/۰۶/۲۴', timeString: '۰۷:۳۰', ip: '10.10.0.2', device: 'Chrome / Windows', status: 'SUCCESS' },
-  { id: 'login-8006', userId: 'user-6', userName: 'دکتر حمید کاظمی', dateJalali: '۱۴۰۵/۰۶/۲۳', timeString: '۱۱:۱۵', ip: '10.10.3.5', device: 'Safari / macOS', status: 'FAILED' },
-];
+// تاریخچه ورود — داده عملیاتی است و عمداً خالی است تا سامانه از صفر شروع شود.
+export const mockLoginHistory: LoginHistoryEntry[] = [];
 
-export const mockArchiveFolders: ArchiveFolder[] = [
-  { id: 'arch-folder-1', name: 'بایگانی اداره کل فناوری اطلاعات', scope: 'PERSONAL', ownerDepartmentId: 'dept-1', createdByUserId: 'user-2', createdByName: 'مهندس پوریا حسینی', createdAt: '2026-08-01T06:00:00.000Z' },
-  { id: 'arch-folder-2', name: 'بایگانی سازمانی مصوبات', scope: 'ORGANIZATION', createdByUserId: 'user-17', createdByName: 'مسئول دفتر', createdAt: '2026-08-05T06:00:00.000Z' },
-];
+// پوشه‌های بایگانی — داده عملیاتی است و عمداً خالی است تا سامانه از صفر شروع شود.
+export const mockArchiveFolders: ArchiveFolder[] = [];
 
-export const mockArchiveItems: ArchiveItem[] = [
-  { id: 'arch-item-1', folderId: 'arch-folder-2', proposalId: 'prop-5004', proposalTitle: 'خرید خودرو استیجاری برای دفتر مرکزی', movedByUserId: 'user-17', movedByName: 'مسئول دفتر', movedAt: '2026-08-01T06:00:00.000Z' },
-  { id: 'arch-item-2', folderId: 'arch-folder-2', proposalId: 'prop-5006', proposalTitle: 'تمدید قرارداد اینترنت پرسرعت دفتر مرکزی', movedByUserId: 'user-17', movedByName: 'مسئول دفتر', movedAt: '2026-08-26T06:00:00.000Z' },
-  { id: 'arch-item-3', folderId: 'arch-folder-1', proposalId: 'prop-5001', proposalTitle: 'درخواست تدوین دوره آموزشی امنیت سایبری', movedByUserId: 'user-2', movedByName: 'مهندس پوریا حسینی', movedAt: '2026-08-24T06:00:00.000Z' },
-];
+// اقلام بایگانی — داده عملیاتی است و عمداً خالی است تا سامانه از صفر شروع شود.
+export const mockArchiveItems: ArchiveItem[] = [];

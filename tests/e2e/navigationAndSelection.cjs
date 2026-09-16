@@ -36,6 +36,12 @@ const openSidebar = async (page, label) => {
     };
     window.actor = async (id) => (await window.loadUsers()).find((u) => u.id === id);
   });
+  // این Suite یک مرورگرِ از قبل Reset‌شده را شبیه‌سازی می‌کند: Marker پیش از
+  // بارگذاری هر صفحه ثبت می‌شود تا Reset یک‌باره داده‌های Seed تست را پاک نکند.
+  await page.addInitScript(() => {
+    localStorage.setItem('postbank-mosavabat-v1:operationalResetVersion', '1');
+  });
+
 
   await page.goto(BASE, { waitUntil: 'networkidle' });
   await page.evaluate(() => localStorage.clear());
@@ -76,6 +82,35 @@ const openSidebar = async (page, label) => {
     adminSettingsText.includes('اینفوگراف') && adminSettingsText.includes('راهنمای کاربری'));
 
   // ================= پرامپت ۱ / بند ۴: حذف تب «اعضا و امضاکنندگان» =================
+  // Seed عملیاتی سامانه عمداً خالی است، پس این Suite جلسه خودش را می‌سازد.
+  await page.evaluate(async () => {
+    const users = await window.loadUsers();
+    const member = users.find((u) => u.id === 'user-9') || users[1];
+    const meetings = JSON.parse(localStorage.getItem('postbank-mosavabat-v1:meetings') || '[]');
+    meetings.unshift({
+      id: 'meet-nav', meetingNumber: 'جلسه-۱۴۰۵-۷۰۱', title: 'جلسه تست ناوبری',
+      type: 'COMMISSION', dateJalali: '1405/06/25', startTime: '09:00', endTime: '12:00',
+      location: 'سالن جلسات', status: 'INVITATION_SENT',
+      organizerId: 'user-16', organizerName: 'مدیرعامل',
+      secretaryId: 'user-8', secretaryName: 'مهندس جواد صادقی',
+      departmentId: 'dept-1', departmentName: 'اداره کل فناوری اطلاعات', description: '',
+      members: [{
+        userId: member.id, fullName: member.fullName, roleTitle: member.title,
+        organizationPosition: member.title, departmentName: member.departmentName,
+        attendanceType: 'MEMBER', presenceStatus: 'PRESENT',
+      }],
+      agendaItems: [{
+        id: 'ag-nav', order: 1, rowNumber: 1, title: 'بند تست ناوبری', presenter: member.fullName,
+        presenterName: member.fullName, startTime: '09:00', endTime: '09:30',
+        allocatedMinutes: 30, isDiscussed: false,
+      }],
+      attachments: [], history: [], resolutionsCount: 0, createdAt: new Date().toISOString(),
+    });
+    localStorage.setItem('postbank-mosavabat-v1:meetings', JSON.stringify(meetings));
+  });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(800);
+
   await openSidebar(page, 'جلسات');
   await page.locator('main tr.cursor-pointer').first().click();
   await page.waitForTimeout(1200);

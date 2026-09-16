@@ -34,6 +34,12 @@ const PNG_SECRETARY = png('mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
       return data.mockUsers;
     };
   });
+  // این Suite یک مرورگرِ از قبل Reset‌شده را شبیه‌سازی می‌کند: Marker پیش از
+  // بارگذاری هر صفحه ثبت می‌شود تا Reset یک‌باره داده‌های Seed تست را پاک نکند.
+  await page.addInitScript(() => {
+    localStorage.setItem('postbank-mosavabat-v1:operationalResetVersion', '1');
+  });
+
 
   await page.goto(BASE, { waitUntil: 'networkidle' });
   await page.evaluate(() => localStorage.clear());

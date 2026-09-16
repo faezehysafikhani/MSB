@@ -28,6 +28,12 @@ const UPLOADED_PNG = Buffer.from(
   // Documents open in a print window; capture them instead of printing.
   const documentPages = [];
   page.context().on('page', (p) => documentPages.push(p));
+  // این Suite یک مرورگرِ از قبل Reset‌شده را شبیه‌سازی می‌کند: Marker پیش از
+  // بارگذاری هر صفحه ثبت می‌شود تا Reset یک‌باره داده‌های Seed تست را پاک نکند.
+  await page.addInitScript(() => {
+    localStorage.setItem('postbank-mosavabat-v1:operationalResetVersion', '1');
+  });
+
 
   await page.goto(BASE, { waitUntil: 'networkidle' });
   await page.evaluate(() => localStorage.clear());
