@@ -39,7 +39,7 @@ export const SettingsView: React.FC = () => {
   const activeTab = tabs.some((t) => t.id === mainTab) ? mainTab : tabs[0].id;
 
   return (
-    <div className="space-y-5 pb-12">
+    <div className="space-y-4 pb-4">
       <PageHeader
         icon={Settings}
         title={canManageSystem ? 'تنظیمات سامانه' : 'راهنما و تنظیمات'}

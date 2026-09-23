@@ -1,100 +1,124 @@
-import React, { useMemo, useState } from 'react';
-import { CalendarDays, ChevronLeft, ClipboardCheck, FileCheck2, Lightbulb, PenTool, RefreshCcw, Scale, Send, ShieldCheck, UserCog } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { CalendarDays, ClipboardCheck, FileCheck2, Lightbulb, PenTool, Scale, Send, ShieldCheck, UserCog } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { toPersianDigits } from '../../utils/formatters';
 import { getInfographicStages, InfographicStage } from './infographicStages';
 
-const ICONS: Record<InfographicStage['icon'], React.ElementType> = {
-  proposal: Lightbulb,
-  review: Scale,
-  meeting: CalendarDays,
-  resolution: FileCheck2,
-  sign: PenTool,
-  notice: Send,
-  execute: UserCog,
-  followup: ClipboardCheck,
-  verify: ShieldCheck,
+/** آیکون و رنگ اختصاصی هر مرحله (سبک سه‌بعدی ملایم). */
+const ICONS: Record<InfographicStage['icon'], { icon: React.ElementType; tone: string }> = {
+  proposal: { icon: Lightbulb, tone: 'igs-gold' },
+  review: { icon: Scale, tone: 'igs-blue' },
+  meeting: { icon: CalendarDays, tone: 'igs-blue' },
+  resolution: { icon: FileCheck2, tone: 'igs-blue' },
+  sign: { icon: PenTool, tone: 'igs-navy' },
+  notice: { icon: Send, tone: 'igs-sky' },
+  execute: { icon: UserCog, tone: 'igs-navy' },
+  followup: { icon: ClipboardCheck, tone: 'igs-blue' },
+  verify: { icon: ShieldCheck, tone: 'igs-navy' },
 };
 
+// چیدمان مطابق مرجع: سه ردیف و مسیر مارپیچ (مختصات در viewBox 1000×500).
+const VIEW_W = 1000;
+const VIEW_H = 580;
+const ROWS = [128, 318, 508];
+const SLOTS: { x: number; y: number }[] = [
+  { x: 820, y: ROWS[0] }, { x: 520, y: ROWS[0] }, { x: 220, y: ROWS[0] },
+  { x: 820, y: ROWS[1] }, { x: 520, y: ROWS[1] }, { x: 220, y: ROWS[1] },
+  { x: 220, y: ROWS[2] }, { x: 520, y: ROWS[2] }, { x: 820, y: ROWS[2] },
+];
+const PATH = `M 0 ${ROWS[0]} L 890 ${ROWS[0]} C 985 ${ROWS[0]} 985 ${ROWS[1]} 890 ${ROWS[1]} L 110 ${ROWS[1]} C 15 ${ROWS[1]} 15 ${ROWS[2]} 110 ${ROWS[2]} L ${VIEW_W} ${ROWS[2]}`;
+const CHEVRONS = [
+  { x: 670, y: ROWS[0], dir: -1 }, { x: 370, y: ROWS[0], dir: -1 },
+  { x: 670, y: ROWS[1], dir: -1 }, { x: 370, y: ROWS[1], dir: -1 },
+  { x: 370, y: ROWS[2], dir: 1 }, { x: 670, y: ROWS[2], dir: 1 },
+];
+const BEADS = [{ x: 400, y: ROWS[0] - 12 }, { x: 700, y: ROWS[1] + 10 }, { x: 60, y: 350 }, { x: 960, y: 190 }];
+
 /**
- * اینفوگراف «مسیر مصوبه از پیشنهاد تا خاتمه»:
- * - دایره مرکزی «چرخه مدیریت مصوبات» که ۹ مرحله روی حلقه اطرافش قرار دارند؛
- * - کارت‌های مرتب مراحل در مسیر راست‌به‌چپ (سه ردیف سه‌تایی) با شماره، آیکون،
- *   عنوان و توضیح کوتاه؛ در موبایل همین ترتیب به‌صورت عمودی.
- * داده مراحل از getInfographicStages (آرایه مستقل) خوانده می‌شود.
+ * اینفوگراف «مسیر مصوبه از پیشنهاد تا خاتمه» — بازسازی React/CSS از تصویر
+ * مرجع: مسیر مارپیچ آبی، پایه‌های شیشه‌ای، آیکون‌های برجسته و شماره هر مرحله.
+ * داده (شماره، عنوان، توضیح، آیکون، ترتیب) از آرایه مستقل infographicStages می‌آید.
  */
 export const InfographicsView: React.FC = () => {
   const { navigateTo } = useApp();
   const stages = useMemo(getInfographicStages, []);
-  const [hovered, setHovered] = useState<number | null>(null);
 
   return (
-    <div className="icy">
-      <header className="icy-head">
-        <h2>مسیر مصوبه از پیشنهاد تا خاتمه</h2>
-        <p>از ثبت پیشنهاد تا صحه‌گذاری نهایی؛ هر مصوبه این ۹ مرحله را به ترتیب طی می‌کند.</p>
-      </header>
+    <section className="igs">
+      <span className="igs-bubble igs-b1" /><span className="igs-bubble igs-b2" /><span className="igs-bubble igs-b3" />
+      <h2 className="igs-title">مسیر مصوبه از <span>پیشنهاد</span> تا خاتمه</h2>
 
-      <div className="icy-body">
-        {/* المان مرکزی: چرخه مدیریت مصوبات */}
-        <div className="icy-hub-wrap" aria-hidden="true">
-          <div className="icy-orbit">
-            {stages.map((stage, i) => {
-              const Icon = ICONS[stage.icon];
-              // مرحله ۱ بالای حلقه و ادامه مراحل پادساعتگرد (راست‌به‌چپ).
-              const angle = -90 - (360 / stages.length) * i;
-              return (
-                <span
-                  key={stage.id}
-                  className={`icy-orbit-dot ${hovered === stage.id ? 'icy-orbit-dot-on' : ''}`}
-                  style={{ ['--a' as string]: `${angle}deg` }}
-                >
-                  <span className="icy-orbit-inner"><Icon className="h-3.5 w-3.5" /></span>
-                </span>
-              );
-            })}
-            <div className="icy-hub">
-              <RefreshCcw className="h-7 w-7 opacity-90" />
-              <strong>چرخه مدیریت مصوبات</strong>
-              <span>{toPersianDigits(stages.length)} مرحله</span>
-            </div>
-          </div>
-        </div>
+      {/* دسکتاپ و تبلت: مسیر مارپیچ */}
+      <div className="igs-stage">
+        <svg className="igs-svg" viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} aria-hidden="true">
+          <defs>
+            <linearGradient id="igs-path" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#60a5fa" />
+              <stop offset="50%" stopColor="#2563eb" />
+              <stop offset="100%" stopColor="#60a5fa" />
+            </linearGradient>
+            <radialGradient id="igs-bead" cx="35%" cy="30%" r="70%">
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="60%" stopColor="#bfdbfe" />
+              <stop offset="100%" stopColor="#60a5fa" />
+            </radialGradient>
+            <filter id="igs-glow" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="5" /></filter>
+          </defs>
+          <path d={PATH} fill="none" stroke="#bfdbfe" strokeWidth="30" strokeLinecap="round" opacity="0.55" filter="url(#igs-glow)" />
+          <path d={PATH} fill="none" stroke="#dbeafe" strokeWidth="20" strokeLinecap="round" />
+          <path d={PATH} fill="none" stroke="url(#igs-path)" strokeWidth="9" strokeLinecap="round" />
+          <path d={PATH} fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
+          {CHEVRONS.map((c) => (
+            <g key={`${c.x}-${c.y}`} transform={`translate(${c.x} ${c.y}) scale(${c.dir} 1)`} opacity="0.95">
+              <path d="M -6 -7 L 2 0 L -6 7" fill="none" stroke="#ffffff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M 3 -7 L 11 0 L 3 7" fill="none" stroke="#ffffff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+            </g>
+          ))}
+          {BEADS.map((b) => <circle key={`${b.x}-${b.y}`} cx={b.x} cy={b.y} r="13" fill="url(#igs-bead)" stroke="#ffffff" strokeWidth="1.5" />)}
+        </svg>
 
-        {/* مراحل: مسیر راست‌به‌چپ */}
-        <ol className="icy-steps">
-          {stages.map((stage, i) => {
-            const Icon = ICONS[stage.icon];
-            const endOfRow = (i + 1) % 3 === 0;
-            return (
-              <li key={stage.id} className="icy-step-cell">
-                <button
-                  type="button"
-                  onClick={() => navigateTo(stage.route)}
-                  onMouseEnter={() => setHovered(stage.id)}
-                  onMouseLeave={() => setHovered(null)}
-                  onFocus={() => setHovered(stage.id)}
-                  onBlur={() => setHovered(null)}
-                  className="icy-card"
-                  title={`رفتن به بخش «${stage.title}»`}
-                >
-                  <span className="icy-card-icon"><Icon className="h-5 w-5" /></span>
-                  <span className="min-w-0 flex-1 text-right">
-                    <span className="flex items-center gap-1.5">
-                      <span className="icy-num">{toPersianDigits(stage.id)}</span>
-                      <b className="icy-title">{stage.title}</b>
-                    </span>
-                    <span className="icy-desc">{stage.description}</span>
-                  </span>
-                </button>
-                {i < stages.length - 1 && (
-                  <span className={`icy-arrow ${endOfRow ? 'icy-arrow-down' : ''}`} aria-hidden="true"><ChevronLeft className="h-4 w-4" /></span>
-                )}
-              </li>
-            );
-          })}
-        </ol>
+        {stages.slice(0, SLOTS.length).map((stage, i) => {
+          const { icon: Icon, tone } = ICONS[stage.icon];
+          const slot = SLOTS[i];
+          return (
+            <button
+              key={stage.id}
+              type="button"
+              onClick={() => navigateTo(stage.route)}
+              className="igs-node"
+              style={{ left: `${(slot.x / VIEW_W) * 100}%`, top: `${(slot.y / VIEW_H) * 100}%` }}
+              title={`رفتن به بخش «${stage.title}»`}
+            >
+              <span className="igs-pedestal" />
+              <span className={`igs-icon ${tone}`}><Icon strokeWidth={2.2} /></span>
+              <span className="igs-num">{toPersianDigits(stage.id)}</span>
+              <span className="igs-label">
+                <b>{stage.title}</b>
+                <small>{stage.description}</small>
+              </span>
+            </button>
+          );
+        })}
       </div>
-    </div>
+
+      {/* موبایل: همان ترتیب به‌صورت عمودی */}
+      <ol className="igs-mobile">
+        {stages.map((stage) => {
+          const { icon: Icon, tone } = ICONS[stage.icon];
+          return (
+            <li key={stage.id}>
+              <button type="button" onClick={() => navigateTo(stage.route)} className="igs-mrow">
+                <span className={`igs-icon igs-icon-sm ${tone}`}><Icon strokeWidth={2.2} /></span>
+                <span className="igs-num igs-num-sm">{toPersianDigits(stage.id)}</span>
+                <span className="min-w-0 flex-1 text-right">
+                  <b className="block text-[14px] font-black text-[#0b2a8a]">{stage.title}</b>
+                  <small className="block text-[12px] leading-6 text-slate-600">{stage.description}</small>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 };

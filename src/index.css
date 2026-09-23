@@ -1515,3 +1515,106 @@ button:hover > .app-logo { transform: scale(1.04); }
 .icy-title { white-space: nowrap; font-size: 0.88rem; }
 .icy-desc { font-size: 0.72rem; line-height: 1.6; }
 @media (min-width: 640px) { .icy-arrow { left: -1.2rem; } }
+
+/* ================================================================
+   اینفوگراف مارپیچ (مطابق تصویر مرجع)
+   ================================================================ */
+.igs { position: relative; overflow: hidden; border-radius: 1.6rem; padding: 1rem 1rem 0.6rem;
+  background:
+    radial-gradient(600px 300px at 15% 20%, rgba(255,255,255,0.9), transparent 70%),
+    radial-gradient(700px 360px at 85% 90%, rgba(191,219,254,0.7), transparent 70%),
+    linear-gradient(160deg, #eef5ff 0%, #e2edfc 50%, #eaf2ff 100%);
+  box-shadow: 0 0 0 1px rgba(147,187,240,0.35), 0 18px 36px -28px rgba(11,42,91,0.55); }
+.igs-bubble { position: absolute; border-radius: 999px; pointer-events: none; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.95), rgba(191,219,254,0.35) 60%, rgba(147,197,253,0.15)); box-shadow: inset 0 0 12px rgba(255,255,255,0.8), 0 6px 16px -8px rgba(37,99,235,0.35); }
+.igs-b1 { width: 5.5rem; height: 5.5rem; top: 1.2rem; left: 1.5rem; }
+.igs-b2 { width: 4rem; height: 4rem; bottom: 1.5rem; right: 2rem; }
+.igs-b3 { width: 2.6rem; height: 2.6rem; top: 45%; left: 48%; opacity: 0.6; }
+.igs-title { position: relative; text-align: center; font-size: 1.55rem; font-weight: 900; color: #0b2a8a; letter-spacing: -0.01em; }
+.igs-title span { color: #2563eb; }
+
+.igs-stage { position: relative; width: 100%; aspect-ratio: 1000 / 580; max-width: 62rem; margin: 0 auto; }
+.igs-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+.igs-node { position: absolute; width: 0; height: 0; }
+.igs-pedestal { position: absolute; left: -3.6rem; top: -1rem; width: 7.2rem; height: 2rem; border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 35%, #ffffff 0%, #e6f0ff 45%, #bcd4f7 100%);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.9), 0 0 0 5px rgba(147,197,253,0.35), 0 10px 18px -8px rgba(29,78,216,0.55); }
+.igs-pedestal::after { content: ""; position: absolute; inset: 0.35rem 1.1rem; border-radius: 50%; background: radial-gradient(ellipse, rgba(96,165,250,0.35), transparent 70%); }
+.igs-icon { position: absolute; left: -2.15rem; top: -4.6rem; display: flex; width: 4.3rem; height: 4.3rem; align-items: center; justify-content: center; border-radius: 1.2rem; color: #fff;
+  box-shadow: 0 14px 20px -10px rgba(11,42,138,0.75), inset 0 3px 4px rgba(255,255,255,0.45), inset 0 -4px 6px rgba(11,42,138,0.35); transition: transform 0.2s ease; }
+.igs-icon svg { width: 2.2rem; height: 2.2rem; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.25)); }
+.igs-blue { background: radial-gradient(circle at 30% 25%, #93c5fd 0%, #2563eb 45%, #1e3a8a 100%); }
+.igs-navy { background: radial-gradient(circle at 30% 25%, #60a5fa 0%, #1d4ed8 45%, #0b2a5b 100%); }
+.igs-sky { background: radial-gradient(circle at 30% 25%, #bae6fd 0%, #38bdf8 45%, #1d4ed8 100%); }
+.igs-gold { color: #fff; background: radial-gradient(circle at 30% 25%, #fef08a 0%, #facc15 40%, #2563eb 100%); }
+.igs-node:hover .igs-icon, .igs-node:focus-visible .igs-icon { transform: translateY(-4px) scale(1.05); }
+.igs-num { position: absolute; left: -5.6rem; top: -3.3rem; display: flex; width: 2.5rem; height: 2.5rem; align-items: center; justify-content: center; border-radius: 999px; font-size: 1.05rem; font-weight: 900; color: #0b2a8a;
+  background: radial-gradient(circle at 35% 30%, #ffffff, #e0ecff); box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(147,197,253,0.6), 0 8px 14px -8px rgba(29,78,216,0.6); }
+.igs-label { position: absolute; left: -6.5rem; top: 1.4rem; width: 13rem; text-align: center; }
+.igs-label b { display: block; font-size: 1rem; font-weight: 900; color: #0b2a5b; }
+.igs-label small { display: block; margin-top: 0.1rem; font-size: 0.7rem; line-height: 1.5; color: #475569; }
+
+.igs-mobile { display: none; }
+@media (max-width: 899px) {
+  .igs-stage { display: none; }
+  .igs-title { font-size: 1.2rem; }
+  .igs-mobile { position: relative; display: grid; gap: 0.7rem; margin-top: 1rem; }
+  .igs-mobile::before { content: ""; position: absolute; top: 1.5rem; bottom: 1.5rem; right: 2.1rem; width: 8px; border-radius: 8px; background: linear-gradient(180deg, #60a5fa, #2563eb, #60a5fa); box-shadow: 0 0 0 5px rgba(219,234,254,0.9); }
+  .igs-mrow { position: relative; display: flex; width: 100%; align-items: center; gap: 0.8rem; border-radius: 1.1rem; padding: 0.6rem; background: rgba(255,255,255,0.75); box-shadow: 0 0 0 1px rgba(147,187,240,0.4); }
+  .igs-icon-sm { position: relative; left: auto; top: auto; width: 3.2rem; height: 3.2rem; flex-shrink: 0; border-radius: 0.95rem; }
+  .igs-icon-sm svg { width: 1.6rem; height: 1.6rem; }
+  .igs-num-sm { position: relative; left: auto; top: auto; width: 1.8rem; height: 1.8rem; flex-shrink: 0; font-size: 0.85rem; }
+}
+
+/* ================================================================
+   مرکز آموزش (راهنمای کاربری)
+   ================================================================ */
+.hc { display: grid; gap: 1rem; }
+@media (min-width: 1024px) { .hc { grid-template-columns: 16rem 1fr; align-items: start; } .hc-nav { position: sticky; top: 0.5rem; } }
+.hc-nav { border-radius: 1.3rem; padding: 0.9rem; background: rgba(255,255,255,0.95); box-shadow: 0 0 0 1px rgba(147,187,240,0.35), 0 14px 28px -22px rgba(11,42,91,0.55); }
+.hc-nav-head { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem; color: #0b2a5b; font-size: 0.95rem; }
+.hc-nav-head svg { color: #2563eb; }
+.hc-search { width: 100%; border-radius: 0.8rem; border: 1px solid #d4e1f3; background: #f7faff; padding: 0.55rem 2rem 0.55rem 1.8rem; font-size: 0.78rem; outline: none; }
+.hc-search:focus { border-color: #2563eb; background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+.hc-roles { display: grid; gap: 0.3rem; margin-top: 0.7rem; }
+@media (max-width: 1023px) { .hc-roles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.hc-role { display: flex; width: 100%; align-items: center; gap: 0.6rem; border-radius: 0.85rem; padding: 0.5rem 0.6rem; color: #334155; transition: background 0.15s ease; }
+.hc-role:hover { background: #eef5ff; }
+.hc-role-icon { display: inline-flex; width: 2rem; height: 2rem; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 0.65rem; color: #1d4ed8; background: #eaf1fd; }
+.hc-role[aria-pressed="true"] { color: #fff; background: linear-gradient(120deg, #1d4ed8, #3b82f6); box-shadow: 0 10px 18px -12px rgba(29,78,216,0.9); }
+.hc-role[aria-pressed="true"] .hc-role-icon { color: #fff; background: rgba(255,255,255,0.2); }
+.hc-me { margin-right: 0.35rem; border-radius: 999px; padding: 0 0.35rem; font-size: 0.55rem; font-weight: 800; color: #0f766e; background: #ccfbf1; vertical-align: middle; }
+
+.hc-hero { display: flex; flex-wrap: wrap; align-items: center; gap: 0.9rem; border-radius: 1.3rem; padding: 1rem 1.2rem; color: #fff;
+  background: radial-gradient(360px 160px at 10% -40%, rgba(255,255,255,0.3), transparent 70%), linear-gradient(120deg, #1848b8 0%, #2563eb 60%, #3b82f6 100%);
+  box-shadow: 0 16px 30px -20px rgba(24,72,184,0.9); }
+.hc-hero-icon { display: inline-flex; width: 3.4rem; height: 3.4rem; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 1rem; background: rgba(255,255,255,0.18); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3); }
+.hc-hero h2 { font-size: 1.15rem; font-weight: 900; }
+.hc-hero p { font-size: 0.78rem; color: #dbeafe; }
+.hc-hero-btn { display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 0.8rem; padding: 0.55rem 1rem; font-size: 0.78rem; font-weight: 900; color: #1d4ed8; background: #fff; box-shadow: 0 6px 14px -8px rgba(0,0,0,0.4); }
+
+.hc-topic { border-radius: 1.2rem; padding: 1rem 1.1rem; background: rgba(255,255,255,0.96); box-shadow: 0 0 0 1px rgba(147,187,240,0.35), 0 12px 26px -22px rgba(11,42,91,0.6); border-right: 4px solid #3b82f6; }
+.hc-go { display: inline-flex; align-items: center; gap: 0.3rem; border-radius: 0.7rem; padding: 0.35rem 0.8rem; font-size: 0.72rem; font-weight: 900; color: #fff; background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.hc-flow { display: grid; gap: 0.6rem; margin-top: 0.9rem; }
+@media (min-width: 768px) { .hc-flow { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 1.4rem; } }
+.hc-flow-step { position: relative; border-radius: 0.95rem; padding: 0.7rem 0.75rem 0.75rem; background: linear-gradient(180deg, #f5f9ff, #eaf2fe); box-shadow: 0 0 0 1px #dbe7f8 inset; }
+.hc-flow-step p { margin-top: 0.35rem; font-size: 0.74rem; line-height: 1.7; color: #334155; }
+.hc-flow-num { display: inline-flex; width: 1.7rem; height: 1.7rem; align-items: center; justify-content: center; border-radius: 999px; font-size: 0.78rem; font-weight: 900; color: #fff; background: radial-gradient(circle at 30% 25%, #60a5fa, #1d4ed8 60%, #0b2a5b); box-shadow: 0 6px 10px -6px rgba(11,42,91,0.8); }
+.hc-flow-arrow { display: none; }
+@media (min-width: 768px) { .hc-flow-arrow { position: absolute; display: block; top: 50%; left: -1.2rem; width: 1rem; height: 1rem; transform: translateY(-50%); color: #3b82f6; } }
+.hc-chip { display: inline-flex; max-width: 100%; align-items: center; gap: 0.35rem; border-radius: 0.7rem; padding: 0.3rem 0.6rem; font-size: 0.7rem; font-weight: 700; color: #1e3a6b; background: #eef4fd; }
+.hc-chip-tip { color: #0f5132; background: #e6fbf4; }
+.hc-chip-note { color: #7c4a03; background: #fff7e6; }
+/* مسیر اینفوگراف همیشه در ارتفاع صفحه جا شود (بدون اسکرول در لپ‌تاپ) */
+.igs-stage { width: min(100%, calc((100vh - 23rem) * 1000 / 580)); max-width: none; min-width: 42rem; }
+.igs-title { font-size: 1.35rem; }
+.igs { padding-top: 0.8rem; padding-bottom: 0.4rem; }
+.igs-stage { width: min(100%, calc((100vh - 26rem) * 1000 / 580)); }
+.igs-icon { left: -1.9rem; top: -4.1rem; width: 3.8rem; height: 3.8rem; border-radius: 1.05rem; }
+.igs-icon svg { width: 1.9rem; height: 1.9rem; }
+.igs-num { left: -4.9rem; top: -3rem; width: 2.2rem; height: 2.2rem; font-size: 0.95rem; }
+.igs-pedestal { left: -3.2rem; width: 6.4rem; height: 1.8rem; top: -0.9rem; }
+.igs-label { top: 1.15rem; left: -8rem; width: 16rem; }
+.igs-label b { font-size: 0.95rem; }
+.igs-label small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.68rem; }
+@media (min-width: 768px) { .app-page-header .app-tabs { flex-wrap: nowrap; overflow-x: auto; } }
