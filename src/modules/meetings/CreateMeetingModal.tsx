@@ -38,10 +38,11 @@ export const CreateMeetingModal: React.FC = () => {
   // دستور جلسه که روی همان AgendaItem می‌نشینند.
   const [meetingAttachments, setMeetingAttachments] = useState<Attachment[]>([]);
 
-  // Sync dateJalali when modal opens with custom initial date
+  // هر بار بازشدن فرم، یک جلسه تازه می‌سازیم؛ حفظ داده فقط میان مراحل همین
+  // فرم است و تا وقتی سرویس پیش‌نویس واقعی نداریم، پس از بستن بازیابی نمی‌شود.
   useEffect(() => {
-    if (isCreateMeetingOpen && createMeetingInitialDate) {
-      setDateJalali(createMeetingInitialDate);
+    if (isCreateMeetingOpen) {
+      setDateJalali(createMeetingInitialDate || getCurrentJalaliDate());
       setTitle('');
       setLocation('');
       setOrganizerId('');
@@ -58,6 +59,8 @@ export const CreateMeetingModal: React.FC = () => {
       setNewAgendaAttachments([]);
       setProposalAgendaAttachments([]);
       setAgendaError(null);
+      setActiveStep(0);
+      setStepError(null);
     }
   }, [isCreateMeetingOpen, createMeetingInitialDate]);
 
@@ -97,6 +100,8 @@ export const CreateMeetingModal: React.FC = () => {
   // the toast renders behind this modal's own backdrop/z-index and was
   // never actually visible to the user when this validation failed.
   const [agendaError, setAgendaError] = useState<string | null>(null);
+  const [activeStep, setActiveStep] = useState(0);
+  const [stepError, setStepError] = useState<string | null>(null);
 
   if (!isCreateMeetingOpen) return null;
 
@@ -253,6 +258,24 @@ export const CreateMeetingModal: React.FC = () => {
     }
   };
 
+  const validateStep = (step: number) => {
+    if (step === 0) {
+      if (!title.trim()) return 'عنوان جلسه را وارد کنید.';
+      if (!dateJalali) return 'تاریخ جلسه را مشخص کنید.';
+      if (!location.trim()) return 'مکان یا شیوه برگزاری جلسه را وارد کنید.';
+      if (startTime >= endTime) return 'ساعت پایان باید بعد از ساعت شروع باشد.';
+    }
+    if (step === 1 && (!organizerId || !secretaryId)) return 'برگزارکننده و دبیر جلسه الزامی‌اند.';
+    return null;
+  };
+
+  const goToStep = (nextStep: number) => {
+    const error = validateStep(activeStep);
+    if (error) { setStepError(error); return; }
+    setStepError(null);
+    setActiveStep(nextStep);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-in fade-in">
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden">
@@ -277,7 +300,12 @@ export const CreateMeetingModal: React.FC = () => {
 
         {/* Modal Form Content */}
         <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-5 flex-1">
+          <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="مراحل ثبت جلسه">
+            {['مشخصات و زمان', 'اعضا و مدعوین', 'دستور جلسه و پیوست‌ها', 'بازبینی و ثبت'].map((label, index) => <li key={label} className={`rounded-xl px-2 py-2 text-center text-[10px] font-bold ${activeStep === index ? 'bg-teal-800 text-white' : activeStep > index ? 'bg-teal-50 text-teal-800' : 'bg-slate-100 text-slate-500'}`}>{index + 1}. {label}</li>)}
+          </ol>
+          {stepError && <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">{stepError}</div>}
           {/* Basic Info */}
+          {activeStep === 0 && (
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
               <span className="w-2 h-2 rounded-full bg-teal-600"></span>
@@ -370,8 +398,10 @@ export const CreateMeetingModal: React.FC = () => {
               </div>
             </div>
           </div>
+          )}
 
           {/* Members & Invitees Multi-select with Search and Chips */}
+          {activeStep === 1 && (
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-slate-800 flex items-center justify-between border-b border-slate-100 pb-2">
               <span className="flex items-center gap-2">
@@ -399,8 +429,10 @@ export const CreateMeetingModal: React.FC = () => {
 
             <SearchableUserMultiSelect users={availableUsers} selectedIds={selectedMemberIds} onChange={setSelectedMemberIds} label="اعضا و مدعوین" maxHeightClassName="max-h-48" />
           </div>
+          )}
 
           {/* Agenda Items */}
+          {activeStep === 2 && (
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
               <span className="w-2 h-2 rounded-full bg-teal-600"></span>
@@ -576,8 +608,23 @@ export const CreateMeetingModal: React.FC = () => {
               ))}
             </div>
           </div>
+          )}
+
+          {activeStep === 3 && (
+            <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <h4 className="text-sm font-extrabold text-slate-900">بازبینی پیش از ثبت</h4>
+              <div className="grid grid-cols-1 gap-3 text-xs text-slate-600 sm:grid-cols-2">
+                <div><span className="font-bold text-slate-800">جلسه:</span> {title}</div><div><span className="font-bold text-slate-800">زمان:</span> {dateJalali}، {startTime} تا {endTime}</div>
+                <div><span className="font-bold text-slate-800">مکان:</span> {location}</div><div><span className="font-bold text-slate-800">برگزارکننده:</span> {availableUsers.find((u) => u.id === organizerId)?.fullName || '—'}</div>
+                <div><span className="font-bold text-slate-800">دبیر:</span> {availableUsers.find((u) => u.id === secretaryId)?.fullName || '—'}</div><div><span className="font-bold text-slate-800">اعضا:</span> {selectedMemberIds.length} نفر</div>
+              </div>
+              <div className="rounded-xl bg-white p-3 text-xs text-slate-600"><span className="font-bold text-slate-800">دستور جلسه ({agendas.length} بند): </span>{agendas.length ? agendas.map((agenda) => agenda.title).join('، ') : 'هنوز بندی ثبت نشده است.'}</div>
+              <p className="text-[11px] leading-5 text-slate-500">پیش‌نویس این فرم در این نسخه ذخیره نمی‌شود؛ با بستن پنجره اطلاعات واردشده از بین می‌رود.</p>
+            </div>
+          )}
 
           {/* Description */}
+          {activeStep === 2 && (
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">توضیحات و یادداشت تکمیلی جلسه</label>
@@ -604,23 +651,18 @@ export const CreateMeetingModal: React.FC = () => {
               />
             </div>
           </div>
+          )}
 
           {/* Footer Submit buttons */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0">
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2.5 shrink-0">
             <button
               type="button"
-              onClick={() => setIsCreateMeetingOpen(false)}
+              onClick={() => activeStep > 0 ? setActiveStep(activeStep - 1) : setIsCreateMeetingOpen(false)}
               className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold cursor-pointer"
             >
-              انصراف
+              {activeStep > 0 ? 'مرحله قبل' : 'انصراف'}
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-5 py-2.5 rounded-xl bg-teal-800 hover:bg-teal-700 text-white text-xs font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer"
-            >
-              {isSubmitting ? 'در حال ثبت جلسه...' : 'تایید و ایجاد جلسه'}
-            </button>
+            {activeStep < 3 ? <button type="button" onClick={(event) => { event.preventDefault(); goToStep(activeStep + 1); }} className="px-5 py-2.5 rounded-xl bg-teal-800 hover:bg-teal-700 text-white text-xs font-bold shadow-md">مرحله بعد</button> : <button type="submit" disabled={isSubmitting} className="px-5 py-2.5 rounded-xl bg-teal-800 hover:bg-teal-700 text-white text-xs font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer">{isSubmitting ? 'در حال ثبت جلسه...' : 'تایید و ایجاد جلسه'}</button>}
           </div>
         </form>
       </div>

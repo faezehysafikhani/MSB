@@ -33,6 +33,12 @@ const STATUS_META: Record<ProposalStatus, { label: string; bg: string }> = {
 
 const DEFAULT_STATUS_META = { label: 'نامشخص', bg: 'bg-slate-50 text-slate-600 border-slate-200' };
 const getStatusMeta = (status: ProposalStatus) => STATUS_META[status] || DEFAULT_STATUS_META;
+const getNextAction = (status: ProposalStatus): string => ({
+  PENDING_CEO_REVIEW: 'در انتظار تصمیم مدیرعامل', RESUBMITTED: 'در انتظار بررسی مجدد مدیرعامل', RETURNED_FOR_REVISION: 'اصلاح و ارسال مجدد توسط پیشنهاددهنده',
+  APPROVED: 'اقدام مسئول دفتر: ارسال برای تأیید نهایی دبیر جلسه', PENDING_SECRETARY_CONFIRMATION: 'اقدام دبیر جلسه: تأیید نهایی یا بازگشت با علت',
+  RETURNED_BY_SECRETARY: 'اقدام مسئول دفتر: انتقال علت برگشت به پیشنهاددهنده', CONFIRMED_FOR_MEETING: 'اقدام مسئول دفتر: افزودن به دستور جلسه',
+  CONVERTED_TO_AGENDA: 'به دستور جلسه افزوده شده است', REJECTED: 'فرآیند پایان یافته', NO_BOARD_REQUIRED: 'در صورت نیاز، بازیابی توسط مسئول دفتر', CEO_ORDER_ISSUED: 'پیگیری دستور مستقیم مدیرعامل', PENDING_OFFICE_REVIEW: 'در انتظار بررسی مسئول دفتر',
+}[status] || 'وضعیت اقدام مشخص نیست');
 
 const OFFICE_FILTERS: { id: OfficeStatusFilter; label: string }[] = [
   { id: 'APPROVED', label: 'تایید جلسات تایید نشده' },
@@ -345,12 +351,13 @@ export const ProposalsView: React.FC = () => {
   // than a separate Inbox component.
   const secretaryQueue = proposals.filter((p) => p.status === 'PENDING_SECRETARY_CONFIRMATION');
 
-  const visibleTabs: { id: ProposalTab; label: string; count: number; icon: React.ElementType }[] = [
-    ...(isMeetingSecretaryApprover ? [{ id: 'SECRETARY_APPROVAL' as ProposalTab, label: 'دبیر جلسه', count: secretaryQueue.length, icon: ClipboardCheck }] : []),
-    ...(isOfficeManager ? [{ id: 'OFFICE' as ProposalTab, label: 'مسئول دفتر', count: proposals.filter((p) => p.status === 'APPROVED' || p.status === 'RETURNED_BY_SECRETARY').length, icon: Lightbulb }] : []),
-    ...(isCeo ? [{ id: 'CEO' as ProposalTab, label: 'کارتابل مدیرعامل', count: ceoQueue.length, icon: Inbox }] : []),
-    ...(isRegularUser ? [{ id: 'MINE' as ProposalTab, label: 'پیشنهادها و دستورات من', count: myProposals.length, icon: Lightbulb }] : []),
+  const visibleTabs: { id: ProposalTab; label: string; description: string; count: number; icon: React.ElementType }[] = [
+    ...(isMeetingSecretaryApprover ? [{ id: 'SECRETARY_APPROVAL' as ProposalTab, label: 'تأیید نهایی دبیر جلسه', description: 'موارد تأییدشده را برای ورود به دستور جلسه نهایی کنید یا با علت برگردانید.', count: secretaryQueue.length, icon: ClipboardCheck }] : []),
+    ...(isOfficeManager ? [{ id: 'OFFICE' as ProposalTab, label: 'پیگیری مسئول دفتر', description: 'موارد تأییدشده، برگشتی و آماده طرح در جلسه را سازمان‌دهی کنید.', count: proposals.filter((p) => p.status === 'APPROVED' || p.status === 'RETURNED_BY_SECRETARY').length, icon: Lightbulb }] : []),
+    ...(isCeo ? [{ id: 'CEO' as ProposalTab, label: 'تصمیم مدیرعامل', description: 'پیشنهادهای منتظر تصمیم را تأیید، رد یا برای اصلاح بازگردانید.', count: ceoQueue.length, icon: Inbox }] : []),
+    ...(isRegularUser ? [{ id: 'MINE' as ProposalTab, label: 'پیشنهادهای من', description: 'وضعیت پیشنهادهای خود و اقدام بعدی لازم را دنبال کنید.', count: myProposals.length, icon: Lightbulb }] : []),
   ];
+  const activeTabInfo = visibleTabs.find((item) => item.id === activeTab);
 
   return (
     <div className="space-y-5 pb-12">
@@ -403,6 +410,7 @@ export const ProposalsView: React.FC = () => {
             ))}
           </div>
         )}
+        {activeTabInfo && <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] leading-5 text-slate-600"><span className="font-bold text-slate-800">{activeTabInfo.label}: </span>{activeTabInfo.description}</div>}
       </div>
 
       {activeTab === 'OFFICE' && isOfficeManager && (
@@ -441,6 +449,7 @@ export const ProposalsView: React.FC = () => {
                       <div className="font-bold text-slate-800">{p.title}</div>
                       <div className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{p.description}</div>
                       <div className="text-[10px] text-slate-500 mt-0.5">پیشنهاددهنده: {p.proposerName} — {p.proposerDepartmentName}</div>
+                      <div className="text-[10px] text-slate-600 mt-0.5"><span className="font-bold">اقدام بعدی:</span> {getNextAction(p.status)}</div>
                       {p.assignedMeetingTitle && <div className="text-[10px] text-emerald-700 mt-0.5">جلسه: {p.assignedMeetingTitle}</div>}
                       {p.source === 'EXCEL_IMPORT' && (
                         <div className="text-[10px] text-teal-700 mt-0.5">منبع ثبت: ورود از Excel{p.sourceLetterNumber ? ` — نامه ${toPersianDigits(p.sourceLetterNumber)}` : ''}</div>
@@ -639,6 +648,7 @@ export const ProposalsView: React.FC = () => {
                   </span>
                 )}
               </div>
+              <div className="rounded-lg border border-teal-100 bg-teal-50 px-2.5 py-2 text-[11px] text-teal-900"><span className="font-bold">اقدام بعدی: </span>{getNextAction(p.status)}</div>
               <input
                 type="text"
                 value={decisionNotes[p.id] || ''}
@@ -740,6 +750,7 @@ export const ProposalsView: React.FC = () => {
               </div>
               <div className="text-[10px] font-bold text-teal-700">{p.proposalNumber}</div>
               <p className="text-xs text-slate-600">{p.description}</p>
+              <p className="text-[11px] text-slate-600"><strong>اقدام بعدی:</strong> {getNextAction(p.status)}</p>
               <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-slate-500">
                 <span>پیشنهاددهنده: {p.proposerName} — {p.proposerDepartmentName}</span>
                 <span>ارائه‌دهنده: {p.confirmedPresenterName || p.presenterName || '—'}</span>

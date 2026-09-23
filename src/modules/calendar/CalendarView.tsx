@@ -51,17 +51,20 @@ export const CalendarView: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState<number>(today.year);
   const [selectedMonthIndex, setSelectedMonthIndex] = useState<number>(today.month - 1);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [calendarScope, setCalendarScope] = useState<'MINE' | 'DEPARTMENT' | 'PERMITTED'>('MINE');
+  const canViewAllMeetings = hasOrgWideMeetingAccess(currentUser.role);
 
   useEffect(() => {
     meetingService
       .getMeetings({
         pageSize: 500,
-        participantUserId: hasOrgWideMeetingAccess(currentUser.role) ? undefined : currentUser.id,
+        participantUserId: calendarScope === 'MINE' || !canViewAllMeetings ? currentUser.id : undefined,
+        departmentId: calendarScope === 'DEPARTMENT' ? currentUser.departmentId : undefined,
       })
       .then((res) => {
         if (res.isSuccess) setMeetings(res.data.items);
       });
-  }, [currentUser.id, refreshTrigger]);
+  }, [currentUser.id, currentUser.departmentId, calendarScope, canViewAllMeetings, refreshTrigger]);
 
   const currentMonthInfo = PERSIAN_MONTHS[selectedMonthIndex] || PERSIAN_MONTHS[today.month - 1];
   const daysCount = currentMonthInfo.days;
@@ -125,8 +128,8 @@ export const CalendarView: React.FC = () => {
             <CalendarIcon className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">تقویم جامع جلسات و سالن‌ها</h1>
-            <p className="text-[11px] text-slate-400 dark:text-slate-400 font-medium">برای ثبت جلسه جدید، کافی است روی روز مورد نظر کلیک کنید</p>
+            <h1 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">تقویم جلسات سازمانی</h1>
+            <p className="text-[11px] text-slate-400 dark:text-slate-400 font-medium">{canCreateMeeting ? 'برای ثبت جلسه جدید، روی روز مورد نظر کلیک کنید.' : 'فقط جلسه‌های مجاز شما نمایش داده می‌شوند.'}</p>
           </div>
         </div>
 
@@ -201,6 +204,11 @@ export const CalendarView: React.FC = () => {
             </button>
           )}
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 px-1 text-[11px] font-bold">
+        {[['MINE', 'جلسات من'], ['DEPARTMENT', 'واحد من'], ...(canViewAllMeetings ? [['PERMITTED', 'همه جلسات مجاز']] : [])].map(([value, label]) => <button key={value} onClick={() => setCalendarScope(value as typeof calendarScope)} className={`rounded-full border px-3 py-1.5 ${calendarScope === value ? 'border-teal-700 bg-teal-700 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>{label}</button>)}
+        {calendarScope === 'DEPARTMENT' && !canViewAllMeetings && <span className="self-center text-slate-500">نمای واحد برای نقش شما به جلسه‌های مرتبط با خودتان محدود می‌شود.</span>}
       </div>
 
       {/* Calendar Grid Container (Fixed Fit - No Scroll) */}

@@ -28,6 +28,7 @@ export const MeetingListView: React.FC = () => {
   
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [allMeetingsCount, setAllMeetingsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -53,6 +54,8 @@ export const MeetingListView: React.FC = () => {
         setMeetings(res.data.items);
         setTotalCount(res.data.totalCount);
       }
+      const allRes = await meetingService.getMeetings({ pageSize: 1, participantUserId: hasOrgWideMeetingAccess(currentUser.role) ? undefined : currentUser.id });
+      if (allRes.isSuccess) setAllMeetingsCount(allRes.data.totalCount);
     } catch (e) {
       console.error(e);
     } finally {
@@ -150,13 +153,17 @@ export const MeetingListView: React.FC = () => {
         </div>
       </div>}
 
+      <div className="flex flex-wrap gap-2">
+        {[['ALL', 'همه جلسات'], ['SCHEDULED', 'برنامه‌ریزی‌شده'], ['HELD', 'برگزارشده'], ['CANCELLED', 'لغوشده']].map(([value, label]) => <button key={value} onClick={() => setStatusFilter(value)} className={`rounded-full border px-3 py-1.5 text-[11px] font-bold ${statusFilter === value ? 'border-blue-700 bg-blue-700 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>{label}</button>)}
+      </div>
+
       {/* Meetings List Cards */}
       {viewMode === 'cards' ? <div className="space-y-3">
         {meetings.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center border border-slate-100 shadow-xs">
             <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <h3 className="text-sm font-bold text-slate-700">هیچ جلسه‌ای یافت نشد</h3>
-            <p className="text-xs text-slate-400 mt-1">با معیارهای جستجوی فعلی موردی وجود ندارد.</p>
+            <h3 className="text-sm font-bold text-slate-700">{allMeetingsCount === 0 ? 'هنوز جلسه‌ای ثبت نشده است' : 'نتیجه‌ای برای فیلتر پیدا نشد'}</h3>
+            <p className="text-xs text-slate-400 mt-1">{allMeetingsCount === 0 ? (hasPermission('CREATE_MEETING') ? 'برای شروع، اولین جلسه را ایجاد کنید.' : 'پس از ثبت جلسه مرتبط با شما، آن را در اینجا می‌بینید.') : 'فیلتر یا عبارت جستجو را تغییر دهید.'}</p>
           </div>
         ) : (
           meetings.map((meeting) => {
@@ -216,6 +223,11 @@ export const MeetingListView: React.FC = () => {
 
                   <div className="flex items-center gap-1.5 font-medium">
                     <Users className="w-4 h-4 text-slate-400" />
+                    <span>برگزارکننده: {meeting.organizerName}</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <Users className="w-4 h-4 text-slate-400" />
                     <span>{toPersianDigits(meeting.members.length)} نفر مدعو</span>
                   </div>
 
@@ -231,11 +243,11 @@ export const MeetingListView: React.FC = () => {
       </div> : (
         <div className="app-panel bg-white rounded-2xl border border-slate-100 shadow-xs overflow-x-auto">
           <table className="w-full min-w-[850px] text-xs text-right">
-            <thead className="bg-slate-100 text-slate-600"><tr><th className="p-3">شماره</th><th className="p-3">عنوان جلسه</th><th className="p-3">تاریخ و ساعت</th><th className="p-3">مکان</th><th className="p-3">مصوبات</th><th className="p-3">وضعیت</th></tr></thead>
+            <thead className="bg-slate-100 text-slate-600"><tr><th className="p-3">شماره</th><th className="p-3">عنوان و نوع</th><th className="p-3">تاریخ و ساعت</th><th className="p-3">برگزارکننده</th><th className="p-3">مکان</th><th className="p-3">مصوبات</th><th className="p-3">وضعیت</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
-              {meetings.map((meeting) => {
+              {meetings.length === 0 ? <tr><td colSpan={7} className="p-10 text-center text-slate-500">{allMeetingsCount === 0 ? 'هنوز جلسه‌ای ثبت نشده است.' : 'نتیجه‌ای برای فیلتر پیدا نشد.'}</td></tr> : meetings.map((meeting) => {
                 const statusMeta = getMeetingStatusMeta(meeting.status);
-                return <tr key={meeting.id} onClick={() => navigateTo('meeting-details', { meetingId: meeting.id })} className="hover:bg-slate-50 cursor-pointer transition-colors"><td className="p-3 font-bold text-blue-700">{meeting.meetingNumber}</td><td className="p-3 font-bold text-slate-800">{meeting.title}</td><td className="p-3 text-slate-600">{toPersianDigits(meeting.dateJalali)}، {toPersianDigits(meeting.startTime)}</td><td className="p-3 text-slate-600">{meeting.location}</td><td className="p-3">{toPersianDigits(meeting.resolutionsCount)}</td><td className="p-3"><span className={`px-2 py-1 rounded-full border font-bold ${statusMeta.bg}`}>{statusMeta.label}</span></td></tr>;
+                return <tr key={meeting.id} onClick={() => navigateTo('meeting-details', { meetingId: meeting.id })} className="hover:bg-slate-50 cursor-pointer transition-colors"><td className="p-3 font-bold text-blue-700">{meeting.meetingNumber}</td><td className="p-3"><div className="font-bold text-slate-800">{meeting.title}</div><div className="mt-1 text-[10px] text-slate-500">{getMeetingTypeLabel(meeting.type)}</div></td><td className="p-3 text-slate-600">{toPersianDigits(meeting.dateJalali)}، {toPersianDigits(meeting.startTime)}</td><td className="p-3 text-slate-600">{meeting.organizerName}</td><td className="p-3 text-slate-600">{meeting.location}</td><td className="p-3">{toPersianDigits(meeting.resolutionsCount)}</td><td className="p-3"><span className={`px-2 py-1 rounded-full border font-bold ${statusMeta.bg}`}>{statusMeta.label}</span></td></tr>;
               })}
             </tbody>
           </table>

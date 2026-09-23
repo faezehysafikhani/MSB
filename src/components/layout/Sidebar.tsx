@@ -94,11 +94,13 @@ export const Sidebar: React.FC = () => {
       id: 'meetings_resolutions',
       title: 'جلسات و مصوبات',
       items: [
-        ...(currentUser.role === 'ADMIN' || currentUser.role === 'CEO' || currentUser.role === 'SECRETARY' || hasPermission('CREATE_RESOLUTION') ? [{
+        // ثبت پیشنهاد برای کاربر عادی تنها مسیر عملیاتی مجاز اوست؛ کنترل
+        // اقدام‌های بررسی/تبدیل داخل خود صفحه بر اساس نقش انجام می‌شود.
+        ...([{
           route: 'proposals' as AppRoute,
           title: 'مصوبات پیشنهادی',
           icon: Lightbulb,
-        }] : []),
+        }]),
         {
           route: 'meetings' as AppRoute,
           title: 'مدیریت جلسات',
