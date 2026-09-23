@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Users2, PieChart, BookOpen, Network, PenTool, UserCheck } from 'lucide-react';
+import { Settings, Users2, PieChart, BookOpen, Network, PenTool, UserCheck, Database } from 'lucide-react';
 import { GeneralSettingsTab } from './GeneralSettingsTab';
 import { UserManagementTab } from './UserManagementTab';
 import { LdapSettingsTab } from './LdapSettingsTab';
@@ -8,11 +8,12 @@ import { SignatureDelegationTab } from './SignatureDelegationTab';
 import { InfographicsView } from '../infographics/InfographicsView';
 import { UserGuideView } from '../guide/UserGuideView';
 import { useApp } from '../../context/AppContext';
+import { hasDemoData, loadDemoData, resetDemoData } from '../../services/demoDataService';
 
-type SettingsMainTab = 'GENERAL' | 'USERS' | 'SIGNATURE_WORKFLOW' | 'LDAP' | 'DELEGATION' | 'INFOGRAPHICS' | 'GUIDE';
+type SettingsMainTab = 'GENERAL' | 'USERS' | 'SIGNATURE_WORKFLOW' | 'LDAP' | 'DELEGATION' | 'INFOGRAPHICS' | 'GUIDE' | 'DEMO';
 
 export const SettingsView: React.FC = () => {
-  const { currentUser, hasPermission } = useApp();
+  const { currentUser, hasPermission, showToast } = useApp();
 
   // اینفوگراف و راهنمای کاربری از منوی اصلی به اینجا منتقل شده‌اند. آنها
   // مثل قبل برای همه کاربران در دسترس‌اند؛ تنظیمات عمومی و مدیریت کاربران
@@ -29,6 +30,7 @@ export const SettingsView: React.FC = () => {
           // تنظیمات گردش امضا مثل سایر تب‌های مدیریتی، همان گیت فعلی را دارد.
           { id: 'SIGNATURE_WORKFLOW' as SettingsMainTab, label: 'تنظیمات گردش امضا', icon: PenTool },
           { id: 'LDAP' as SettingsMainTab, label: 'LDAP', icon: Network },
+          { id: 'DEMO' as SettingsMainTab, label: 'داده نمایشی', icon: Database },
         ]
       : []),
     // «جانشین امضا» تنظیم شخصی هر کاربر است و برای همه در دسترس است.
@@ -76,6 +78,7 @@ export const SettingsView: React.FC = () => {
       {activeTab === 'USERS' && <UserManagementTab />}
       {activeTab === 'SIGNATURE_WORKFLOW' && <SignatureWorkflowTab />}
       {activeTab === 'LDAP' && <LdapSettingsTab />}
+      {activeTab === 'DEMO' && <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4"><div><h2 className="text-sm font-extrabold text-slate-800">داده نمایشی دمو</h2><p className="mt-1 max-w-2xl text-xs leading-6 text-slate-500">داده نمایشی با برچسب «اطلاعات نمایشی» در همان localStorage سامانه ذخیره می‌شود. بارگذاری، داده دستی را حذف نمی‌کند و فقط رکوردهای نمایشی هم‌نام را بازسازی می‌کند.</p></div><div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">وضعیت فعلی: <strong>{hasDemoData() ? 'داده نمایشی بارگذاری شده است' : 'داده نمایشی بارگذاری نشده است'}</strong></div><div className="flex flex-wrap gap-2"><button onClick={() => { if (window.confirm('داده نمایشی شامل پیشنهاد، جلسه، مصوبه، ابلاغ، ارجاع، گزارش پیشرفت و صحه‌گذاری بارگذاری می‌شود. داده‌های دستی حذف نمی‌شوند. ادامه می‌دهید؟')) { loadDemoData(); showToast('داده نمایشی', 'داده نمایشی بارگذاری شد؛ صفحه برای خواندن مجدد سرویس‌ها تازه می‌شود.', 'success'); window.setTimeout(() => window.location.reload(), 450); } }} className="rounded-xl bg-teal-800 px-4 py-2 text-xs font-bold text-white">بارگذاری داده نمایشی</button><button onClick={() => { if (window.confirm('فقط رکوردهایی که شناسه «demo-» و برچسب اطلاعات نمایشی دارند حذف می‌شوند؛ داده‌های دستی باقی می‌مانند. ادامه می‌دهید؟')) { resetDemoData(); showToast('بازنشانی داده نمایشی', 'رکوردهای نمایشی حذف شدند؛ صفحه تازه می‌شود.', 'success'); window.setTimeout(() => window.location.reload(), 450); } }} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-rose-700">بازنشانی داده نمایشی</button></div></div>}
       {activeTab === 'DELEGATION' && <SignatureDelegationTab />}
       {activeTab === 'INFOGRAPHICS' && <InfographicsView />}
       {activeTab === 'GUIDE' && <UserGuideView />}

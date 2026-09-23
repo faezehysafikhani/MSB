@@ -5,7 +5,6 @@ import { loadLocalValue, saveLocalValue } from '../../services/localStore';
 import { toPersianDigits } from '../../utils/formatters';
 import { smsService, SmsSettings } from '../../services/smsService';
 import { getOrganizationProfile, OrganizationProfile, saveOrganizationProfile } from '../../services/organizationProfile';
-import { resetOperationalData } from '../../services/dataReset';
 
 type GeneralSubTab = 'ORG' | 'SMS' | 'CALENDAR' | 'THEME';
 
@@ -50,12 +49,6 @@ export const GeneralSettingsTab: React.FC = () => {
     const reader = new FileReader();
     reader.onload = () => setOrgInfo((previous) => ({ ...previous, logoUrl: String(reader.result) }));
     reader.readAsDataURL(file);
-  };
-
-  const handleDemoReset = () => {
-    const cleared = resetOperationalData();
-    showToast('بازنشانی محیط نمایشی', cleared.length ? `${cleared.length} مجموعه داده عملیاتی پاک شد.` : 'داده عملیاتی ذخیره‌شده‌ای وجود نداشت.', 'info');
-    window.setTimeout(() => window.location.reload(), 500);
   };
 
   const handleSaveSmsSettings = async () => {
@@ -276,14 +269,6 @@ export const GeneralSettingsTab: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {subTab === 'ORG' && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-          <h3 className="text-xs font-extrabold text-amber-900">محیط نمایشی و داده‌های نمونه</h3>
-          <p className="mt-1 text-[11px] leading-5 text-amber-800">این نسخه داده‌ها را فقط در localStorage مرورگر نگه می‌دارد. بازنشانی، داده‌های عملیاتی مانند جلسه، مصوبه و وظیفه را حذف می‌کند؛ کاربران و تنظیمات سازمان حفظ می‌شوند.</p>
-          <button onClick={handleDemoReset} className="mt-3 rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100">بازنشانی داده‌های نمایشی</button>
         </div>
       )}
 

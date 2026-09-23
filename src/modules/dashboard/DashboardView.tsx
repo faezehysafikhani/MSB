@@ -32,7 +32,7 @@ import { DashboardKPIs, Meeting, Resolution, Task, ApprovalCartableItem, Departm
 import { toPersianDigits, getResolutionExecutionMeta, getPriorityMeta } from '../../utils/formatters';
 import { formatJalaliFallback } from '../../utils/date';
 import { mockDepartments } from '../../mock/data';
-import { hasOperationalData, OnboardingChecklist } from './OnboardingChecklist';
+import { hasOperationalData } from './OnboardingChecklist';
 import { RoleActionPanel } from './RoleActionPanel';
 
 const CHART_PALETTE = ['#10b981', '#3b82f6', '#f59e0b', '#a855f7', '#ec4899', '#0ea5e9', '#ef4444'];
@@ -133,14 +133,12 @@ export const DashboardView: React.FC = () => {
   });
 
   if (isEmptyWorkspace) {
-    return currentUser.role === 'ADMIN'
-      ? <div className="pb-12"><OnboardingChecklist /></div>
-      : <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-xs"><Layers className="mx-auto h-10 w-10 text-slate-300" /><h1 className="mt-4 text-sm font-extrabold text-slate-800">هنوز داده‌ای برای نمایش نیست</h1><p className="mx-auto mt-2 max-w-md text-xs leading-6 text-slate-500">پس از ثبت و ارجاع اولین جلسه یا مصوبه، کارتابل و اقدام‌های مرتبط با نقش شما در اینجا نمایش داده می‌شود.</p></div>;
+    const canCreateMeeting = hasPermission('CREATE_MEETING');
+    return <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xs sm:p-10"><Layers className="mx-auto h-10 w-10 text-slate-300" /><h1 className="mt-4 text-base font-extrabold text-slate-800">خوش آمدید</h1><p className="mx-auto mt-2 max-w-md text-xs leading-6 text-slate-500">{canCreateMeeting ? 'برای شروع، یک جلسه ثبت کنید یا از تنظیمات داده نمایشی را بارگذاری کنید.' : 'پس از ثبت اولین پیشنهاد یا ارجاع موردی به شما، اقدام بعدی در اینجا نمایش داده می‌شود.'}</p><div className="mt-5 flex flex-wrap justify-center gap-2">{canCreateMeeting ? <button onClick={() => setIsCreateMeetingOpen(true)} className="rounded-xl bg-teal-800 px-4 py-2 text-xs font-bold text-white">ثبت جلسه</button> : <button onClick={() => navigateTo('proposals')} className="rounded-xl bg-teal-800 px-4 py-2 text-xs font-bold text-white">ثبت پیشنهاد</button>}<button onClick={() => navigateTo('calendar')} className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700">تقویم جلسات</button></div></div>;
   }
 
   return (
     <div className="space-y-6 pb-12">
-      {currentUser.role === 'ADMIN' && isEmptyWorkspace && <OnboardingChecklist />}
       {/* Top Header Bar with Filter and PDF Export */}
       <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-xs border border-slate-100 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
