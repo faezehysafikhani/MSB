@@ -3,8 +3,10 @@ import { useApp } from '../../context/AppContext';
 import { ShieldCheck, UserCheck, CheckCircle2, Lock, ArrowLeft, X, User, KeyRound, Sparkles } from 'lucide-react';
 import { UserRole } from '../../types';
 import { OrganizationLogo } from '../../components/common/OrganizationLogo';
+import { useOrganizationProfile } from '../../services/organizationProfile';
 
 export const LoginModal: React.FC = () => {
+  const organization = useOrganizationProfile();
   const { isLoginModalOpen, setIsLoginModalOpen, availableUsers, login, showToast } = useApp();
   
   const [activeTab, setActiveTab] = useState<'QUICK_ROLE' | 'CREDENTIALS'>('QUICK_ROLE');
@@ -62,10 +64,10 @@ export const LoginModal: React.FC = () => {
             <X className="w-5 h-5" />
           </button>
           <div className="flex justify-center mb-2">
-            <OrganizationLogo size={44} />
+            <OrganizationLogo size={44} src={organization.logoUrl} className="rounded-xl" />
           </div>
           <div className="flex items-center justify-center gap-1.5 mb-0.5">
-            <span className="text-sm font-black text-[#ff5260]">سامانه مدیریت جلسات و مصوبات</span>
+            <span className="text-sm font-black text-[#ff5260]">{organization.name || organization.systemTitle}</span>
           </div>
           <h2 className="text-base font-extrabold text-white">ورود و مدیریت نشست کاربری</h2>
           <p className="text-xs text-teal-200 mt-0.5">سامانه جامع جلسات، پیگیری مصوبات و صحه‌گذاری</p>

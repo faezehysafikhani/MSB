@@ -32,6 +32,7 @@ import { DashboardKPIs, Meeting, Resolution, Task, ApprovalCartableItem, Departm
 import { toPersianDigits, getResolutionExecutionMeta, getPriorityMeta } from '../../utils/formatters';
 import { formatJalaliFallback } from '../../utils/date';
 import { mockDepartments } from '../../mock/data';
+import { hasOperationalData, OnboardingChecklist } from './OnboardingChecklist';
 
 const CHART_PALETTE = ['#10b981', '#3b82f6', '#f59e0b', '#a855f7', '#ec4899', '#0ea5e9', '#ef4444'];
 
@@ -62,6 +63,7 @@ export const DashboardView: React.FC = () => {
   const [pendingApprovals, setPendingApprovals] = useState<ApprovalCartableItem[]>([]);
   const [departmentPerf, setDepartmentPerf] = useState<DepartmentPerformance[]>([]);
   const [loading, setLoading] = useState(true);
+  const isEmptyWorkspace = !hasOperationalData();
 
   // Chart view toggles (Pie vs Bar) matching screenshot
   const [chart1Mode, setChart1Mode] = useState<'donut' | 'bar'>('donut');
@@ -130,6 +132,7 @@ export const DashboardView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
+      {currentUser.role === 'ADMIN' && isEmptyWorkspace && <OnboardingChecklist />}
       {/* Top Header Bar with Filter and PDF Export */}
       <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-xs border border-slate-100 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">

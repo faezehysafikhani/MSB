@@ -4,28 +4,11 @@ import { useApp } from '../../context/AppContext';
 import { loadLocalValue, saveLocalValue } from '../../services/localStore';
 import { toPersianDigits } from '../../utils/formatters';
 import { smsService, SmsSettings } from '../../services/smsService';
+import { getOrganizationProfile, OrganizationProfile, saveOrganizationProfile } from '../../services/organizationProfile';
+import { resetOperationalData } from '../../services/dataReset';
 
 type GeneralSubTab = 'ORG' | 'SMS' | 'CALENDAR' | 'THEME';
 
-interface OrgInfo {
-  name: string;
-  phone: string;
-  email: string;
-  website: string;
-  nationalId: string;
-  economicCode: string;
-  address: string;
-}
-
-const DEFAULT_ORG_INFO: OrgInfo = {
-  name: 'سازمان من',
-  phone: '',
-  email: '',
-  website: '',
-  nationalId: '',
-  economicCode: '',
-  address: '',
-};
 
 interface CalendarEntry {
   id: string;
@@ -44,7 +27,7 @@ export const GeneralSettingsTab: React.FC = () => {
   const { showToast, appTheme, setAppTheme } = useApp();
   const [subTab, setSubTab] = useState<GeneralSubTab>('ORG');
 
-  const [orgInfo, setOrgInfo] = useState<OrgInfo>(() => loadLocalValue('orgInfo', DEFAULT_ORG_INFO));
+  const [orgInfo, setOrgInfo] = useState<OrganizationProfile>(getOrganizationProfile);
   const [smsSettings, setSmsSettings] = useState<SmsSettings>(() => smsService.getSettings());
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [testPhone, setTestPhone] = useState('');
@@ -55,8 +38,24 @@ export const GeneralSettingsTab: React.FC = () => {
   const [isCalendarFormOpen, setIsCalendarFormOpen] = useState(false);
 
   const handleSaveOrgInfo = () => {
-    saveLocalValue('orgInfo', orgInfo);
+    saveOrganizationProfile(orgInfo);
     showToast('تنظیمات سازمان', 'اطلاعات سازمان با موفقیت ذخیره شد.', 'success');
+  };
+
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { showToast('فایل نامعتبر', 'فقط فایل تصویری قابل استفاده است.', 'error'); return; }
+    if (file.size > 1_500_000) { showToast('حجم زیاد', 'حجم لوگو باید حداکثر ۱.۵ مگابایت باشد.', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = () => setOrgInfo((previous) => ({ ...previous, logoUrl: String(reader.result) }));
+    reader.readAsDataURL(file);
+  };
+
+  const handleDemoReset = () => {
+    const cleared = resetOperationalData();
+    showToast('بازنشانی محیط نمایشی', cleared.length ? `${cleared.length} مجموعه داده عملیاتی پاک شد.` : 'داده عملیاتی ذخیره‌شده‌ای وجود نداشت.', 'info');
+    window.setTimeout(() => window.location.reload(), 500);
   };
 
   const handleSaveSmsSettings = async () => {
@@ -144,6 +143,17 @@ export const GeneralSettingsTab: React.FC = () => {
               <input type="text" value={orgInfo.name} onChange={(e) => setOrgInfo({ ...orgInfo, name: e.target.value })} className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none" />
             </div>
             <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">عنوان سامانه</label>
+              <input type="text" value={orgInfo.systemTitle} onChange={(e) => setOrgInfo({ ...orgInfo, systemTitle: e.target.value })} className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">نشان سازمان</label>
+              <div className="flex items-center gap-3">
+                <img src={orgInfo.logoUrl} alt="پیش‌نمایش نشان سازمان" className="h-10 w-10 rounded-lg border border-slate-200 object-contain" />
+                <input type="file" accept="image/*" onChange={handleLogoUpload} className="block w-full text-[11px] text-slate-500 file:ml-3 file:rounded-lg file:border-0 file:bg-teal-50 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-teal-800" />
+              </div>
+            </div>
+            <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">تلفن</label>
               <input type="text" value={orgInfo.phone} onChange={(e) => setOrgInfo({ ...orgInfo, phone: e.target.value })} className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none" dir="ltr" />
             </div>
@@ -174,6 +184,7 @@ export const GeneralSettingsTab: React.FC = () => {
               <span>ذخیره تنظیمات</span>
             </button>
           </div>
+          <p className="text-[10px] leading-5 text-slate-500">نام، عنوان و لوگو پس از ذخیره در سربرگ و صفحه ورود نمایش داده می‌شوند. لوگو فقط در مرورگر این نصب ذخیره می‌شود.</p>
         </div>
       )}
 
@@ -265,6 +276,14 @@ export const GeneralSettingsTab: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {subTab === 'ORG' && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h3 className="text-xs font-extrabold text-amber-900">محیط نمایشی و داده‌های نمونه</h3>
+          <p className="mt-1 text-[11px] leading-5 text-amber-800">این نسخه داده‌ها را فقط در localStorage مرورگر نگه می‌دارد. بازنشانی، داده‌های عملیاتی مانند جلسه، مصوبه و وظیفه را حذف می‌کند؛ کاربران و تنظیمات سازمان حفظ می‌شوند.</p>
+          <button onClick={handleDemoReset} className="mt-3 rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100">بازنشانی داده‌های نمایشی</button>
         </div>
       )}
 

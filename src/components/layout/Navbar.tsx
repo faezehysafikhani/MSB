@@ -25,6 +25,7 @@ import { useApp, AppRoute } from '../../context/AppContext';
 import { toPersianDigits } from '../../utils/formatters';
 import { meetingService, resolutionService, taskService } from '../../services';
 import { Meeting, Resolution, Task } from '../../types';
+import { useOrganizationProfile } from '../../services/organizationProfile';
 
 export const Navbar: React.FC = () => {
   const { 
@@ -45,6 +46,7 @@ export const Navbar: React.FC = () => {
     appTheme,
     setAppTheme
   } = useApp();
+  const organization = useOrganizationProfile();
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -182,16 +184,16 @@ export const Navbar: React.FC = () => {
             className="flex items-center gap-2.5 cursor-pointer select-none"
           >
             <img
-              src="/postbank.png"
-              alt="لوگوی مصوبات"
+              src={organization.logoUrl}
+              alt={`نشان ${organization.name || organization.systemTitle}`}
               className="w-12 h-12 object-contain rounded-xl shrink-0 p-0.5 "
             />
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5">
-                <h1 className="text-sm sm:text-base font-extrabold text-slate-800 dark:text-slate-100 tracking-tight hidden sm:inline">سامانه مصوبات و جلسات</h1>
+                <h1 className="text-sm sm:text-base font-extrabold text-slate-800 dark:text-slate-100 tracking-tight hidden sm:inline">{organization.systemTitle}</h1>
               </div>
               <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium sm:hidden">
-                سامانه مصوبات و جلسات
+                {organization.systemTitle}
               </span>
             </div>
           </div>
