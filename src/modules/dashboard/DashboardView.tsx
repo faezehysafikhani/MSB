@@ -33,6 +33,7 @@ import { toPersianDigits, getResolutionExecutionMeta, getPriorityMeta } from '..
 import { formatJalaliFallback } from '../../utils/date';
 import { mockDepartments } from '../../mock/data';
 import { hasOperationalData, OnboardingChecklist } from './OnboardingChecklist';
+import { RoleActionPanel } from './RoleActionPanel';
 
 const CHART_PALETTE = ['#10b981', '#3b82f6', '#f59e0b', '#a855f7', '#ec4899', '#0ea5e9', '#ef4444'];
 
@@ -64,6 +65,7 @@ export const DashboardView: React.FC = () => {
   const [departmentPerf, setDepartmentPerf] = useState<DepartmentPerformance[]>([]);
   const [loading, setLoading] = useState(true);
   const isEmptyWorkspace = !hasOperationalData();
+  const showManagementAnalytics = ['ADMIN', 'CEO', 'DEPT_MANAGER', 'AUDITOR'].includes(currentUser.role);
 
   // Chart view toggles (Pie vs Bar) matching screenshot
   const [chart1Mode, setChart1Mode] = useState<'donut' | 'bar'>('donut');
@@ -130,6 +132,12 @@ export const DashboardView: React.FC = () => {
     };
   });
 
+  if (isEmptyWorkspace) {
+    return currentUser.role === 'ADMIN'
+      ? <div className="pb-12"><OnboardingChecklist /></div>
+      : <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-xs"><Layers className="mx-auto h-10 w-10 text-slate-300" /><h1 className="mt-4 text-sm font-extrabold text-slate-800">هنوز داده‌ای برای نمایش نیست</h1><p className="mx-auto mt-2 max-w-md text-xs leading-6 text-slate-500">پس از ثبت و ارجاع اولین جلسه یا مصوبه، کارتابل و اقدام‌های مرتبط با نقش شما در اینجا نمایش داده می‌شود.</p></div>;
+  }
+
   return (
     <div className="space-y-6 pb-12">
       {currentUser.role === 'ADMIN' && isEmptyWorkspace && <OnboardingChecklist />}
@@ -152,6 +160,8 @@ export const DashboardView: React.FC = () => {
           )}
         </div>
       </div>
+
+      <RoleActionPanel tasks={urgentTasks.length} approvals={pendingApprovals.length} overdue={kpis?.overdueResolutions ?? 0} upcomingMeetings={recentMeetings.length} />
 
       {/* Row 1: 4 Compact Metric KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -221,7 +231,7 @@ export const DashboardView: React.FC = () => {
       </div>
 
       {/* Row 2: 3 Visual Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className={`grid grid-cols-1 md:grid-cols-3 gap-5 ${showManagementAnalytics ? '' : 'hidden'}`}>
         
         {/* Chart 1: Status Distribution Donut */}
         <div className="bg-white rounded-2xl p-5 shadow-xs border border-slate-100 flex flex-col justify-between">

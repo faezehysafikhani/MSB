@@ -94,11 +94,11 @@ export const Sidebar: React.FC = () => {
       id: 'meetings_resolutions',
       title: 'جلسات و مصوبات',
       items: [
-        {
+        ...(currentUser.role === 'ADMIN' || currentUser.role === 'CEO' || currentUser.role === 'SECRETARY' || hasPermission('CREATE_RESOLUTION') ? [{
           route: 'proposals' as AppRoute,
           title: 'مصوبات پیشنهادی',
           icon: Lightbulb,
-        },
+        }] : []),
         {
           route: 'meetings' as AppRoute,
           title: 'مدیریت جلسات',
@@ -124,7 +124,7 @@ export const Sidebar: React.FC = () => {
       id: 'cartable',
       title: 'کارتابل و تکالیف',
       items: [
-        ...(currentUser.role !== 'CEO'
+        ...(currentUser.role !== 'CEO' && hasPermission('VIEW_TASKS')
           ? [
               {
                 route: 'tasks' as AppRoute,
@@ -170,30 +170,30 @@ export const Sidebar: React.FC = () => {
               },
             ]
           : []),
-        {
+        ...(hasPermission('VIEW_ORGANIZATION_ARCHIVE') || currentUser.role === 'ADMIN' ? [{
           route: 'archive' as AppRoute,
           title: 'بایگانی',
           icon: Archive,
-        },
+        }] : []),
       ],
     },
     {
       id: 'reports_system',
       title: 'گزارش و راهنما',
       items: [
-        {
+        ...(hasPermission('VIEW_REPORTS') || currentUser.role === 'ADMIN' || currentUser.role === 'CEO' ? [{
           route: 'reports' as AppRoute,
           title: 'گزارش عملکرد',
           icon: FileSpreadsheet,
-        },
+        }] : []),
         // «اینفوگراف» و «راهنمای کاربری سامانه» از منو برداشته شده‌اند و حالا
         // داخل «تنظیمات» تب مستقل دارند؛ بنابراین این گزینه برای همه کاربران
         // نمایش داده می‌شود. تب‌های مدیریتی درون خود Settings محدود می‌مانند.
-        {
+        ...(currentUser.role === 'ADMIN' || hasPermission('MANAGE_USERS') ? [{
           route: 'settings' as AppRoute,
           title: 'تنظیمات',
           icon: Settings,
-        },
+        }] : []),
       ],
     },
   ];
@@ -307,7 +307,7 @@ export const Sidebar: React.FC = () => {
                       )}
                     </div>
 
-                    {!isSidebarCollapsed && item.badge !== undefined && (
+                    {!isSidebarCollapsed && item.badge !== undefined && item.badge > 0 && (
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full leading-tight ${
                           item.badgeColor || 'bg-teal-700 text-white'

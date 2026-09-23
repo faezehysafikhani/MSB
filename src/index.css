@@ -45,6 +45,33 @@
     background-color: #020617 !important;
     color: #f8fafc;
   }
+
+  /* یک حلقه فوکوس یکسان برای دکمه‌ها، فیلدها و کنترل‌های قابل‌دسترسی با
+     کیبورد؛ رنگ از تم فعال سامانه گرفته می‌شود. */
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--app-accent) 45%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+/* Surfaceهای مشترک برای کارت‌ها و عنوان‌های صفحات جدید؛ کلاس‌ها عمداً
+   مستقل از فرم‌های مرحله ۵ و تنظیمات مرحله ۶ هستند. */
+.app-panel {
+  border-radius: 1rem;
+  border: 1px solid rgb(226 232 240);
+  background: var(--app-surface);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+}
+
+.app-page-title {
+  color: rgb(15 23 42);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .theme-brand {
