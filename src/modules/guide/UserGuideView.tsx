@@ -17,7 +17,7 @@ const normalize = (value: string) => value.replace(/[يى]/g, 'ی').replace(/ك/
 /** نقش پیش‌فرض راهنما بر اساس نقش کاربر فعلی. */
 const roleForUser = (role: string, permissions: string[] = []): GuideRole => {
   if (role === 'ADMIN') return 'ADMIN';
-  if (role === 'SECRETARY') return 'OFFICE';
+  if (role === 'SECRETARY') return permissions.includes('NOTIFY_RESOLUTION') ? 'OFFICE' : 'SECRETARY';
   if (role === 'CEO' || role === 'DEPT_MANAGER') return 'MANAGER';
   if (role === 'AUDITOR') return 'VERIFIER';
   if (role === 'EXPERT_ASSIGNEE') return permissions.includes('SUBMIT_TASK_COMPLETION') || permissions.includes('VIEW_TASKS') ? 'ASSIGNEE' : 'STAFF';

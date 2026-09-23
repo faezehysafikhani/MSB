@@ -5,9 +5,10 @@ import { proposalService } from '../../services/proposalService';
 import { mockDepartments } from '../../mock/data';
 import { PersianDatePicker } from '../../components/common/PersianDatePicker';
 import { PersianTimePicker } from '../../components/common/PersianTimePicker';
+import { FormStepTabs, FormErrorSummary, FormFieldError, focusField } from '../../components/common/FormStepTabs';
 import { SearchableUserMultiSelect } from '../../components/common/SearchableUserMultiSelect';
 import { AttachmentList } from '../../components/common/AttachmentList';
-import { X, Plus, Trash2, Calendar, Clock, MapPin, Users, FileText, UserCheck, Lightbulb } from 'lucide-react';
+import { X, Plus, Trash2, Calendar, Clock, MapPin, Users, FileText, UserCheck, Lightbulb, ListChecks, ClipboardCheck } from 'lucide-react';
 import { MeetingType, MeetingMember, AgendaItem, Proposal, Attachment } from '../../types';
 // منطق زمان‌بندی/همپوشانی بندها فقط در همین یک ماژول است (بدون کپی موازی).
 import { getMinutesDiff, validateAgendaTimeSlot, formatAgendaTimeRange } from '../../utils/agendaTime';
@@ -60,7 +61,7 @@ export const CreateMeetingModal: React.FC = () => {
       setProposalAgendaAttachments([]);
       setAgendaError(null);
       setActiveStep(0);
-      setStepError(null);
+      setShowErrors(false);
     }
   }, [isCreateMeetingOpen, createMeetingInitialDate]);
 
@@ -101,7 +102,8 @@ export const CreateMeetingModal: React.FC = () => {
   // never actually visible to the user when this validation failed.
   const [agendaError, setAgendaError] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState(0);
-  const [stepError, setStepError] = useState<string | null>(null);
+  // خطاها پس از اولین تلاش برای ثبت یا ورود به «بازبینی» روی تب‌ها نشان داده می‌شوند.
+  const [showErrors, setShowErrors] = useState(false);
 
   if (!isCreateMeetingOpen) return null;
 
@@ -200,12 +202,9 @@ export const CreateMeetingModal: React.FC = () => {
       showToast('دسترسی غیرمجاز', 'شما مجاز به ایجاد جلسه جدید نیستید.', 'error');
       return;
     }
-    if (!title.trim()) {
-      showToast('خطا', 'عنوان جلسه الزامی است.', 'error');
-      return;
-    }
-    if (!organizerId || !secretaryId) {
-      showToast('خطا', 'انتخاب برگزارکننده و دبیر جلسه الزامی است.', 'error');
+    if (fieldErrors.length > 0) {
+      setShowErrors(true);
+      jumpToError(fieldErrors[0]);
       return;
     }
 
@@ -258,22 +257,30 @@ export const CreateMeetingModal: React.FC = () => {
     }
   };
 
-  const validateStep = (step: number) => {
-    if (step === 0) {
-      if (!title.trim()) return 'عنوان جلسه را وارد کنید.';
-      if (!dateJalali) return 'تاریخ جلسه را مشخص کنید.';
-      if (!location.trim()) return 'مکان یا شیوه برگزاری جلسه را وارد کنید.';
-      if (startTime >= endTime) return 'ساعت پایان باید بعد از ساعت شروع باشد.';
-    }
-    if (step === 1 && (!organizerId || !secretaryId)) return 'برگزارکننده و دبیر جلسه الزامی‌اند.';
-    return null;
-  };
-
+  const fieldErrors: FormFieldError[] = [
+    ...(!title.trim() ? [{ step: 0, fieldId: 'mf-title', message: 'عنوان جلسه را وارد کنید.' }] : []),
+    ...(!dateJalali ? [{ step: 0, fieldId: 'mf-date', message: 'تاریخ جلسه را مشخص کنید.' }] : []),
+    ...(startTime >= endTime ? [{ step: 0, fieldId: 'mf-time', message: 'ساعت پایان باید بعد از ساعت شروع باشد.' }] : []),
+    ...(!location.trim() ? [{ step: 0, fieldId: 'mf-location', message: 'مکان یا شیوه برگزاری جلسه را وارد کنید.' }] : []),
+    ...(!organizerId ? [{ step: 1, fieldId: 'mf-organizer', message: 'برگزارکننده جلسه را انتخاب کنید.' }] : []),
+    ...(!secretaryId ? [{ step: 1, fieldId: 'mf-secretary', message: 'دبیر جلسه را انتخاب کنید.' }] : []),
+  ];
+  const errorOf = (fieldId: string) => (showErrors ? fieldErrors.find((e) => e.fieldId === fieldId)?.message : undefined);
+  const steps = [
+    { label: 'مشخصات و زمان', icon: Calendar, errorCount: fieldErrors.filter((e) => e.step === 0).length, complete: !fieldErrors.some((e) => e.step === 0) },
+    { label: 'اعضا و مدعوین', icon: Users, errorCount: fieldErrors.filter((e) => e.step === 1).length, complete: !fieldErrors.some((e) => e.step === 1) && selectedMemberIds.length > 0 },
+    { label: 'دستور جلسه', icon: ListChecks, errorCount: 0, complete: agendas.length > 0 },
+    { label: 'بازبینی و ثبت', icon: ClipboardCheck, errorCount: 0 },
+  ];
+  // جابه‌جایی بین تب‌ها هرگز قفل نمی‌شود و داده‌ها در state فرم می‌مانند.
   const goToStep = (nextStep: number) => {
-    const error = validateStep(activeStep);
-    if (error) { setStepError(error); return; }
-    setStepError(null);
+    if (nextStep === 3) setShowErrors(true);
     setActiveStep(nextStep);
+  };
+  const jumpToError = (error: FormFieldError) => { setActiveStep(error.step); focusField(error.fieldId); };
+  const fieldErrorText = (fieldId: string) => {
+    const message = errorOf(fieldId);
+    return message ? <p className="form-field-error">{message}</p> : null;
   };
 
   return (
@@ -299,11 +306,9 @@ export const CreateMeetingModal: React.FC = () => {
         </div>
 
         {/* Modal Form Content */}
-        <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-5 flex-1">
-          <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="مراحل ثبت جلسه">
-            {['مشخصات و زمان', 'اعضا و مدعوین', 'دستور جلسه و پیوست‌ها', 'بازبینی و ثبت'].map((label, index) => <li key={label} className={`rounded-xl px-2 py-2 text-center text-[10px] font-bold ${activeStep === index ? 'bg-teal-800 text-white' : activeStep > index ? 'bg-teal-50 text-teal-800' : 'bg-slate-100 text-slate-500'}`}>{index + 1}. {label}</li>)}
-          </ol>
-          {stepError && <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">{stepError}</div>}
+        <form noValidate onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-5 flex-1">
+          <FormStepTabs steps={steps} active={activeStep} onSelect={goToStep} showErrors={showErrors} ariaLabel="بخش‌های فرم جلسه" />
+          {activeStep === 3 && showErrors && <FormErrorSummary errors={fieldErrors} steps={steps} onJump={jumpToError} />}
           {/* Basic Info */}
           {activeStep === 0 && (
           <div className="space-y-3">
@@ -318,13 +323,15 @@ export const CreateMeetingModal: React.FC = () => {
                   عنوان جلسه <span className="text-rose-500">*</span>
                 </label>
                 <input
+                  id="mf-title"
                   type="text"
-                  required
+                  aria-invalid={Boolean(errorOf('mf-title'))}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="مثال: جلسه بررسی استراتژی مهاجرت به سرویس‌های ابری و امنیت داده‌ها"
                   className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none"
                 />
+                {fieldErrorText('mf-title')}
               </div>
 
               <div>
@@ -356,7 +363,7 @@ export const CreateMeetingModal: React.FC = () => {
               </div>
 
               {/* Jalali Date Picker */}
-              <div>
+              <div id="mf-date">
                 <PersianDatePicker
                   label="تاریخ برگزاری جلسه"
                   value={dateJalali}
@@ -365,7 +372,7 @@ export const CreateMeetingModal: React.FC = () => {
               </div>
 
               {/* Start & End Time Pickers */}
-              <div className="grid grid-cols-2 gap-2">
+              <div id="mf-time" className="grid grid-cols-2 gap-2">
                 <div>
                   <PersianTimePicker
                     label="ساعت شروع"
@@ -381,13 +388,16 @@ export const CreateMeetingModal: React.FC = () => {
                   />
                 </div>
               </div>
+              {fieldErrorText('mf-time') && <div className="md:col-span-2 -mt-2">{fieldErrorText('mf-time')}</div>}
 
               {/* Location (مکان جلسه) */}
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 mb-1">مکان جلسه</label>
                 <div className="relative">
                   <input
+                    id="mf-location"
                     type="text"
+                    aria-invalid={Boolean(errorOf('mf-location'))}
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder="مثال: سالن جلسات شماره ۱ یا لینک وب‌کنفرانس سازمانی"
@@ -395,6 +405,7 @@ export const CreateMeetingModal: React.FC = () => {
                   />
                   <MapPin className="w-4 h-4 text-slate-400 absolute right-2.5 top-3" />
                 </div>
+                {fieldErrorText('mf-location')}
               </div>
             </div>
           </div>
@@ -413,17 +424,19 @@ export const CreateMeetingModal: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 mb-1">برگزارکننده جلسه *</label>
-                <select value={organizerId} onChange={(e) => setOrganizerId(e.target.value)} required className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <select id="mf-organizer" aria-invalid={Boolean(errorOf('mf-organizer'))} value={organizerId} onChange={(e) => setOrganizerId(e.target.value)} required className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
                   <option value="">انتخاب برگزارکننده...</option>
                   {availableUsers.map((user) => <option key={user.id} value={user.id}>{user.fullName} ({user.title})</option>)}
                 </select>
+                {fieldErrorText('mf-organizer')}
               </div>
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 mb-1">دبیر جلسه *</label>
-                <select value={secretaryId} onChange={(e) => setSecretaryId(e.target.value)} required className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <select id="mf-secretary" aria-invalid={Boolean(errorOf('mf-secretary'))} value={secretaryId} onChange={(e) => setSecretaryId(e.target.value)} required className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
                   <option value="">انتخاب دبیر جلسه...</option>
                   {availableUsers.map((user) => <option key={user.id} value={user.id}>{user.fullName} ({user.title})</option>)}
                 </select>
+                {fieldErrorText('mf-secretary')}
               </div>
             </div>
 
@@ -657,12 +670,12 @@ export const CreateMeetingModal: React.FC = () => {
           <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2.5 shrink-0">
             <button
               type="button"
-              onClick={() => activeStep > 0 ? setActiveStep(activeStep - 1) : setIsCreateMeetingOpen(false)}
-              className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold cursor-pointer"
+              onClick={() => activeStep > 0 ? goToStep(activeStep - 1) : setIsCreateMeetingOpen(false)}
+              className="app-btn-secondary"
             >
               {activeStep > 0 ? 'مرحله قبل' : 'انصراف'}
             </button>
-            {activeStep < 3 ? <button type="button" onClick={(event) => { event.preventDefault(); goToStep(activeStep + 1); }} className="px-5 py-2.5 rounded-xl bg-teal-800 hover:bg-teal-700 text-white text-xs font-bold shadow-md">مرحله بعد</button> : <button type="submit" disabled={isSubmitting} className="px-5 py-2.5 rounded-xl bg-teal-800 hover:bg-teal-700 text-white text-xs font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer">{isSubmitting ? 'در حال ثبت جلسه...' : 'تایید و ایجاد جلسه'}</button>}
+            {activeStep < 3 ? <button type="button" onClick={(event) => { event.preventDefault(); goToStep(activeStep + 1); }} className="app-btn-primary">مرحله بعد</button> : <button type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="app-btn-primary">{isSubmitting ? 'در حال ثبت جلسه...' : 'تایید و ایجاد جلسه'}</button>}
           </div>
         </form>
       </div>

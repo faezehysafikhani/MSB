@@ -12,7 +12,9 @@ import {
   ShieldCheck,
   Lock,
   Building2,
-  Repeat
+  Repeat,
+  CalendarDays,
+  UserCheck
 } from 'lucide-react';
 import {
   ResolutionApprovalStatus,
@@ -20,6 +22,7 @@ import {
   VerificationConfig,
   ResolutionFollowUpType,
 } from '../../types';
+import { FormStepTabs, FormErrorSummary, FormFieldError, focusField } from '../../components/common/FormStepTabs';
 import { buildFollowUpPlan } from '../../services/followUpService';
 import { Meeting } from '../../types';
 import { addDaysToJalaliDate, getCurrentJalaliDate } from '../../utils/date';
@@ -71,6 +74,8 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
   const [verifierId, setVerifierId] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeSection, setActiveSection] = useState(0);
+  const [showErrors, setShowErrors] = useState(false);
 
   // Sync with props when modal opens
   useEffect(() => {
@@ -141,6 +146,8 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
     }
   }, [mainResponsibleUserId, availableUsers]);
 
+  useEffect(() => { if (isOpen) { setShowErrors(false); setActiveSection(0); } }, [isOpen]);
+
   if (!isOpen) return null;
 
   const currentResponsibleUser = availableUsers.find((u) => u.id === mainResponsibleUserId);
@@ -149,31 +156,33 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
 
   const isLockedMeeting = Boolean(defaultMeetingId);
 
+  // خطاهای ضروری هر بخش؛ پس از اولین تلاش ثبت روی تب‌ها و در خلاصه خطا نمایش داده می‌شوند.
+  const approved = approvalStatus === 'APPROVED';
+  const formErrors: FormFieldError[] = [
+    ...(!selectedMeetingId ? [{ step: 0, fieldId: 'rf-meeting', message: 'جلسه مرجع را انتخاب کنید.' }] : []),
+    ...(!topicTitle.trim() ? [{ step: 0, fieldId: 'rf-meeting', message: 'عنوان موضوع مصوبه را وارد کنید.' }] : []),
+    ...(approved && !mainResponsibleUserId ? [{ step: 1, fieldId: 'rf-exec', message: 'مسئول اصلی اجرای مصوبه را انتخاب کنید.' }] : []),
+    ...(approved && followUpEnabled && !followUpStartDateJalali.trim() ? [{ step: 2, fieldId: 'rf-followup', message: 'تاریخ شروع پیگیری را مشخص کنید.' }] : []),
+    ...(approved && requiresVerification && !verifierId ? [{ step: 3, fieldId: 'rf-verify', message: 'صحه‌گذار را انتخاب کنید یا نیاز به صحه‌گذاری را غیرفعال کنید.' }] : []),
+  ];
+  const sectionIds = ['rf-meeting', 'rf-exec', 'rf-followup', 'rf-verify'];
+  const jumpToError = (error: FormFieldError) => { setActiveSection(error.step); focusField(sectionIds[error.step]); };
+  const sectionSteps = [
+    { label: 'جلسه و موضوع', icon: CalendarDays, errorCount: formErrors.filter((e) => e.step === 0).length, complete: Boolean(selectedMeetingId && topicTitle.trim()) },
+    { label: 'مجری و مهلت', icon: UserCheck, errorCount: formErrors.filter((e) => e.step === 1).length, complete: !approved || Boolean(mainResponsibleUserId && deadlineJalali) },
+    { label: 'پیگیری', icon: Repeat, errorCount: formErrors.filter((e) => e.step === 2).length, complete: !approved || !followUpEnabled || Boolean(followUpStartDateJalali) },
+    { label: 'صحه‌گذاری', icon: ShieldCheck, errorCount: formErrors.filter((e) => e.step === 3).length, complete: !approved || !requiresVerification || Boolean(verifierId) },
+  ];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!hasPermission('CREATE_RESOLUTION')) {
       showToast('دسترسی غیرمجاز', 'شما مجاز به ثبت مصوبه جدید نیستید.', 'error');
       return;
     }
-    if (!topicTitle.trim()) {
-      showToast('خطا', 'عنوان مصوبه الزامی است.', 'error');
-      return;
-    }
-
-    if (!selectedMeetingId) {
-      showToast('خطا', 'انتخاب جلسه مرجع الزامی است.', 'error');
-      return;
-    }
-    if (approvalStatus === 'APPROVED' && !mainResponsibleUserId) {
-      showToast('خطا', 'انتخاب مسئول اصلی اجرای مصوبه الزامی است.', 'error');
-      return;
-    }
-    if (approvalStatus === 'APPROVED' && requiresVerification && !verifierId) {
-      showToast('خطا', 'یک صحه‌گذار انتخاب کنید یا گزینه نیاز به صحه‌گذاری را غیرفعال کنید.', 'error');
-      return;
-    }
-    if (approvalStatus === 'APPROVED' && followUpEnabled && !followUpStartDateJalali.trim()) {
-      showToast('خطا', 'تاریخ شروع پیگیری را مشخص کنید.', 'error');
+    if (formErrors.length > 0) {
+      setShowErrors(true);
+      jumpToError(formErrors[0]);
       return;
     }
 
@@ -259,22 +268,18 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-5 flex-1">
-          {/* وضعیت تکمیل فرم: فیلدهای کلیدی هر بخش */}
-          <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="وضعیت تکمیل فرم">
-            {[
-              { label: 'جلسه و موضوع', done: Boolean(selectedMeetingId && topicTitle.trim()) },
-              { label: 'مجری و مهلت', done: approvalStatus !== 'APPROVED' || Boolean(mainResponsibleUserId && deadlineJalali) },
-              { label: 'پیگیری', done: approvalStatus !== 'APPROVED' || !followUpEnabled || Boolean(followUpStartDateJalali) },
-              { label: 'صحه‌گذاری', done: approvalStatus !== 'APPROVED' || !requiresVerification || Boolean(verifierId) },
-            ].map((step, index) => (
-              <li key={step.label} className={`flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-center text-[10.5px] font-extrabold ${step.done ? 'bg-blue-50 text-blue-800 ring-1 ring-blue-200' : 'bg-slate-50 text-slate-500 ring-1 ring-slate-200'}`}>
-                <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[9px] ${step.done ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'}`}>{step.done ? '✓' : (index + 1).toLocaleString('fa-IR')}</span>{step.label}
-              </li>
-            ))}
-          </ol>
+        <form noValidate onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-5 flex-1">
+          {/* ناوبری بخش‌ها: هر تب مستقیماً به همان بخش فرم می‌رود؛ تیک یعنی بخش کامل است. */}
+          <FormStepTabs
+            ariaLabel="بخش‌های فرم مصوبه"
+            active={activeSection}
+            onSelect={(index) => { setActiveSection(index); focusField(sectionIds[index]); }}
+            showErrors={showErrors}
+            steps={sectionSteps}
+          />
+          {showErrors && <FormErrorSummary errors={formErrors.map((e, i) => ({ ...e, fieldId: `${e.fieldId}-${i}` }))} steps={sectionSteps} onJump={jumpToError} />}
           {/* Meeting Selection & Proposal */}
-          <div className="space-y-3">
+          <div id="rf-meeting" className="space-y-3 scroll-mt-20">
             <h4 className="text-xs font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
               <span className="w-2 h-2 rounded-full bg-teal-600"></span>
               مشخصات جلسه و مصوبه
@@ -384,7 +389,7 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
 
           {/* Execution & Assignment (Shown when approved) */}
           {approvalStatus === 'APPROVED' && (
-            <div className="space-y-3 pt-2">
+            <div id="rf-exec" className="space-y-3 pt-2 scroll-mt-20">
               <h4 className="text-xs font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <span className="w-2 h-2 rounded-full bg-teal-600"></span>
                 دستور اجرا، ارجاع و مهلت اقدام
@@ -472,7 +477,7 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
               office manager. It only decides when the resolution surfaces in
               the «کارتابل پیگیری»; it never gates execution or validation. */}
           {approvalStatus === 'APPROVED' && (
-            <div className="p-4 bg-sky-50/60 border border-sky-200/80 rounded-2xl space-y-4">
+            <div id="rf-followup" className="p-4 bg-sky-50/60 border border-sky-200/80 rounded-2xl space-y-4 scroll-mt-20">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Repeat className="w-5 h-5 text-sky-700" />
@@ -525,7 +530,7 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
 
           {/* Verification Workflow Config */}
           {approvalStatus === 'APPROVED' && (
-            <div className="p-4 bg-teal-50/60 border border-teal-200/80 rounded-2xl space-y-4">
+            <div id="rf-verify" className="p-4 bg-teal-50/60 border border-teal-200/80 rounded-2xl space-y-4 scroll-mt-20">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-teal-700" />

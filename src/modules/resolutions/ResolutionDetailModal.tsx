@@ -32,6 +32,7 @@ import {
   formatFileSize
 } from '../../utils/formatters';
 import { TimelineView } from '../../components/common/TimelineView';
+import { ResolutionProgressTracker } from './ResolutionProgressTracker';
 import { AttachmentList } from '../../components/common/AttachmentList';
 import { NotifyResolutionAction } from './NotifyResolutionAction';
 import { FollowUpHistory } from './FollowUpHistory';
@@ -305,6 +306,7 @@ export const ResolutionDetailModal: React.FC<ResolutionDetailModalProps> = ({
 
         {/* Modal Scrollable Body */}
         <div className="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+          <ResolutionProgressTracker resolution={resolution} />
 
           {/* Formal resolution minutes and sequential signatures */}
           {signatureWorkflow && (

@@ -26,6 +26,7 @@ import { toPersianDigits } from '../../utils/formatters';
 import { meetingService, resolutionService, taskService } from '../../services';
 import { Meeting, Resolution, Task } from '../../types';
 import { useOrganizationProfile } from '../../services/organizationProfile';
+import { hasDemoData } from '../../services/demoDataService';
 
 export const Navbar: React.FC = () => {
   const { 
@@ -47,6 +48,8 @@ export const Navbar: React.FC = () => {
     setAppTheme
   } = useApp();
   const organization = useOrganizationProfile();
+  // برچسب واضح وقتی داده نمونه (دمو) در این مرورگر بارگذاری شده است.
+  const showingSample = hasDemoData();
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -166,7 +169,7 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="no-print app-surface h-[68px] bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 shrink-0 sticky top-0 z-40 shadow-xs select-none">
+    <header className="no-print app-surface h-[72px] bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 shrink-0 sticky top-0 z-40 shadow-xs select-none">
       <div className="w-full flex items-center justify-between gap-2 sm:gap-4">
         
         {/* Right side: App Title & Toggle & Organization Logo */}
@@ -188,13 +191,12 @@ export const Navbar: React.FC = () => {
             {/* لوگو روی کاشی سفید با حاشیه روشن قرار می‌گیرد تا روی هر زمینه‌ای
                 (آبی شیشه‌ای، سازمانی یا تیره) دیده شود. نام و لوگو از
                 «اطلاعات سازمان» در تنظیمات خوانده می‌شوند. */}
-            <span className="app-logo-tile h-11 w-11 sm:h-[52px] sm:w-[52px]">
-              <img
-                src={organization.logoUrl}
-                alt={`نشان ${organization.name || organization.systemTitle}`}
-                className="h-full w-full object-contain p-1"
-              />
-            </span>
+            <img
+              src={organization.logoUrl}
+              alt={`نشان ${organization.name || organization.systemTitle}`}
+              className="app-logo h-12 w-12 sm:h-[60px] sm:w-[60px] shrink-0 object-contain"
+            />
+            <span className="hidden sm:block h-9 w-px bg-gradient-to-b from-transparent via-slate-300 to-transparent" aria-hidden="true" />
             <span className="flex min-w-0 flex-col leading-tight">
               <span className="truncate text-[13px] sm:text-[15px] font-black text-slate-900 dark:text-slate-100 tracking-tight">{organization.systemTitle}</span>
               {organization.name.trim() && (
@@ -336,6 +338,9 @@ export const Navbar: React.FC = () => {
           </div>
 
           {/* Notifications Dropdown (Item 5 Fixed) */}
+          {showingSample && (
+            <span className="order-1 hidden md:inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10.5px] font-extrabold text-sky-800" title="داده‌های نمونه برای نمایش؛ از تنظیمات ← داده نمایشی قابل حذف است">داده نمونه</span>
+          )}
           <div className="relative order-2" ref={notifRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}

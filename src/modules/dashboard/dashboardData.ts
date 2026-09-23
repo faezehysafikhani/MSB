@@ -137,7 +137,7 @@ export const buildDashboardModel = (user: User): DashboardModel => {
   const isCeo = user.role === 'CEO';
   proposals.forEach((p) => {
     if (isCeo && ['PENDING_CEO_REVIEW', 'RESUBMITTED'].includes(p.status)) items.push({ id: `pceo-${p.id}`, kind: 'تصمیم درباره پیشنهاد', title: p.title, subtitle: `${p.proposerName} · ${p.proposerDepartmentName}`, date: p.dateJalali, tone: 'warning', route: 'proposals', cta: 'بررسی و تصمیم', weight: 80 });
-    if (persona === 'OFFICE' && ['PENDING_OFFICE_REVIEW', 'RETURNED_BY_SECRETARY'].includes(p.status)) items.push({ id: `poff-${p.id}`, kind: 'بررسی پیشنهاد', title: p.title, subtitle: `${p.proposerName} · ${p.dateJalali}`, date: p.dateJalali, tone: 'primary', route: 'proposals', cta: 'بررسی پیشنهاد', weight: 70 });
+    if (persona === 'OFFICE' && p.status === 'RETURNED_BY_SECRETARY') items.push({ id: `poff-${p.id}`, kind: 'برگشتی از دبیر جلسه', title: p.title, subtitle: `${p.proposerName} · ${p.dateJalali}`, date: p.dateJalali, tone: 'primary', route: 'proposals', cta: 'بررسی پیشنهاد', weight: 70 });
     if (persona === 'OFFICE' && p.status === 'APPROVED') items.push({ id: `pconv-${p.id}`, kind: 'تبدیل به تأیید جلسه', title: p.title, subtitle: 'تأییدشده توسط مدیرعامل', date: p.dateJalali, tone: 'primary', route: 'proposals', cta: 'ادامه گردش', weight: 65 });
     if (perms.includes('APPROVE_MEETING_CONFIRMATION') && p.status === 'PENDING_SECRETARY_CONFIRMATION') items.push({ id: `psec-${p.id}`, kind: 'تأیید نهایی دبیر', title: p.title, subtitle: `${p.proposerName} · ${p.proposerDepartmentName}`, date: p.dateJalali, tone: 'warning', route: 'proposals', cta: 'تأیید برای جلسه', weight: 78 });
   });
@@ -186,9 +186,9 @@ export const buildDashboardModel = (user: User): DashboardModel => {
 
   const countP = (statuses: string[]) => proposals.filter((p) => statuses.includes(p.status)).length;
   const proposalPipeline = [
-    { label: 'بررسی دفتر', value: countP(['PENDING_OFFICE_REVIEW', 'RETURNED_BY_SECRETARY']), route: 'proposals' as AppRoute },
-    { label: 'تصمیم مدیرعامل', value: countP(['PENDING_CEO_REVIEW', 'RESUBMITTED']), route: 'proposals' as AppRoute },
-    { label: 'تأیید دبیر', value: countP(['APPROVED', 'PENDING_SECRETARY_CONFIRMATION']), route: 'proposals' as AppRoute },
+    { label: 'تصمیم مدیرعامل', value: countP(['PENDING_OFFICE_REVIEW', 'PENDING_CEO_REVIEW', 'RESUBMITTED']), route: 'proposals' as AppRoute },
+    { label: 'تبدیل در دفتر', value: countP(['APPROVED', 'RETURNED_BY_SECRETARY']), route: 'proposals' as AppRoute },
+    { label: 'تأیید دبیر', value: countP(['PENDING_SECRETARY_CONFIRMATION']), route: 'proposals' as AppRoute },
     { label: 'آماده/در دستور جلسه', value: countP(['CONFIRMED_FOR_MEETING', 'CONVERTED_TO_AGENDA']), route: 'meetings' as AppRoute },
     { label: 'برگشتی برای اصلاح', value: countP(['RETURNED_FOR_REVISION']), route: 'proposals' as AppRoute },
   ];

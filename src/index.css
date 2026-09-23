@@ -1071,3 +1071,165 @@ button[aria-busy="true"] { cursor: progress !important; opacity: 0.85; }
 @media (min-width: 768px) {
   .app-tabs { flex-wrap: wrap; overflow-x: visible; }
 }
+
+/* لوگوی سربرگ: بدون قاب، بزرگ‌تر و با سایه ملایم تا جزئیات فایل اصلی دیده شود. */
+.app-logo {
+  filter: drop-shadow(0 4px 8px rgba(16, 52, 116, 0.22));
+  transition: transform 0.2s ease;
+}
+button:hover > .app-logo { transform: scale(1.04); }
+
+/* ================================================================
+   فرم‌ها: تب‌های قابل کلیک، کارت بخش‌ها و خطاها
+   ================================================================ */
+.form-steps {
+  position: sticky;
+  top: -1.25rem;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: -1.25rem -1.25rem 0;
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(180deg, rgba(240, 246, 255, 0.97), rgba(232, 241, 253, 0.94));
+  border-bottom: 1px solid rgba(148, 178, 222, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+@media (min-width: 640px) { .form-steps { grid-template-columns: repeat(var(--form-steps, 4), minmax(0, 1fr)); } }
+
+.form-step {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 0.85rem;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #475569;
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 0 0 1px rgba(148, 178, 222, 0.35) inset;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  cursor: pointer;
+}
+
+.form-step:hover { color: var(--app-primary-strong); background: #fff; transform: translateY(-1px); }
+
+.form-step-index {
+  display: inline-flex;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.55rem;
+  font-size: 0.68rem;
+  color: var(--app-primary);
+  background: var(--app-primary-soft);
+}
+
+.form-step-active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--app-primary), var(--app-primary-strong));
+  box-shadow: 0 8px 16px -10px rgba(11, 42, 91, 0.9), 0 1px 0 rgba(255, 255, 255, 0.25) inset;
+}
+
+.form-step-active:hover { color: #fff; background: linear-gradient(135deg, var(--app-primary), var(--app-primary-strong)); }
+.form-step-active .form-step-index { color: #fff; background: rgba(255, 255, 255, 0.18); }
+
+.form-step-error:not(.form-step-active) { color: #b91c1c; box-shadow: 0 0 0 1px #fca5a5 inset; background: #fff7f7; }
+.form-step-error:not(.form-step-active) .form-step-index { color: #dc2626; background: #fee2e2; }
+.form-step-error.form-step-active .form-step-index { color: #fecaca; }
+
+.form-step-badge {
+  margin-inline-start: auto;
+  min-width: 1.15rem;
+  border-radius: 999px;
+  padding: 0 0.35rem;
+  font-size: 0.62rem;
+  line-height: 1.15rem;
+  text-align: center;
+  color: #fff;
+  background: #dc2626;
+}
+
+.form-error-summary {
+  border-radius: 1rem;
+  padding: 0.8rem 0.95rem;
+  color: #991b1b;
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  border-right: 4px solid #ef4444;
+}
+
+.form-error-link {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.6rem;
+  padding: 0.3rem 0.4rem;
+  text-align: right;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #7f1d1d;
+}
+
+.form-error-link:hover { background: #fee2e2; text-decoration: underline; }
+
+.form-field-error { margin-top: 0.3rem; font-size: 0.68rem; font-weight: 700; color: #dc2626; }
+
+[aria-invalid="true"] { border-color: #f87171 !important; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important; background-color: #fffafa !important; }
+
+@keyframes form-field-flash { 0%, 100% { box-shadow: none; } 30% { box-shadow: 0 0 0 4px rgba(29, 95, 209, 0.25); } }
+.form-field-flash { border-radius: 0.8rem; animation: form-field-flash 1.4s ease; }
+
+/* بدنه فرم مودال: زمینه آبی بسیار روشن و هر بخش روی کارت شیشه‌ای */
+.theme-glass .fixed.inset-0 form {
+  background: linear-gradient(180deg, #f5f9ff 0%, #eef4fc 100%);
+}
+
+.theme-glass .fixed.inset-0 form > div.space-y-3,
+.theme-glass .fixed.inset-0 form > div.space-y-4,
+.theme-glass .fixed.inset-0 form > .app-form-card {
+  border-radius: 1.1rem;
+  padding: 1rem 1.05rem;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(148, 178, 222, 0.35);
+  box-shadow: 0 1px 0 #fff inset, 0 10px 24px -18px rgba(16, 52, 116, 0.45);
+}
+
+.theme-glass .fixed.inset-0 form > div.space-y-3 > h4,
+.theme-glass .fixed.inset-0 form > div.space-y-4 > h4 { margin: -0.1rem 0 0.25rem; }
+
+/* نوار پایین فرم چسبان تا دکمه اصلی همیشه در دسترس باشد */
+.theme-glass .fixed.inset-0 form > div.border-t:last-child {
+  position: sticky;
+  bottom: -1.25rem;
+  margin: 0 -1.25rem -1.25rem;
+  padding: 0.85rem 1.25rem;
+  background: rgba(247, 250, 255, 0.96);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(148, 178, 222, 0.35) !important;
+  z-index: 4;
+}
+
+/* ——— خط زمانی گردش مصوبه ——— */
+.rpt { border-radius: 1.2rem; padding: 1rem; background: linear-gradient(160deg, #f5f9ff, #e9f1fd); border: 1px solid rgba(148, 178, 222, 0.4); }
+.rpt-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem 0.25rem; }
+@media (min-width: 640px) { .rpt-steps { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.rpt-step { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; text-align: center; }
+@media (min-width: 640px) {
+  .rpt-step:not(:last-child)::after { content: ""; position: absolute; top: 0.9rem; left: -50%; width: 100%; height: 2px; background: #d3e0f3; z-index: 0; }
+  .rpt-done:not(:last-child)::after { background: var(--app-primary); }
+}
+.rpt-dot { position: relative; z-index: 1; display: flex; width: 1.8rem; height: 1.8rem; align-items: center; justify-content: center; border-radius: 999px; color: #64748b; background: #fff; box-shadow: 0 0 0 2px #d3e0f3; }
+.rpt-done .rpt-dot { color: #fff; background: var(--app-primary); box-shadow: 0 0 0 2px var(--app-primary); }
+.rpt-active .rpt-dot { color: #fff; background: linear-gradient(135deg, #38bdf8, var(--app-primary-strong)); box-shadow: 0 0 0 4px rgba(29, 95, 209, 0.2); }
+.rpt-late .rpt-dot { color: #fff; background: #dc2626; box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.18); }
+.rpt-label { font-size: 0.68rem; font-weight: 800; color: #334155; }
+.rpt-active .rpt-label { color: var(--app-primary-strong); }
+.rpt-late .rpt-label { color: #b91c1c; }
+.rpt-date { font-size: 0.6rem; color: #64748b; }
