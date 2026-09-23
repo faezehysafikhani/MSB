@@ -1407,3 +1407,39 @@ button:hover > .app-logo { transform: scale(1.04); }
 .app-page-header .app-page-header-icon { width: 2.2rem; height: 2.2rem; border-radius: 0.75rem; }
 .app-page-header h1 { font-size: 0.95rem !important; }
 .app-page-header .app-tabs { margin-top: 0.6rem !important; }
+
+/* ================================================================
+   اینفوگراف «مسیر مصوبه از پیشنهاد تا خاتمه» — مسیر موج‌دار
+   ================================================================ */
+.igw { border-radius: 1.4rem; padding: 1.1rem 1.1rem 1.4rem; background: radial-gradient(700px 260px at 90% 0%, rgba(96,165,250,0.14), transparent 70%), linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%); box-shadow: 0 0 0 1px rgba(147,187,240,0.35), 0 16px 34px -26px rgba(11,42,91,0.6); }
+.igw-head { display: flex; align-items: center; gap: 0.75rem; }
+.igw-head h2 { font-size: 1.05rem; font-weight: 900; color: #0b2a5b; }
+.igw-head p { font-size: 0.72rem; color: #64748b; }
+.igw-head-icon { display: inline-flex; width: 2.4rem; height: 2.4rem; align-items: center; justify-content: center; border-radius: 0.8rem; color: #fff; background: linear-gradient(135deg, #2563eb, #0b2a5b); box-shadow: 0 8px 16px -10px rgba(11,42,91,0.9); }
+
+.igw-track { position: relative; height: var(--igw-h); margin-top: 0.5rem; }
+.igw-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.igw-nodes { position: relative; display: grid; height: 100%; grid-template-columns: repeat(9, minmax(0, 1fr)); }
+.igw-node { position: relative; }
+.igw-btn { position: absolute; left: 50%; top: var(--igw-y); transform: translate(-50%, -50%); border-radius: 999px; }
+.igw-circle { position: relative; display: inline-flex; width: 4rem; height: 4rem; align-items: center; justify-content: center; border-radius: 999px; color: #fff; background: radial-gradient(circle at 32% 28%, #60a5fa 0%, #1d4ed8 55%, #0b2a5b 100%); box-shadow: 0 0 0 5px #fff, 0 0 0 7px #cfe0f8, 0 14px 22px -10px rgba(11,42,91,0.75), inset 0 2px 3px rgba(255,255,255,0.35); transition: transform 0.18s ease, box-shadow 0.18s ease; }
+.igw-btn:hover .igw-circle, .igw-btn:focus-visible .igw-circle { transform: scale(1.08); box-shadow: 0 0 0 5px #fff, 0 0 0 8px #93c5fd, 0 18px 26px -10px rgba(11,42,91,0.8), inset 0 2px 3px rgba(255,255,255,0.35); }
+.igw-num { position: absolute; top: -0.35rem; right: -0.35rem; display: inline-flex; width: 1.45rem; height: 1.45rem; align-items: center; justify-content: center; border-radius: 999px; font-size: 0.72rem; font-weight: 900; color: #0b2a5b; background: #fff; box-shadow: 0 0 0 2px #38bdf8, 0 4px 8px -4px rgba(11,42,91,0.6); }
+.igw-text { position: absolute; left: 0.2rem; right: 0.2rem; text-align: center; }
+.igw-up .igw-text { bottom: calc(var(--igw-h) - var(--igw-y) + 2.6rem); }
+.igw-down .igw-text { top: calc(var(--igw-y) + 2.6rem); }
+.igw-text h3 { font-size: 0.82rem; font-weight: 900; color: #0b2a5b; }
+.igw-text p { margin-top: 0.2rem; font-size: 0.66rem; line-height: 1.55; color: #475569; }
+
+/* موبایل و تبلت کوچک: مسیر عمودی */
+.igw-mobile { display: none; }
+@media (max-width: 1023px) {
+  .igw-track { display: none; }
+  .igw-mobile { position: relative; display: grid; gap: 1rem; margin-top: 1rem; padding-right: 0.2rem; }
+  .igw-mobile::before { content: ""; position: absolute; top: 1.2rem; bottom: 1.2rem; right: 1.55rem; width: 6px; border-radius: 6px; background: linear-gradient(180deg, #38bdf8, #2563eb 50%, #0b2a5b); box-shadow: 0 0 0 5px #dbe8fb; }
+  .igw-mobile li { position: relative; display: flex; align-items: center; gap: 0.9rem; }
+  .igw-mobile li:nth-child(even) { padding-right: 0.9rem; }
+  .igw-mobile h3 { font-size: 0.9rem; font-weight: 900; color: #0b2a5b; }
+  .igw-mobile p { font-size: 0.76rem; line-height: 1.7; color: #475569; }
+  .igw-circle-sm { width: 3.2rem; height: 3.2rem; flex-shrink: 0; }
+}
