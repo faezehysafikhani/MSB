@@ -18,10 +18,10 @@ interface OrgInfo {
 }
 
 const DEFAULT_ORG_INFO: OrgInfo = {
-  name: 'پست بانک ایران',
-  phone: '021-88000000',
-  email: 'info@postbank.ir',
-  website: 'https://postbank.ir',
+  name: 'سازمان من',
+  phone: '',
+  email: '',
+  website: '',
   nationalId: '',
   economicCode: '',
   address: '',

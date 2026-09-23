@@ -22,6 +22,7 @@ import {
 } from '../../types';
 import { buildFollowUpPlan } from '../../services/followUpService';
 import { Meeting } from '../../types';
+import { addDaysToJalaliDate, getCurrentJalaliDate } from '../../utils/date';
 
 interface CreateResolutionModalProps {
   isOpen: boolean;
@@ -55,8 +56,8 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
   const [executionDescription, setExecutionDescription] = useState('');
   const [mainResponsibleUserId, setMainResponsibleUserId] = useState('');
   const [responsibleDepartmentId, setResponsibleDepartmentId] = useState('');
-  const [assignedDateJalali, setAssignedDateJalali] = useState('۱۴۰۳/۰۶/۲۸');
-  const [deadlineJalali, setDeadlineJalali] = useState('۱۴۰۳/۰۷/۲۰');
+  const [assignedDateJalali, setAssignedDateJalali] = useState(getCurrentJalaliDate);
+  const [deadlineJalali, setDeadlineJalali] = useState(() => addDaysToJalaliDate(getCurrentJalaliDate(), 14));
   const [priority, setPriority] = useState<PriorityLevel>('HIGH');
 
   // Follow-up plan (برنامه پیگیری مصوبه) — monitoring only, never part of
@@ -92,6 +93,10 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
       setVerifierId('');
       setFollowUpEnabled(true);
       setFollowUpType('MONTHLY');
+      const today = getCurrentJalaliDate();
+      setAssignedDateJalali(today);
+      setDeadlineJalali(addDaysToJalaliDate(today, 14));
+      setFollowUpStartDateJalali(today);
     }
   }, [isOpen, defaultMeetingId, defaultAgendaItemId, defaultTopicTitle]);
 

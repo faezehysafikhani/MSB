@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toPersianDigits } from '../../utils/formatters';
 import { jalaliToGregorian } from '../../utils/jalaliDate';
+import { getCurrentJalaliDate } from '../../utils/date';
 
 interface PersianDatePickerProps {
   value: string; // e.g. "۱۴۰۳/۰۷/۰۵" or "1403/07/05"
@@ -66,19 +67,20 @@ export const PersianDatePicker: React.FC<PersianDatePickerProps> = ({
 
   // Parse current value
   const parseJalali = (valStr: string) => {
-    if (!valStr) return { year: 1403, month: 7, day: 15 };
+    if (!valStr) valStr = getCurrentJalaliDate();
     // Convert any Persian digits to English for parsing
     const standardStr = valStr
       .replace(/[۰-۹]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString())
       .replace(/[^0-9/]/g, '');
     const parts = standardStr.split('/');
-    const y = parts[0] ? parseInt(parts[0], 10) : 1403;
-    const m = parts[1] ? parseInt(parts[1], 10) : 7;
-    const d = parts[2] ? parseInt(parts[2], 10) : 15;
+    const [todayYear, todayMonth, todayDay] = getCurrentJalaliDate().replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).split('/').map(Number);
+    const y = parts[0] ? parseInt(parts[0], 10) : todayYear;
+    const m = parts[1] ? parseInt(parts[1], 10) : todayMonth;
+    const d = parts[2] ? parseInt(parts[2], 10) : todayDay;
     return {
-      year: isNaN(y) ? 1403 : y,
-      month: isNaN(m) || m < 1 || m > 12 ? 7 : m,
-      day: isNaN(d) || d < 1 || d > 31 ? 15 : d,
+      year: isNaN(y) ? todayYear : y,
+      month: isNaN(m) || m < 1 || m > 12 ? todayMonth : m,
+      day: isNaN(d) || d < 1 || d > 31 ? todayDay : d,
     };
   };
 

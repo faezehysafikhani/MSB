@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ShieldCheck, UserCheck, CheckCircle2, Lock, ArrowLeft, X, User, KeyRound, Sparkles } from 'lucide-react';
 import { UserRole } from '../../types';
-import { PostBankEmblem } from '../../components/common/PostBankLogo';
+import { OrganizationLogo } from '../../components/common/OrganizationLogo';
 
 export const LoginModal: React.FC = () => {
   const { isLoginModalOpen, setIsLoginModalOpen, availableUsers, login, showToast } = useApp();
@@ -62,10 +62,10 @@ export const LoginModal: React.FC = () => {
             <X className="w-5 h-5" />
           </button>
           <div className="flex justify-center mb-2">
-            <PostBankEmblem size={44} />
+            <OrganizationLogo size={44} />
           </div>
           <div className="flex items-center justify-center gap-1.5 mb-0.5">
-            <span className="text-sm font-black text-[#ff5260]">پست بانک ایران</span>
+            <span className="text-sm font-black text-[#ff5260]">سامانه مدیریت جلسات و مصوبات</span>
           </div>
           <h2 className="text-base font-extrabold text-white">ورود و مدیریت نشست کاربری</h2>
           <p className="text-xs text-teal-200 mt-0.5">سامانه جامع جلسات، پیگیری مصوبات و صحه‌گذاری</p>

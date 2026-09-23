@@ -30,6 +30,7 @@ import { useApp } from '../../context/AppContext';
 import { reportService, meetingService, resolutionService, taskService, approvalService } from '../../services';
 import { DashboardKPIs, Meeting, Resolution, Task, ApprovalCartableItem, DepartmentPerformance } from '../../types';
 import { toPersianDigits, getResolutionExecutionMeta, getPriorityMeta } from '../../utils/formatters';
+import { formatJalaliFallback } from '../../utils/date';
 import { mockDepartments } from '../../mock/data';
 
 const CHART_PALETTE = ['#10b981', '#3b82f6', '#f59e0b', '#a855f7', '#ec4899', '#0ea5e9', '#ef4444'];
@@ -574,8 +575,8 @@ export const DashboardView: React.FC = () => {
                     <td className="py-3 px-3 text-slate-600 font-medium">
                       {res.responsibleDepartmentName || 'اداره کل فناوری اطلاعات'}
                     </td>
-                    <td className="py-3 px-3 text-slate-500">{toPersianDigits(res.assignedDateJalali || '۱۴۰۳/۰۶/۱۰')}</td>
-                    <td className="py-3 px-3 text-slate-500">{toPersianDigits(res.deadlineJalali || '۱۴۰۳/۰۷/۱۵')}</td>
+                    <td className="py-3 px-3 text-slate-500">{formatJalaliFallback(res.assignedDateJalali)}</td>
+                    <td className="py-3 px-3 text-slate-500">{formatJalaliFallback(res.deadlineJalali)}</td>
                     <td className="py-3 px-3">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap ${sMeta.bg}`}>
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${sMeta.dot}`}></span>

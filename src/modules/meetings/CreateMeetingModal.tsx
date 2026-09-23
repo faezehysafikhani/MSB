@@ -11,6 +11,7 @@ import { X, Plus, Trash2, Calendar, Clock, MapPin, Users, FileText, UserCheck, L
 import { MeetingType, MeetingMember, AgendaItem, Proposal, Attachment } from '../../types';
 // منطق زمان‌بندی/همپوشانی بندها فقط در همین یک ماژول است (بدون کپی موازی).
 import { getMinutesDiff, validateAgendaTimeSlot, formatAgendaTimeRange } from '../../utils/agendaTime';
+import { getCurrentJalaliDate } from '../../utils/date';
 
 export const CreateMeetingModal: React.FC = () => {
   const {
@@ -25,7 +26,7 @@ export const CreateMeetingModal: React.FC = () => {
 
   const [title, setTitle] = useState('');
   const [type, setType] = useState<MeetingType>('COMMISSION');
-  const [dateJalali, setDateJalali] = useState(createMeetingInitialDate || '۱۴۰۳/۰۷/۰۵');
+  const [dateJalali, setDateJalali] = useState(createMeetingInitialDate || getCurrentJalaliDate());
   const [startTime, setStartTime] = useState('۰۹:۰۰');
   const [endTime, setEndTime] = useState('۱۱:۳۰');
   const [location, setLocation] = useState('');

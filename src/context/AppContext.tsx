@@ -5,6 +5,7 @@ import { userService } from '../services/userService';
 import { loadLocalCollection, loadLocalValue, saveLocalCollection, saveLocalValue } from '../services/localStore';
 import { getPermissionLabel } from '../utils/permissionLabels';
 import { AUTO_REFRESH_INTERVAL_MS } from '../config/constants';
+import { getCurrentJalaliDate } from '../utils/date';
 
 export type AppRoute =
   | 'dashboard'
@@ -108,7 +109,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [allNotifications, setAllNotifications] = useState<AppNotification[]>(loadLocalCollection('notifications', mockNotifications));
   const [toasts, setToasts] = useState<ToastInfo[]>([]);
   const [isCreateMeetingOpen, setIsCreateMeetingOpen] = useState<boolean>(false);
-  const [createMeetingInitialDate, setCreateMeetingInitialDate] = useState<string>('۱۴۰۳/۰۷/۰۵');
+  const [createMeetingInitialDate, setCreateMeetingInitialDate] = useState<string>(getCurrentJalaliDate);
   const [isAiAssistantOpen, setIsAiAssistantOpen] = useState<boolean>(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
   const [appTheme, setAppThemeState] = useState<AppTheme>('glass');
@@ -266,9 +267,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const openCreateMeetingModal = (defaultDate?: string) => {
-    if (defaultDate) {
-      setCreateMeetingInitialDate(defaultDate);
-    }
+    setCreateMeetingInitialDate(defaultDate || getCurrentJalaliDate());
     setIsCreateMeetingOpen(true);
   };
 
