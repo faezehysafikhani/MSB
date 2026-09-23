@@ -1,540 +1,170 @@
-import React, { useState } from 'react';
-import { 
-  BookOpen, 
-  ChevronRight, 
-  ChevronLeft, 
-  Layers, 
-  Calendar, 
-  FileCheck2, 
-  CheckSquare, 
-  ShieldCheck, 
-  BarChart3, 
-  Sparkles, 
-  CheckCircle2, 
-  ArrowLeft,
-  ArrowRight,
-  Info,
-  Lightbulb,
-  Building2,
-  Users,
-  Printer,
-  Play,
-  RotateCcw,
-  Palette
-} from 'lucide-react';
-import { useApp, AppRoute } from '../../context/AppContext';
+import React, { useMemo, useState } from 'react';
+import { AlertCircle, ArrowLeft, BookOpen, CircleHelp, Info, ListChecks, MousePointerClick, Search, Tags, X } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 import { toPersianDigits } from '../../utils/formatters';
+import { COMMON_ERRORS, GUIDE_ROLES, GUIDE_TOPICS, GuideRole, STATUS_GLOSSARY } from './guideContent';
 
-interface GuideSlide {
-  id: number;
-  title: string;
-  subtitle: string;
-  badge: string;
-  icon: React.ElementType;
-  color: string;
-  targetRoute?: AppRoute;
-  actionTitle?: string;
-  steps: {
-    number: number;
-    title: string;
-    description: string;
-  }[];
-  keyTips: string[];
-  quickSummary: string;
-}
+const TONE: Record<string, string> = {
+  primary: 'dash-chip dash-chip-primary',
+  warning: 'dash-chip dash-chip-warning',
+  danger: 'dash-chip dash-chip-danger',
+  success: 'dash-chip bg-emerald-50 text-emerald-700 border-emerald-200',
+  neutral: 'dash-chip',
+};
 
-export const GUIDE_SLIDES: GuideSlide[] = [
-  {
-    id: 1,
-    title: 'معرفی جامع سامانه و جریان کاری کلان',
-    subtitle: 'آشنایی با ساختار یکپارچه مدیریت جلسات، پیگیری مصوبات و صحه‌گذاری سازمانی',
-    badge: 'بخش اول • ساختار کلی',
-    icon: Layers,
-    color: 'from-teal-800 to-slate-900',
-    targetRoute: 'dashboard',
-    actionTitle: 'مشاهده داشبورد مدیریتی',
-    quickSummary: 'این سامانه تمام چرخه حیات مصوبات سازمانی را از لحظه تشکیل جلسه تا صدور، ارجاع، اجرای تکالیف، صحه‌گذاری و گزارش‌گیری تحت پوشش قرار می‌دهد.',
-    steps: [
-      {
-        number: 1,
-        title: 'برگزاری و اداره جلسات',
-        description: 'ثبت جزئیات زمان، مکان، اعضای حاضر و بندهای دستور جلسه در یک محیط استاندارد.'
-      },
-      {
-        number: 2,
-        title: 'تصویب و ابلاغ مستقیم مصوبات',
-        description: 'امکان صدور مستقیم مصوبه از کنار هر بند دستور جلسه همراه با تعیین مسئول و مهلت.'
-      },
-      {
-        number: 3,
-        title: 'پیگیری در کارتابل وظایف',
-        description: 'انعکاس آنی مصوبات در کارتابل مسئولان مجری جهت ثبت گزارش اقدامات و پیوست اسناد.'
-      },
-      {
-        number: 4,
-        title: 'صحه‌گذاری و خاتمه هوشمند',
-        description: 'تاییدات چندمرحله‌ای توسط مدیران و تغییر خودکار وضعیت مصوبه به خاتمه‌یافته.'
-      }
-    ],
-    keyTips: [
-      'داشبورد مدیریتی خلاصه وضعیت آماری، مصوبات فوری و جلسات پیش‌رو را به صورت زنده نمایش می‌دهد.',
-      'نقش کاربری شما تعیین‌کننده دسترسی به منوها، کارتابل‌ها و امکان تایید مصوبات است.'
-    ]
-  },
-  {
-    id: 2,
-    title: 'مدیریت جلسات و صدور مستقیم مصوبه',
-    subtitle: 'راهنمای ثبت دستور کار، دعوت اعضا و ارتباط مصوبات با مذاکرات جلسه',
-    badge: 'بخش دوم • جلسات',
-    icon: Calendar,
-    color: 'from-blue-800 to-indigo-900',
-    targetRoute: 'meetings',
-    actionTitle: 'ورود به بخش مدیریت جلسات',
-    quickSummary: 'در صفحه جزئیات هر جلسه، تب پیش‌فرض به «دستور جلسه و مذاکرات» اختصاص دارد و دکمه اختصاصی برای صدور مصوبه تعبیه شده است.',
-    steps: [
-      {
-        number: 1,
-        title: 'ایجاد جلسه و تقویم هوشمند',
-        description: 'روی روز مورد نظر در تقویم کلیک کنید تا فرم جلسه جدید با همان تاریخ باز شود.'
-      },
-      {
-        number: 2,
-        title: 'تعریف بندهای دستور کار',
-        description: 'عناوین دستور جلسه، ارائه‌دهندگان و زمان تخصیص‌یافته را مشخص فرمایید.'
-      },
-      {
-        number: 3,
-        title: 'ثبت مصوبه متناظر با هر بند',
-        description: 'با زدن دکمه «ثبت مصوبه برای این بند»، عنوان و اطلاعات جلسه به صورت خودکار قفل و بارگذاری می‌شود.'
-      },
-      {
-        number: 4,
-        title: 'چاپ صورتجلسه رسمی',
-        description: 'با یک کلیک در بالای صفحه، پیش‌نمایش چاپی رسمی با جدول مصوبات و محل امضاها تولید می‌شود.'
-      }
-    ],
-    keyTips: [
-      'امکان ثبت چندین مصوبه مجزا برای یک بند دستور جلسه وجود دارد.',
-      'وضعیت حضور و غیاب اعضا در تب اعضا ثبت و در صورتجلسه چاپی درج می‌گردد.'
-    ]
-  },
-  {
-    id: 3,
-    title: 'صدور، ابلاغ و ارجاع مصوبات سازمانی',
-    subtitle: 'نحوه تخصیص مسئول اصلی، مهلت اقدام و کنترل واحد سازمانی مجری',
-    badge: 'بخش سوم • مصوبات',
-    icon: FileCheck2,
-    color: 'from-emerald-800 to-teal-950',
-    targetRoute: 'resolutions',
-    actionTitle: 'مشاهده بانک مصوبات',
-    quickSummary: 'هنگام ثبت مصوبه، با انتخاب شخص مسئول، واحد سازمانی او به صورت خودکار شناسایی و قفل می‌گردد تا از خطای ارجاع جلوگیری شود.',
-    steps: [
-      {
-        number: 1,
-        title: 'تعیین وضعیت تصویب',
-        description: 'مصوب و ابلاغ جهت اجرا، مصوب مشروط، یا ارجاع مجدد جهت اصلاح.'
-      },
-      {
-        number: 2,
-        title: 'تخصیص مسئول اصلی (Assignee)',
-        description: 'انتخاب فرد مجری که بلافاصله واحد سازمانی او به عنوان مجری در فرم تکمیل و قفل می‌شود.'
-      },
-      {
-        number: 3,
-        title: 'تعیین تاریخ ابلاغ و مهلت اقدام',
-        description: 'انتخاب روزهای شمسی از تقویم جلالی و تعیین سطح اولویت (عادی، متوسط، مهم، حیاتی).'
-      },
-      {
-        number: 4,
-        title: 'تنظیم زنجیره صحه‌گذاری',
-        description: 'تعیین ترتیب و افراد تاییدکننده نهایی که پس از پایان کار توسط مجری باید کار را بررسی کنند.'
-      }
-    ],
-    keyTips: [
-      'مصوبات با اولویت حیاتی (Critical) در پیشخوان با برچسب هشدار قرمز تفکیک می‌شوند.',
-      'تمامی سوابق تغییرات و تاییدات در تاریخچه مصوبه به صورت غیرقابل تغییر ثبت می‌گردد.'
-    ]
-  },
-  {
-    id: 4,
-    title: 'کارتابل وظایف من و ثبت گزارش اقدامات',
-    subtitle: 'راهنمای مجریان مصوبات برای بروزرسانی پیشرفت و ارسال برای صحه‌گذاری',
-    badge: 'بخش چهارم • وظایف',
-    icon: CheckSquare,
-    color: 'from-amber-800 to-slate-900',
-    targetRoute: 'tasks',
-    actionTitle: 'مشاهده وظایف ارجاعی من',
-    quickSummary: 'منوی «وظایف ارجاعی من» برای کلیه کاربران سازمان فعال است تا تکالیف و وظایف خود را مستقیماً مشاهده و پیگیری نمایند.',
-    steps: [
-      {
-        number: 1,
-        title: 'جستجو و فیلتر وظایف',
-        description: 'دکمه «جستجو و فیلتر» را باز کنید و وظایف را بر اساس عنوان، شماره ارجاع یا وضعیت نمایش دهید.'
-      },
-      {
-        number: 2,
-        title: 'مشاهده جزئیات وظیفه',
-        description: 'با انتخاب کارت یا ردیف وظیفه، پرونده مصوبه، مهلت اقدام، اولویت و دستور اجرای آن را بررسی کنید.'
-      },
-      {
-        number: 3,
-        title: 'ثبت گزارش اتمام',
-        description: 'برای وظایف فعال، «ثبت اتمام وظیفه» را بزنید و شرح کامل اقدامات انجام‌شده را وارد کنید.'
-      },
-      {
-        number: 4,
-        title: 'ارسال خودکار برای صحه‌گذاری',
-        description: 'پس از ثبت اتمام، وظایف نیازمند تایید به‌صورت خودکار وارد کارتابل صحه‌گذار مرحله اول می‌شوند.'
-      }
-    ],
-    keyTips: [
-      'در حالت جدولی می‌توانید تعداد بیشتری از وظایف را فشرده و سریع مرور کنید.',
-      'خروجی PDF بر اساس نتایج فیلترشده فعلی ساخته می‌شود.'
-    ]
-  },
-  {
-    id: 5,
-    title: 'کارتابل صحه‌گذاری و زنجیره تاییدات',
-    subtitle: 'فرآیند اعتبارسنجی کیفی و فنی مصوبات توسط مدیران و مراجع ذی‌صلاح',
-    badge: 'بخش پنجم • صحه‌گذاری',
-    icon: ShieldCheck,
-    color: 'from-purple-800 to-slate-900',
-    targetRoute: 'approvals',
-    actionTitle: 'ورود به کارتابل صحه‌گذاری',
-    quickSummary: 'مکانیزم صحه‌گذاری تضمین می‌کند که هیچ مصوبه‌ای بدون تایید مدیران مربوطه به عنوان «خاتمه‌یافته» ثبت نشود.',
-    steps: [
-      {
-        number: 1,
-        title: 'ورود به کارتابل تاییدات',
-        description: 'مشاهده مصوباتی که اجرای آنها توسط مجری پایان یافته و منتظر تایید شما هستند.'
-      },
-      {
-        number: 2,
-        title: 'بررسی گزارش و مستندات',
-        description: 'مطالعه شرح اقدامات مجری و فایل‌های پیوست‌شده تحویل کار.'
-      },
-      {
-        number: 3,
-        title: 'تایید مرحله یا ارجاع جهت اصلاح',
-        description: 'در صورت تایید، کار به مرحله بعد می‌رود؛ در صورت رد، با ثبت علت به کارتابل مجری بازمی‌گردد.'
-      },
-      {
-        number: 4,
-        title: 'تغییر خودکار وضعیت به خاتمه‌یافته',
-        description: 'با تایید آخرین صحه‌گذار، وضعیت مصوبه در کل سامانه به عنوان خاتمه‌یافته قطعی ثبت می‌شود.'
-      }
-    ],
-    keyTips: [
-      'صحه‌گذاری می‌تواند به صورت ترتیبی (پله‌ای) یا موازی (همزمان) پیکربندی شود.',
-      'امکان ثبت یادداشت‌های محرمانه و نظرات تکمیلی در هر مرحله وجود دارد.'
-    ]
-  },
-  {
-    id: 6,
-    title: 'گزارش‌های عملکردی و داشبوردها',
-    subtitle: 'پایش نرخ تحقق مصوبات، رتبه‌بندی واحدها و خروجی‌های آماری استاندارد',
-    badge: 'بخش ششم • گزارشات',
-    icon: BarChart3,
-    color: 'from-cyan-900 to-slate-900',
-    targetRoute: 'reports',
-    actionTitle: 'مشاهده گزارش‌های عملکردی',
-    quickSummary: 'گزارش‌های جامع آماری به مدیران ارشد امکان می‌دهد تا عملکرد هر اداره کل را در انجام به موقع تکالیف ارزیابی کنند.',
-    steps: [
-      {
-        number: 1,
-        title: 'شاخص‌های کلیدی (KPIs)',
-        description: 'بررسی نرخ کل تحقق مصوبات، تعداد مصوبات در جریان و مصوبات با تاخیر.'
-      },
-      {
-        number: 2,
-        title: 'تحلیل عملکرد به تفکیک واحدها',
-        description: 'مقایسه سرعت و کیفیت اجرای وظایف میان ادارات کل و معاونت‌ها.'
-      },
-      {
-        number: 3,
-        title: 'خروجی PDF فهرست‌ها',
-        description: 'از صفحات جلسات، بانک مصوبات، وظایف و صحه‌گذاری خروجی PDF متناسب با نتایج جاری دریافت کنید.'
-      },
-      {
-        number: 4,
-        title: 'فیلترهای پیشرفته زمانی',
-        description: 'فیلتر بر اساس بازه‌های زمانی شمسی، نوع جلسه، اولویت و وضعیت اقدام.'
-      }
-    ],
-    keyTips: [
-      'واحدهایی که مصوبات با تاخیر بیش از ۱۵ روز دارند به صورت خودکار در گزارش ممیزی نشان‌دار می‌شوند.',
-      'نمودارهای آماری به صورت تعاملی امکان کلیک و بررسی پرونده‌های زیرمجموعه را دارند.'
-    ]
-  },
-  {
-    id: 7,
-    title: 'دستیار هوشمند مدیریت مصوبات (AI Assistant)',
-    subtitle: 'پرسش و پاسخ زنده، فهرست‌های صفحه‌بندی‌شده و نمودارهای تحلیلی سامانه',
-    badge: 'بخش هفتم • هوش مصنوعی',
-    icon: Sparkles,
-    color: 'from-teal-900 via-emerald-900 to-slate-950',
-    actionTitle: 'گفتگو با دستیار هوشمند',
-    quickSummary: 'دستیار هوشمند با پردازش زبان طبیعی قادر است سوالات شما را در خصوص جلسات و مصوبات پاسخ دهد و لیست‌ها و نمودارها را فوراً رسم کند.',
-    steps: [
-      {
-        number: 1,
-        title: 'درخواست اطلاعات سامانه با زبان طبیعی',
-        description: 'می‌توانید فهرست جلسات، مصوبات، وظایف یا تاییدها را با عبارت‌های طبیعی درخواست کنید.'
-      },
-      {
-        number: 2,
-        title: 'درخواست نمودار تحلیلی',
-        description: 'با پیام «نمودار وضعیت مصوبات رو نشون بده»، نمودار تعاملی داخل چت ترسیم می‌شود.'
-      },
-      {
-        number: 3,
-        title: 'استعلام وظایف و تاخیرها',
-        description: 'سوالاتی مانند «چه مصوباتی تاخیر دارند؟» یا «وظایف من چیست؟» را فوراً پاسخ می‌دهد.'
-      },
-      {
-        number: 4,
-        title: 'مشاهده همه نتایج',
-        description: 'نتایج طولانی به‌صورت مرحله‌ای نمایش داده می‌شوند و دکمه «نمایش موارد بیشتر» دسترسی به کل داده‌ها را فراهم می‌کند.'
-      }
-    ],
-    keyTips: [
-      'دکمه شناور دستیار هوشمند در پایین صفحه سمت چپ همواره در دسترس است.',
-      'روی نتایج جلسات، مصوبات، وظایف و تاییدها کلیک کنید تا صفحه یا پرونده مرتبط باز شود.'
-    ]
-  },
-  {
-    id: 8,
-    title: 'تم‌ها، جستجو و شیوه نمایش فهرست‌ها',
-    subtitle: 'راهنمای انتخاب ظاهر سامانه، باز کردن فیلترها و دریافت خروجی PDF',
-    badge: 'بخش هشتم • امکانات عمومی',
-    icon: Palette,
-    color: 'from-fuchsia-800 to-purple-950',
-    quickSummary: 'ظاهر سامانه و شیوه نمایش فهرست‌ها قابل انتخاب است و تنظیم تم انتخاب‌شده برای دفعات بعدی ذخیره می‌شود.',
-    steps: [
-      {
-        number: 1,
-        title: 'انتخاب تم سامانه',
-        description: 'از دکمه پالت در هدر، تم سازمانی، آبی شیشه‌ای یا تیره را انتخاب کنید.'
-      },
-      {
-        number: 2,
-        title: 'باز کردن جستجو و فیلترها',
-        description: 'در صفحات فهرست روی «جستجو و فیلتر» بزنید تا ردیف جستجو و فیلترهای همان صفحه باز شود.'
-      },
-      {
-        number: 3,
-        title: 'تغییر نمایش کارتی و جدولی',
-        description: 'در مدیریت جلسات، بانک مصوبات، وظایف و صحه‌گذاری بین نمای کارتی و جدول فشرده جابه‌جا شوید.'
-      },
-      {
-        number: 4,
-        title: 'ذخیره خروجی PDF',
-        description: 'دکمه «خروجی PDF» پنجره چاپ را باز می‌کند؛ مقصد را روی Save as PDF قرار دهید و فایل را ذخیره کنید.'
-      }
-    ],
-    keyTips: [
-      'جستجو و فیلتر فقط نتایج همان صفحه را تغییر می‌دهد و با بستن ردیف فیلتر، مقادیر انتخاب‌شده حفظ می‌شوند.',
-      'تاریخ و ساعت جاری همیشه در سمت چپ هدر نمایش داده می‌شود.'
-    ]
-  }
-];
+const normalize = (value: string) => value.replace(/[يى]/g, 'ی').replace(/ك/g, 'ک').replace(/‌/g, ' ').toLowerCase();
+
+/** نقش پیش‌فرض راهنما بر اساس نقش کاربر فعلی. */
+const roleForUser = (role: string, permissions: string[] = []): GuideRole => {
+  if (role === 'ADMIN') return 'ADMIN';
+  if (role === 'SECRETARY') return 'OFFICE';
+  if (role === 'CEO' || role === 'DEPT_MANAGER') return 'MANAGER';
+  if (role === 'AUDITOR') return 'VERIFIER';
+  if (role === 'EXPERT_ASSIGNEE') return permissions.includes('SUBMIT_TASK_COMPLETION') || permissions.includes('VIEW_TASKS') ? 'ASSIGNEE' : 'STAFF';
+  return 'ALL';
+};
 
 export const UserGuideView: React.FC = () => {
-  const { navigateTo, setIsAiAssistantOpen } = useApp();
-  const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0);
+  const { navigateTo, currentUser } = useApp();
+  const [query, setQuery] = useState('');
+  const [role, setRole] = useState<GuideRole>('ALL');
+  const suggestedRole = roleForUser(currentUser.role, currentUser.permissions);
 
-  const currentSlide = GUIDE_SLIDES[currentSlideIndex];
-  const IconComponent = currentSlide.icon;
+  const topics = useMemo(() => {
+    const q = normalize(query.trim());
+    return GUIDE_TOPICS.filter((t) => (role === 'ALL' || t.roles.includes(role) || t.roles.includes('ALL')))
+      .filter((t) => !q || normalize([t.title, t.summary, t.section, ...(t.steps || []), ...(t.tips || []), t.menu || '', t.note || ''].join(' ')).includes(q));
+  }, [query, role]);
 
-  const handleNext = () => {
-    if (currentSlideIndex < GUIDE_SLIDES.length - 1) {
-      setCurrentSlideIndex((prev) => prev + 1);
-    }
-  };
+  const sections = useMemo(() => {
+    const map = new Map<string, typeof topics>();
+    topics.forEach((t) => map.set(t.section, [...(map.get(t.section) || []), t]));
+    return [...map.entries()];
+  }, [topics]);
 
-  const handlePrev = () => {
-    if (currentSlideIndex > 0) {
-      setCurrentSlideIndex((prev) => prev - 1);
-    }
-  };
+  const q = normalize(query.trim());
+  const showGlossary = !q || normalize(STATUS_GLOSSARY.map((g) => g.items.map((i) => `${i.label} ${i.meaning}`).join(' ')).join(' ') + ' وضعیت').includes(q);
+  const showErrors = !q || normalize(COMMON_ERRORS.map((e) => `${e.problem} ${e.solution}`).join(' ') + ' خطا مشکل').includes(q);
 
-  const handleActionClick = () => {
-    if (currentSlide.id === 7) {
-      setIsAiAssistantOpen(true);
-    } else if (currentSlide.targetRoute) {
-      navigateTo(currentSlide.targetRoute);
-    }
-  };
+  const scrollTo = (id: string) => document.getElementById(`guide-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   return (
-    <div className="space-y-4 pb-12">
-      {/* Top Banner Header */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 shadow-xs border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="p-3 rounded-2xl bg-teal-800 text-white shadow-sm">
-            <BookOpen className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
-              راهنمای جامع کاربری و فرآیندهای سامانه
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-              مجموعه اسلایدهای آموزشی تعاملی برای آشنایی با امکانات جلسات، مصوبات، کارتابل و هوش مصنوعی
-            </p>
+    <div className="space-y-5">
+      <section className="dash-hero">
+        <div className="relative z-10">
+          <span className="dash-hero-badge"><BookOpen className="h-3.5 w-3.5" />راهنمای کاربری</span>
+          <h2 className="mt-3 text-xl font-black text-white">هر کار، در چند گام کوتاه</h2>
+          <p className="mt-1 max-w-2xl text-[12.5px] leading-7 text-blue-50/90">موضوع را جستجو کنید یا نقش خود را انتخاب کنید. برای هر کار، مراحل، منوی مرتبط و دکمه ورود مستقیم آمده است.</p>
+          <div className="relative mt-4 max-w-xl">
+            <Search className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="مثلاً: ابلاغ، امضا، گزارش پیشرفت، جانشین…"
+              aria-label="جستجو در راهنما"
+              className="w-full rounded-2xl border-0 bg-white py-3 pr-10 pl-10 text-[13px] text-slate-800 shadow-lg outline-none ring-2 ring-white/40 focus:ring-4 focus:ring-sky-300/60"
+            />
+            {query && <button onClick={() => setQuery('')} className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100" aria-label="پاک کردن جستجو"><X className="h-4 w-4" /></button>}
           </div>
         </div>
+      </section>
 
-        {/* Quick Navigation Slider Controls */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handlePrev}
-            disabled={currentSlideIndex === 0}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer flex items-center gap-1 text-xs font-bold"
-            title="اسلاید قبل"
-          >
-            <ChevronRight className="w-4 h-4" />
-            <span className="hidden sm:inline">قبلی</span>
-          </button>
-
-          <span className="text-xs font-extrabold text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950 px-3 py-1.5 rounded-xl border border-teal-200 dark:border-teal-800">
-            اسلاید {toPersianDigits(currentSlideIndex + 1)} از {toPersianDigits(GUIDE_SLIDES.length)}
-          </span>
-
-          <button
-            onClick={handleNext}
-            disabled={currentSlideIndex === GUIDE_SLIDES.length - 1}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer flex items-center gap-1 text-xs font-bold"
-            title="اسلاید بعد"
-          >
-            <span className="hidden sm:inline">بعدی</span>
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Slide Navigation Pills / Topics Bar */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-1.5 shadow-xs gap-1.5 overflow-x-auto">
-        {GUIDE_SLIDES.map((slide, idx) => (
-          <button
-            key={slide.id}
-            onClick={() => setCurrentSlideIndex(idx)}
-            className={`flex items-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
-              currentSlideIndex === idx
-                ? 'bg-teal-800 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <span className="w-4 h-4 rounded-full bg-black/20 flex items-center justify-center text-[10px]">
-              {toPersianDigits(idx + 1)}
-            </span>
-            <span>{slide.title.split(' ')[0]} {slide.title.split(' ')[1] || ''}</span>
+      <div className="app-tabs" role="tablist" aria-label="نقش">
+        {GUIDE_ROLES.map((r) => (
+          <button key={r.id} role="tab" aria-selected={role === r.id} onClick={() => setRole(r.id)} className="app-tab">
+            {r.label}{r.id === suggestedRole && r.id !== 'ALL' && <span className="rounded-full bg-blue-100 px-1.5 text-[9px] text-blue-800">نقش شما</span>}
           </button>
         ))}
       </div>
 
-      {/* Active Slide Main Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden space-y-6">
-        {/* Slide Hero Header */}
-        <div className={`p-6 sm:p-8 bg-gradient-to-r ${currentSlide.color} text-white space-y-3`}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="text-[11px] font-bold bg-white/20 px-3 py-1 rounded-full backdrop-blur-xs">
-              {currentSlide.badge}
-            </span>
-            <span className="text-xs text-white/80 font-mono">
-              Step {currentSlideIndex + 1}/{GUIDE_SLIDES.length}
-            </span>
-          </div>
+      <div className="grid gap-5 lg:grid-cols-[15rem_1fr]">
+        {/* فهرست موضوعی */}
+        <nav className="dash-card h-fit lg:sticky lg:top-4 hidden lg:block" aria-label="فهرست موضوعی">
+          <p className="mb-2 flex items-center gap-1.5 text-[11px] font-extrabold text-slate-500"><ListChecks className="h-3.5 w-3.5" />فهرست موضوعی</p>
+          <ul className="space-y-3">
+            {sections.map(([section, items]) => (
+              <li key={section}>
+                <p className="text-[11px] font-black text-[var(--app-primary)]">{section}</p>
+                <ul className="mt-1 space-y-0.5 border-r-2 border-blue-100 pr-2">
+                  {items.map((t) => <li key={t.id}><button onClick={() => scrollTo(t.id)} className="w-full rounded-lg px-2 py-1 text-right text-[11.5px] font-bold text-slate-600 hover:bg-blue-50 hover:text-slate-900">{t.title}</button></li>)}
+                </ul>
+              </li>
+            ))}
+            {showGlossary && <li><button onClick={() => scrollTo('statuses')} className="text-[11px] font-black text-[var(--app-primary)]">معنی وضعیت‌ها</button></li>}
+            {showErrors && <li><button onClick={() => scrollTo('errors')} className="text-[11px] font-black text-[var(--app-primary)]">مشکلات رایج</button></li>}
+          </ul>
+        </nav>
 
-          <div className="flex items-start gap-4">
-            <div className="p-3 rounded-2xl bg-white/10 text-white backdrop-blur-xs shrink-0 hidden sm:block">
-              <IconComponent className="w-7 h-7" />
-            </div>
-            <div className="space-y-1">
-              <h2 className="text-lg sm:text-2xl font-black tracking-tight">{currentSlide.title}</h2>
-              <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">{currentSlide.subtitle}</p>
-            </div>
-          </div>
+        <div className="min-w-0 space-y-6">
+          {sections.length === 0 && !showGlossary && !showErrors && (
+            <div className="dash-card text-center"><CircleHelp className="mx-auto h-8 w-8 text-slate-300" /><p className="mt-2 text-sm font-bold text-slate-700">موضوعی با «{query}» پیدا نشد.</p><p className="mt-1 text-xs text-slate-500">واژه دیگری امتحان کنید یا نقش «همه» را انتخاب کنید.</p></div>
+          )}
 
-          {/* Quick Summary Pill */}
-          <div className="p-3.5 bg-black/20 rounded-2xl border border-white/10 text-xs text-teal-100 leading-relaxed flex items-center gap-2.5">
-            <Lightbulb className="w-5 h-5 text-amber-300 shrink-0" />
-            <span>{currentSlide.quickSummary}</span>
-          </div>
-        </div>
+          {sections.map(([section, items]) => (
+            <section key={section} className="space-y-3">
+              <h3 className="flex items-center gap-2 text-[13px] font-black text-slate-800"><span className="h-4 w-1.5 rounded-full bg-gradient-to-b from-sky-400 to-blue-700" />{section}<span className="text-[11px] font-bold text-slate-400">({toPersianDigits(items.length)})</span></h3>
+              <div className="grid gap-3 xl:grid-cols-2">
+                {items.map((t) => (
+                  <article key={t.id} id={`guide-${t.id}`} className="dash-card scroll-mt-4 flex flex-col">
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="text-[14px] font-black text-slate-900">{t.title}</h4>
+                      <div className="flex flex-wrap justify-end gap-1">{t.roles.filter((r) => r !== 'ALL').map((r) => <span key={r} className="dash-chip dash-chip-primary">{GUIDE_ROLES.find((x) => x.id === r)?.label}</span>)}</div>
+                    </div>
+                    <p className="mt-1.5 text-[12px] leading-7 text-slate-600">{t.summary}</p>
+                    {t.steps && (
+                      <ol className="mt-3 space-y-1.5">
+                        {t.steps.map((step, i) => (
+                          <li key={i} className="flex gap-2.5 text-[12px] leading-6 text-slate-700">
+                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[10px] font-black text-[var(--app-primary)] ring-1 ring-blue-100">{toPersianDigits(i + 1)}</span>
+                            <span>{step}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                    {t.tips && t.tips.map((tip) => <p key={tip} className="mt-2.5 flex gap-2 rounded-xl bg-blue-50/60 px-3 py-2 text-[11.5px] leading-6 text-slate-700"><Info className="mt-1 h-3.5 w-3.5 shrink-0 text-[var(--app-primary)]" />{tip}</p>)}
+                    {t.note && <p className="mt-2.5 flex gap-2 rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-[11.5px] leading-6 text-amber-900"><AlertCircle className="mt-1 h-3.5 w-3.5 shrink-0" />{t.note}</p>}
+                    {(t.menu || t.route) && (
+                      <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3">
+                        {t.menu ? <span className="flex items-center gap-1.5 text-[11px] text-slate-500"><MousePointerClick className="h-3.5 w-3.5" />{t.menu}</span> : <span />}
+                        {t.route && <button onClick={() => navigateTo(t.route!)} className="dash-link">ورود به بخش<ArrowLeft className="h-3.5 w-3.5" /></button>}
+                      </div>
+                    )}
+                  </article>
+                ))}
+              </div>
+            </section>
+          ))}
 
-        {/* Slide Body: Steps Grid */}
-        <div className="p-6 sm:p-8 space-y-6 pt-0">
-          <div>
-            <h3 className="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
-              <span className="w-2 h-2 rounded-full bg-teal-600"></span>
-              مراحل و گام‌های عملیاتی
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {currentSlide.steps.map((step) => (
-                <div
-                  key={step.number}
-                  className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 space-y-2 hover:border-teal-400 dark:hover:border-teal-600 transition-colors"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-6 h-6 rounded-full bg-teal-800 text-white text-xs font-black flex items-center justify-center shadow-xs shrink-0">
-                      {toPersianDigits(step.number)}
-                    </span>
-                    <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">{step.title}</h4>
+          {showGlossary && (
+            <section id="guide-statuses" className="dash-card scroll-mt-4">
+              <h3 className="flex items-center gap-2 text-[13px] font-black text-slate-800"><Tags className="h-4 w-4 text-[var(--app-primary)]" />معنی وضعیت‌های اصلی</h3>
+              <div className="mt-3 grid gap-4 xl:grid-cols-2">
+                {STATUS_GLOSSARY.map((g) => (
+                  <div key={g.group}>
+                    <p className="mb-2 text-[11px] font-extrabold text-slate-500">{g.group}</p>
+                    <ul className="space-y-1.5">
+                      {g.items.map((i) => <li key={i.label} className="flex flex-wrap items-center gap-2 text-[11.5px] leading-6"><span className={TONE[i.tone]}>{i.label}</span><span className="text-slate-600">{i.meaning}</span></li>)}
+                    </ul>
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed pr-8">
-                    {step.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
+                ))}
+              </div>
+            </section>
+          )}
 
-          {/* Key Tips & Practical Advice */}
-          <div className="p-4 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 rounded-2xl space-y-2.5">
-            <div className="flex items-center gap-2 text-xs font-extrabold text-amber-900 dark:text-amber-300">
-              <Info className="w-4 h-4" />
-              <span>نکات کلیدی و کاربردی برای این بخش:</span>
-            </div>
-            <ul className="space-y-1.5 text-xs text-amber-950 dark:text-amber-200/90 leading-relaxed list-disc list-inside">
-              {currentSlide.keyTips.map((tip, i) => (
-                <li key={i}>{tip}</li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Footer Action Bar inside slide */}
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handlePrev}
-                disabled={currentSlideIndex === 0}
-                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 text-xs font-bold transition-all cursor-pointer"
-              >
-                اسلاید قبلی
-              </button>
-
-              <button
-                onClick={handleNext}
-                disabled={currentSlideIndex === GUIDE_SLIDES.length - 1}
-                className="px-4 py-2 rounded-xl bg-teal-800 hover:bg-teal-700 text-white disabled:opacity-30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
-              >
-                <span>اسلاید بعدی</span>
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-            </div>
-
-            {currentSlide.actionTitle && (
-              <button
-                onClick={handleActionClick}
-                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-teal-700 dark:hover:bg-teal-600 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shadow-sm"
-              >
-                <IconComponent className="w-4 h-4" />
-                <span>{currentSlide.actionTitle}</span>
-                <ArrowLeft className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+          {showErrors && (
+            <section id="guide-errors" className="dash-card scroll-mt-4">
+              <h3 className="flex items-center gap-2 text-[13px] font-black text-slate-800"><CircleHelp className="h-4 w-4 text-[var(--app-primary)]" />مشکلات و خطاهای رایج</h3>
+              <div className="mt-3 divide-y divide-slate-100">
+                {COMMON_ERRORS.map((e) => (
+                  <details key={e.problem} className="group py-2.5">
+                    <summary className="cursor-pointer list-none text-[12.5px] font-bold text-slate-800 marker:hidden flex items-center justify-between gap-2">{e.problem}<span className="text-slate-400 transition group-open:rotate-45 text-lg leading-none">+</span></summary>
+                    <p className="mt-1.5 text-[12px] leading-7 text-slate-600">{e.solution}</p>
+                  </details>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </div>

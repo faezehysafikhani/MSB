@@ -10,3 +10,7 @@ export const addDaysToJalaliDate = (date: string, days: number): string => {
 
 export const formatJalaliFallback = (value?: string): string =>
   value ? toPersianDigits(value) : '—';
+
+/** ساعت جاری به‌صورت «۰۹:۳۰» برای ثبت رویدادها. */
+export const getCurrentTimeString = (): string =>
+  new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit', hour12: false });

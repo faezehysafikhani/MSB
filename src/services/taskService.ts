@@ -1,3 +1,4 @@
+import { getCurrentJalaliDate } from '../utils/date';
 import { Task, ApiResponse, ApiFilterParams, PagedResult, User, Attachment, ResolutionProgressReport } from '../types';
 import { mockTasks } from '../mock/data';
 import { apiClient } from './api/apiClient';
@@ -69,7 +70,7 @@ class MockTaskService implements ITaskService {
 
     const task = tasks[taskIndex];
     task.completionNotes = completionNotes;
-    task.completionDateJalali = '۱۴۰۳/۰۶/۲۸';
+    task.completionDateJalali = getCurrentJalaliDate();
     if (attachments) {
       task.attachments = [...task.attachments, ...attachments];
     }

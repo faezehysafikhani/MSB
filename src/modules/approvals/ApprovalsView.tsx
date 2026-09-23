@@ -14,6 +14,7 @@ import {
   X
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { FormHero } from '../../components/common/FormHero';
 import { approvalService } from '../../services/approvalService';
 import { ApprovalCartableItem } from '../../types';
 import { toPersianDigits } from '../../utils/formatters';
@@ -257,18 +258,11 @@ export const ApprovalsView: React.FC = () => {
       {activeItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-lg w-full p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-800">
-                {actionType === 'APPROVE' ? 'تایید مرحله صحه‌گذاری' : 'عدم تایید و بازگشت به مجری'}
-              </h3>
-              <button onClick={() => setActiveItem(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+            <FormHero icon={actionType === 'APPROVE' ? ShieldCheck : RotateCcw} title={actionType === 'APPROVE' ? 'تأیید مرحله صحه‌گذاری' : 'عدم تأیید و بازگشت به مجری'} subtitle={`مرحله ${toPersianDigits(activeItem.stepNumber)} از ${toPersianDigits(activeItem.totalSteps)} · ${activeItem.stepTitle}`} meta={[activeItem.resolutionNumber, `مجری: ${activeItem.responsibleName}`]} onClose={() => setActiveItem(null)} />
 
-            <div className="text-xs text-slate-600 space-y-1">
-              <div><strong>مصوبه:</strong> {activeItem.resolutionTitle}</div>
-              <div><strong>مجری:</strong> {activeItem.responsibleName}</div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-700 space-y-1.5">
+              <div className="font-extrabold text-slate-900">{activeItem.resolutionTitle}</div>
+              <div className="leading-6 text-slate-600">{activeItem.completionReport}</div>
             </div>
 
             <div>

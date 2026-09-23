@@ -1,3 +1,4 @@
+import { getCurrentJalaliDate, getCurrentTimeString } from '../utils/date';
 import {
   Resolution,
   ResolutionApprovalStatus,
@@ -286,7 +287,7 @@ class MockResolutionService implements IResolutionService {
       mainResponsibleName: isApproved ? dto.mainResponsibleName : undefined,
       responsibleDepartmentId: isApproved ? dto.responsibleDepartmentId : undefined,
       responsibleDepartmentName: isApproved ? dto.responsibleDepartmentName : undefined,
-      assignedDateJalali: isApproved ? (dto.assignedDateJalali || '۱۴۰۳/۰۶/۲۸') : undefined,
+      assignedDateJalali: isApproved ? (dto.assignedDateJalali || getCurrentJalaliDate()) : undefined,
       deadlineJalali: isApproved ? dto.deadlineJalali : undefined,
       priority: dto.priority || 'MEDIUM',
       executionStatus: isApproved ? 'PENDING_OFFICE_SIGNATURE' : 'NOT_STARTED',
@@ -314,8 +315,8 @@ class MockResolutionService implements IResolutionService {
       action: isApproved ? 'مصوبه تصویب شد' : 'ثبت نتیجه بررسی جلسه',
       actorName: 'دبیر شورای راهبری',
       actorRole: 'دبیرخانه جلسات',
-      timestampJalali: '۱۴۰۳/۰۶/۲۸',
-      timeString: '۱۱:۳۰',
+      timestampJalali: getCurrentJalaliDate(),
+      timeString: getCurrentTimeString(),
       details: isApproved ? 'نتیجه بررسی جلسه به‌عنوان مصوبه ثبت شد.' : `وضعیت بررسی: ${dto.approvalStatus}`,
       badgeColor: isApproved ? 'teal' : 'amber',
     });
@@ -327,8 +328,8 @@ class MockResolutionService implements IResolutionService {
         action: 'صورت‌جلسه مصوبه ایجاد شد',
         actorName: 'دبیر شورای راهبری',
         actorRole: 'دبیرخانه جلسات',
-        timestampJalali: '۱۴۰۳/۰۶/۲۸',
-        timeString: '۱۱:۳۰',
+        timestampJalali: getCurrentJalaliDate(),
+        timeString: getCurrentTimeString(),
         details: 'صورت‌جلسه رسمی برای امضای ترتیبی مسئول دفتر، مدیرعامل و ادمین ایجاد گردید.',
         badgeColor: 'blue',
       });
@@ -835,7 +836,7 @@ class MockResolutionService implements IResolutionService {
     const requiresVerif = res.verificationConfig?.requiresVerification && res.verificationConfig.steps.length > 0;
 
     res.completionNotes = completionNotes;
-    res.completionDateJalali = '۱۴۰۳/۰۶/۲۸';
+    res.completionDateJalali = getCurrentJalaliDate();
     if (attachments && attachments.length > 0) {
       res.attachments = [...res.attachments, ...attachments];
     }
@@ -855,8 +856,8 @@ class MockResolutionService implements IResolutionService {
         meetingTitle: res.meetingTitle,
         responsibleName: res.mainResponsibleName || 'مسئول اجرا',
         responsibleDepartment: res.responsibleDepartmentName || 'واحد اجرایی',
-        completedDateJalali: '۱۴۰۳/۰۶/۲۸',
-        submittedForApprovalDateJalali: '۱۴۰۳/۰۶/۲۸',
+        completedDateJalali: getCurrentJalaliDate(),
+        submittedForApprovalDateJalali: getCurrentJalaliDate(),
         stepNumber: 1,
         totalSteps: res.verificationConfig.steps.length,
         stepTitle: `صحه‌گذاری توسط ${firstStep.approverName}`,
@@ -874,8 +875,8 @@ class MockResolutionService implements IResolutionService {
         action: 'اعلام اتمام وظیفه و ارسال جهت صحه‌گذاری',
         actorName: res.mainResponsibleName || 'مسئول اجرا',
         actorRole: 'مجری مصوبه',
-        timestampJalali: '۱۴۰۳/۰۶/۲۸',
-        timeString: '۱۵:۴۰',
+        timestampJalali: getCurrentJalaliDate(),
+        timeString: getCurrentTimeString(),
         details: `گزارش تکمیل ثبت و به کارتابل ${firstStep.approverName} جهت صحه‌گذاری ارسال شد.`,
         badgeColor: 'purple',
       });
@@ -893,8 +894,8 @@ class MockResolutionService implements IResolutionService {
         action: 'اتمام وظیفه و خاتمه مستقیم مصوبه',
         actorName: res.mainResponsibleName || 'مسئول اجرا',
         actorRole: 'مجری مصوبه',
-        timestampJalali: '۱۴۰۳/۰۶/۲۸',
-        timeString: '۱۵:۴۰',
+        timestampJalali: getCurrentJalaliDate(),
+        timeString: getCurrentTimeString(),
         details: 'به دلیل عدم نیاز به صحه‌گذاری، مصوبه مستقیماً به وضعیت خاتمه یافته تغییر یافت.',
         badgeColor: 'teal',
       });
@@ -906,7 +907,7 @@ class MockResolutionService implements IResolutionService {
     if (task) {
       task.status = requiresVerif ? 'PENDING_APPROVAL' : 'CLOSED';
       task.completionNotes = completionNotes;
-      task.completionDateJalali = '۱۴۰۳/۰۶/۲۸';
+      task.completionDateJalali = getCurrentJalaliDate();
       if (!requiresVerif) task.progressPercent = 100;
       saveLocalCollection('tasks', tasks);
     }
@@ -927,7 +928,7 @@ class MockResolutionService implements IResolutionService {
     if (stepIndex !== -1) {
       res.verificationConfig.steps[stepIndex].status = 'APPROVED';
       res.verificationConfig.steps[stepIndex].comments = comments;
-      res.verificationConfig.steps[stepIndex].actionDateJalali = '۱۴۰۳/۰۶/۲۸';
+      res.verificationConfig.steps[stepIndex].actionDateJalali = getCurrentJalaliDate();
       res.verificationConfig.steps[stepIndex].actionTime = '۱۶:۲۰';
     }
 
@@ -942,8 +943,8 @@ class MockResolutionService implements IResolutionService {
       action: 'تایید نهایی صحه‌گذاری و مختومه شدن مصوبه',
       actorName: approverName,
       actorRole: 'تاییدکننده نهایی',
-      timestampJalali: '۱۴۰۳/۰۶/۲۸',
-      timeString: '۱۶:۲۰',
+      timestampJalali: getCurrentJalaliDate(),
+      timeString: getCurrentTimeString(),
       details: `با نظر: "${comments}" تایید شد و مصوبه رسماً خاتمه یافت.`,
       badgeColor: 'teal',
     });
@@ -978,7 +979,7 @@ class MockResolutionService implements IResolutionService {
     if (stepIndex !== -1) {
       res.verificationConfig.steps[stepIndex].status = 'REJECTED';
       res.verificationConfig.steps[stepIndex].comments = rejectionReason;
-      res.verificationConfig.steps[stepIndex].actionDateJalali = '۱۴۰۳/۰۶/۲۸';
+      res.verificationConfig.steps[stepIndex].actionDateJalali = getCurrentJalaliDate();
     }
 
     res.executionStatus = 'REJECTED_RETURNED';
@@ -990,8 +991,8 @@ class MockResolutionService implements IResolutionService {
       action: 'عدم تایید در صحه‌گذاری و برگشت به مجری',
       actorName: approverName,
       actorRole: 'تاییدکننده',
-      timestampJalali: '۱۴۰۳/۰۶/۲۸',
-      timeString: '۱۶:۳۰',
+      timestampJalali: getCurrentJalaliDate(),
+      timeString: getCurrentTimeString(),
       details: `علت بازگشت: ${rejectionReason}`,
       badgeColor: 'red',
     });

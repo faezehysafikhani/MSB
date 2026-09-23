@@ -43,7 +43,8 @@ export const Sidebar: React.FC = () => {
     toggleSidebar,
     currentUser,
     hasPermission,
-    refreshTrigger
+    refreshTrigger,
+    setIsSidebarCollapsed
   } = useApp();
 
   const [counts, setCounts] = useState({ meetings: 0, resolutions: 0, tasks: 0, approvals: 0, notifyPending: 0, noticeSignaturePending: 0, followUpPending: 0 });
@@ -188,24 +189,42 @@ export const Sidebar: React.FC = () => {
           title: 'گزارش عملکرد',
           icon: FileSpreadsheet,
         }] : []),
-        // «اینفوگراف» و «راهنمای کاربری سامانه» از منو برداشته شده‌اند و حالا
-        // داخل «تنظیمات» تب مستقل دارند؛ بنابراین این گزینه برای همه کاربران
-        // نمایش داده می‌شود. تب‌های مدیریتی درون خود Settings محدود می‌مانند.
-        ...(currentUser.role === 'ADMIN' || hasPermission('MANAGE_USERS') ? [{
+        // تنظیمات برای همه باز است (اینفوگراف، راهنمای کاربری و جانشین امضا)؛
+        // تب‌های مدیریتی داخل SettingsView فقط برای مدیر سیستم نمایش داده می‌شوند.
+        {
           route: 'settings' as AppRoute,
-          title: 'تنظیمات',
+          title: currentUser.role === 'ADMIN' || hasPermission('MANAGE_USERS') ? 'تنظیمات' : 'راهنما و تنظیمات',
           icon: Settings,
-        }] : []),
+        },
       ],
     },
   ];
 
   const navGroups = allNavGroups.filter((g) => g.items.length > 0);
 
+  // در موبایل منو یک کشوی روی صفحه است و به‌صورت پیش‌فرض بسته می‌ماند تا
+  // محتوای اصلی تمام عرض صفحه را داشته باشد.
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches);
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsMobile(query.matches);
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  useEffect(() => {
+    if (isMobile) setIsSidebarCollapsed(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile]);
+  const showLabels = isMobile || !isSidebarCollapsed;
+
+  if (isMobile && isSidebarCollapsed) return null;
+
   return (
+    <>
+    {isMobile && <div className="no-print fixed inset-0 top-[68px] z-40 bg-slate-950/40 backdrop-blur-[2px]" onClick={toggleSidebar} aria-hidden="true" />}
     <aside
-      className={`no-print app-surface bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-l border-slate-200 dark:border-slate-800 transition-[width] duration-300 ease-in-out flex flex-col justify-start shrink-0 z-30 h-screen sticky top-0 select-none shadow-xs relative ${
-        isSidebarCollapsed ? 'w-16' : 'w-64'
+      className={`no-print app-surface bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-l border-slate-200 dark:border-slate-800 transition-[width] duration-300 ease-in-out flex flex-col justify-start shrink-0 select-none ${
+        isMobile ? 'fixed right-0 top-[68px] bottom-0 z-50 w-72 shadow-2xl' : `z-30 h-full sticky top-0 shadow-xs relative ${isSidebarCollapsed ? 'w-16' : 'w-64'}`
       }`}
     >
       {/* Floating drawer handle — the primary, always-reachable way to
@@ -213,10 +232,10 @@ export const Sidebar: React.FC = () => {
           scrolls out of reach and reads as a deliberate "drawer" control. */}
       <button
         onClick={toggleSidebar}
-        title={isSidebarCollapsed ? 'باز کردن منو' : 'جمع کردن منو'}
-        className="group absolute top-6 -left-3 z-40 w-6 h-6 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md flex items-center justify-center text-slate-400 hover:text-white hover:bg-teal-700 hover:border-teal-700 dark:hover:bg-teal-600 dark:hover:border-teal-600 transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95"
+        title={!showLabels ? 'باز کردن منو' : 'جمع کردن منو'}
+        className="group absolute top-6 -left-3 z-40 w-6 h-6 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md hidden md:flex items-center justify-center text-slate-400 hover:text-white hover:bg-teal-700 hover:border-teal-700 dark:hover:bg-teal-600 dark:hover:border-teal-600 transition-all duration-200 cursor-pointer hover:scale-110 active:scale-95"
       >
-        {isSidebarCollapsed ? (
+        {!showLabels ? (
           <ChevronLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
         ) : (
           <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
@@ -225,9 +244,9 @@ export const Sidebar: React.FC = () => {
 
       {/* User Info Box - Placed at the very TOP, above "پیشخوان" (Dashboard) */}
       <div className="p-2.5 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-gradient-to-b from-slate-50/80 to-transparent dark:from-slate-800/40">
-        {!isSidebarCollapsed ? (
+        {showLabels ? (
           <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/60 flex items-center gap-2.5 shadow-2xs">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-600 to-teal-800 text-white flex items-center justify-center text-[10px] font-bold shrink-0 overflow-hidden shadow-xs ring-2 ring-white dark:ring-slate-800">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-900 text-white flex items-center justify-center text-[10px] font-bold shrink-0 overflow-hidden shadow-xs ring-2 ring-white dark:ring-slate-800">
               {currentUser.avatarUrl ? (
                 <img src={currentUser.avatarUrl} alt={currentUser.fullName} className="w-full h-full object-cover" />
               ) : (
@@ -241,7 +260,7 @@ export const Sidebar: React.FC = () => {
           </div>
         ) : (
           <div
-            className="w-9 h-9 mx-auto rounded-lg bg-gradient-to-br from-teal-600 to-teal-800 text-white flex items-center justify-center text-[10px] font-bold shadow-xs ring-2 ring-white dark:ring-slate-800 cursor-pointer overflow-hidden"
+            className="w-9 h-9 mx-auto rounded-lg bg-gradient-to-br from-blue-500 to-blue-900 text-white flex items-center justify-center text-[10px] font-bold shadow-xs ring-2 ring-white dark:ring-slate-800 cursor-pointer overflow-hidden"
             title={`${currentUser.fullName} - ${currentUser.title}`}
             onClick={toggleSidebar}
           >
@@ -261,7 +280,7 @@ export const Sidebar: React.FC = () => {
         {navGroups.map((group) => (
           <div key={group.id} className="space-y-0.5">
             {/* Group Header */}
-            {!isSidebarCollapsed ? (
+            {showLabels ? (
               <div className="px-2 pt-1 pb-1 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                 {group.title}
               </div>
@@ -285,6 +304,7 @@ export const Sidebar: React.FC = () => {
                         item.action();
                       } else {
                         navigateTo(item.route);
+                        if (isMobile) setIsSidebarCollapsed(true);
                       }
                     }}
                     title={item.title}
@@ -292,10 +312,10 @@ export const Sidebar: React.FC = () => {
                       isActive
                         ? 'app-nav-active text-white font-extrabold shadow-xs'
                         : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white font-bold hover:translate-x-[-2px]'
-                    } ${isSidebarCollapsed ? 'justify-center px-1 py-2' : ''}`}
+                    } ${!showLabels ? 'justify-center px-1 py-2' : ''}`}
                   >
                     {/* Active-item accent bar */}
-                    {isActive && !isSidebarCollapsed && (
+                    {isActive && showLabels && (
                       <span className="absolute right-0 top-1/2 -translate-y-1/2 h-4/5 w-1 rounded-full bg-white/70" />
                     )}
                     <div className="flex items-center gap-2 truncate">
@@ -304,12 +324,12 @@ export const Sidebar: React.FC = () => {
                           isActive ? 'text-white' : 'text-slate-400 dark:text-slate-400'
                         }`}
                       />
-                      {!isSidebarCollapsed && (
+                      {showLabels && (
                         <span className="truncate text-[12px] leading-5">{item.title}</span>
                       )}
                     </div>
 
-                    {!isSidebarCollapsed && item.badge !== undefined && item.badge > 0 && (
+                    {showLabels && item.badge !== undefined && item.badge > 0 && (
                       <span
                         className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full leading-tight ${
                           item.badgeColor || 'bg-teal-700 text-white'
@@ -320,7 +340,7 @@ export const Sidebar: React.FC = () => {
                     )}
 
                     {/* Collapsed-state badge dot (no room for a full pill) */}
-                    {isSidebarCollapsed && item.badge !== undefined && item.badge > 0 && (
+                    {!showLabels && item.badge !== undefined && item.badge > 0 && (
                       <span className="absolute top-1 left-1/2 translate-x-3 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
                     )}
                   </button>
@@ -331,5 +351,6 @@ export const Sidebar: React.FC = () => {
         ))}
       </div>
     </aside>
+    </>
   );
 };

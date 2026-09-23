@@ -83,18 +83,18 @@ export const WorkflowMapLauncher: React.FC = () => {
 
   return (
     <>
-      <div className="no-print fixed bottom-20 left-5 z-40">
+      <div className="no-print fixed bottom-[4.25rem] left-4 z-40">
         <button
           type="button"
           onClick={() => setIsOpen(true)}
           title="نقشه گردش کار"
           aria-label="نقشه گردش کار"
-          className="group flex items-center gap-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-100 font-bold text-xs py-2 px-3.5 rounded-full shadow-lg hover:shadow-xl border border-slate-200 dark:border-slate-600 hover:scale-105 transition-all cursor-pointer"
+          className="group flex items-center bg-white/95 dark:bg-slate-800 text-slate-700 dark:text-slate-100 font-bold text-xs p-1.5 rounded-full shadow-lg hover:shadow-xl border border-slate-200 dark:border-slate-600 transition-all cursor-pointer"
         >
-          <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 flex items-center justify-center">
-            <GitBranch className="w-3 h-3" />
+          <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-indigo-900 text-blue-700 dark:text-indigo-300 flex items-center justify-center">
+            <GitBranch className="w-4 h-4" />
           </div>
-          <span className="tracking-tight">نقشه گردش کار</span>
+          <span className="tracking-tight max-w-0 overflow-hidden whitespace-nowrap transition-all duration-200 group-hover:max-w-40 group-hover:px-2 group-focus-visible:max-w-40 group-focus-visible:px-2">نقشه گردش کار</span>
         </button>
       </div>
 

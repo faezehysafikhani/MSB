@@ -110,7 +110,7 @@ const AppContent: React.FC = () => {
         <Sidebar />
 
         {/* Main Content Area */}
-        <main className={`app-main flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6 bg-white dark:bg-slate-950 ${currentRoute === 'calendar' ? 'overflow-hidden' : ''}`}>
+        <main className={`app-main flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-6 bg-white dark:bg-slate-950 ${currentRoute === 'calendar' ? 'overflow-hidden' : ''}`}>
           <div className="max-w-7xl mx-auto h-full">
             {renderCurrentView()}
           </div>
@@ -118,16 +118,17 @@ const AppContent: React.FC = () => {
       </div>
 
       {/* Floating AI Assistant Trigger */}
-      <div className="no-print fixed bottom-5 left-5 z-40">
+      <div className="no-print fixed bottom-4 left-4 z-40">
         <button
           onClick={() => setIsAiAssistantOpen(true)}
-          className="group relative flex items-center gap-2 bg-slate-900 dark:bg-teal-800 text-white font-bold text-xs py-2 px-3.5 rounded-full shadow-lg hover:shadow-xl border border-slate-700 dark:border-teal-600 hover:scale-105 transition-all cursor-pointer"
+          title="دستیار هوشمند (چت)"
+          aria-label="دستیار هوشمند (چت)"
+          className="group relative flex items-center text-white font-bold text-xs p-1.5 rounded-full shadow-lg hover:shadow-xl border border-blue-900/40 transition-all cursor-pointer bg-gradient-to-br from-[#1d5fd1] to-[#0b2a5b]"
         >
-          <div className="w-5 h-5 rounded-full bg-teal-500 dark:bg-teal-400 flex items-center justify-center text-slate-950 font-bold shadow-xs">
-            <Sparkles className="w-3 h-3" />
+          <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center font-bold">
+            <Sparkles className="w-4 h-4" />
           </div>
-          <span className="tracking-tight text-slate-200">دستیار هوشمند (چت)</span>
-          <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span className="tracking-tight max-w-0 overflow-hidden whitespace-nowrap transition-all duration-200 group-hover:max-w-40 group-hover:px-2 group-focus-visible:max-w-40 group-focus-visible:px-2">دستیار هوشمند (چت)</span>
         </button>
       </div>
 

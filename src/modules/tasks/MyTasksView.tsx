@@ -16,6 +16,7 @@ import {
   X
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { FormHero } from '../../components/common/FormHero';
 import { taskService } from '../../services/taskService';
 import { Task, Attachment } from '../../types';
 import { toPersianDigits, getPriorityMeta, formatFileSize } from '../../utils/formatters';
@@ -306,13 +307,13 @@ export const MyTasksView: React.FC = () => {
       {/* Completion Modal */}
       {activeProgressTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-xl w-full p-5 space-y-4">
-            <div><h3 className="text-sm font-extrabold text-slate-800">ثبت گزارش پیشرفت: {activeProgressTask.resolutionNumber}</h3><p className="text-[11px] text-slate-500 mt-1">هر گزارش با نام شما، تاریخ و ساعت در سابقه مصوبه ذخیره می‌شود.</p></div>
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-xl w-full max-h-[92vh] overflow-y-auto p-5 space-y-4">
+            <FormHero icon={TrendingUp} title="ثبت گزارش پیشرفت" subtitle="هر گزارش با نام شما، تاریخ و ساعت در سابقه مصوبه ذخیره می‌شود." meta={[activeProgressTask.resolutionNumber, activeProgressTask.resolutionTitle, `مهلت ${toPersianDigits(activeProgressTask.deadlineJalali)}`]} onClose={() => setActiveProgressTask(null)} />
             <div><label className="text-xs font-bold text-slate-700">درصد پیشرفت: {toPersianDigits(progressPercent)}٪</label><input type="range" min="0" max="100" step="5" value={progressPercent} onChange={(e) => setProgressPercent(Number(e.target.value))} className="w-full accent-teal-700 mt-2" /></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label className="block text-xs font-bold text-slate-700 mb-1">وضعیت پیگیری</label><select value={progressStatus} onChange={(e) => setProgressStatus(e.target.value as typeof progressStatus)} className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl"><option value="IN_PROGRESS">در حال اقدام</option><option value="WAITING_RESPONSE">در انتظار پاسخ</option><option value="NEEDS_FOLLOW_UP">نیازمند پیگیری دبیرخانه</option><option value="OVERDUE">دارای تأخیر</option></select></div><div><label className="block text-xs font-bold text-slate-700 mb-1">مستندات</label><label className="flex items-center gap-2 text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer"><Paperclip className="w-4 h-4" /><span>{progressFiles.length ? `${toPersianDigits(progressFiles.length)} فایل انتخاب شد` : 'انتخاب فایل‌ها'}</span><input type="file" multiple className="hidden" onChange={(e) => setProgressFiles(Array.from(e.target.files || []))} /></label></div></div>
             <div><label className="block text-xs font-bold text-slate-700 mb-1">شرح آخرین اقدام *</label><textarea rows={3} value={progressAction} onChange={(e) => setProgressAction(e.target.value)} placeholder="اقدامات انجام‌شده از گزارش قبلی تا امروز" className="w-full text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl" /></div>
             <div><label className="block text-xs font-bold text-slate-700 mb-1">مشکلات و موانع</label><textarea rows={2} value={progressObstacles} onChange={(e) => setProgressObstacles(e.target.value)} placeholder="وابستگی‌ها، کمبود منابع یا پاسخ‌های در انتظار" className="w-full text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl" /></div>
-            <div className="flex justify-end gap-2"><button onClick={() => setActiveProgressTask(null)} className="px-4 py-2 text-xs font-bold text-slate-600">انصراف</button><button onClick={handleSubmitProgress} disabled={isSubmitting} className="px-5 py-2 bg-teal-700 text-white rounded-xl text-xs font-bold">{isSubmitting ? 'در حال ذخیره...' : 'ثبت گزارش پیشرفت'}</button></div>
+            <div className="flex justify-end gap-2"><button onClick={() => setActiveProgressTask(null)} className="app-btn-secondary">انصراف</button><button onClick={handleSubmitProgress} disabled={isSubmitting || !progressAction.trim()} aria-busy={isSubmitting} title={!progressAction.trim() ? 'شرح آخرین اقدام را وارد کنید' : undefined} className="app-btn-primary">{isSubmitting ? <><Clock className="w-4 h-4 animate-spin" />در حال ذخیره...</> : <><TrendingUp className="w-4 h-4" />ثبت گزارش پیشرفت</>}</button></div>
           </div>
         </div>
       )}
@@ -320,9 +321,7 @@ export const MyTasksView: React.FC = () => {
       {activeCompletingTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-lg w-full p-5 space-y-4">
-            <h3 className="text-sm font-bold text-slate-800">
-              ثبت گزارش اتمام وظیفه: {activeCompletingTask.resolutionNumber}
-            </h3>
+            <FormHero icon={CheckCircle2} title="ثبت گزارش اتمام وظیفه" subtitle={activeCompletingTask.requiresVerification ? 'پس از ثبت، مصوبه برای صحه‌گذاری ارسال می‌شود.' : 'پس از ثبت، مصوبه مختومه می‌شود.'} meta={[activeCompletingTask.resolutionNumber, activeCompletingTask.resolutionTitle]} onClose={() => setActiveCompletingTask(null)} />
 
             <p className="text-xs text-slate-600">
               لطفاً شرح اقدامات، دستاوردها و نتیجه اجرای این تکلیف سازمانی را وارد فرمایید:

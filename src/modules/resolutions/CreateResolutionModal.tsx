@@ -64,7 +64,7 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
   // the signature/ابلاغ/execution chain.
   const [followUpEnabled, setFollowUpEnabled] = useState(true);
   const [followUpType, setFollowUpType] = useState<ResolutionFollowUpType>('MONTHLY');
-  const [followUpStartDateJalali, setFollowUpStartDateJalali] = useState('۱۴۰۳/۰۶/۲۸');
+  const [followUpStartDateJalali, setFollowUpStartDateJalali] = useState(getCurrentJalaliDate);
 
   // Verification Settings (single-step only)
   const [requiresVerification, setRequiresVerification] = useState(true);
@@ -260,6 +260,19 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-5 flex-1">
+          {/* وضعیت تکمیل فرم: فیلدهای کلیدی هر بخش */}
+          <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="وضعیت تکمیل فرم">
+            {[
+              { label: 'جلسه و موضوع', done: Boolean(selectedMeetingId && topicTitle.trim()) },
+              { label: 'مجری و مهلت', done: approvalStatus !== 'APPROVED' || Boolean(mainResponsibleUserId && deadlineJalali) },
+              { label: 'پیگیری', done: approvalStatus !== 'APPROVED' || !followUpEnabled || Boolean(followUpStartDateJalali) },
+              { label: 'صحه‌گذاری', done: approvalStatus !== 'APPROVED' || !requiresVerification || Boolean(verifierId) },
+            ].map((step, index) => (
+              <li key={step.label} className={`flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-center text-[10.5px] font-extrabold ${step.done ? 'bg-blue-50 text-blue-800 ring-1 ring-blue-200' : 'bg-slate-50 text-slate-500 ring-1 ring-slate-200'}`}>
+                <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[9px] ${step.done ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'}`}>{step.done ? '✓' : (index + 1).toLocaleString('fa-IR')}</span>{step.label}
+              </li>
+            ))}
+          </ol>
           {/* Meeting Selection & Proposal */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
@@ -459,13 +472,13 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
               office manager. It only decides when the resolution surfaces in
               the «کارتابل پیگیری»; it never gates execution or validation. */}
           {approvalStatus === 'APPROVED' && (
-            <div className="p-4 bg-amber-50/60 border border-amber-200/80 rounded-2xl space-y-4">
+            <div className="p-4 bg-sky-50/60 border border-sky-200/80 rounded-2xl space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Repeat className="w-5 h-5 text-amber-700" />
+                  <Repeat className="w-5 h-5 text-sky-700" />
                   <div>
-                    <h4 className="text-xs font-extrabold text-amber-950">برنامه پیگیری مصوبه</h4>
-                    <p className="text-[10px] text-amber-700">
+                    <h4 className="text-xs font-extrabold text-slate-900">برنامه پیگیری مصوبه</h4>
+                    <p className="text-[10px] text-sky-700">
                       تعیین می‌کند این مصوبه در چه موعدهایی در کارتابل پیگیری نمایش داده شود.
                     </p>
                   </div>
@@ -476,9 +489,9 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
                     type="checkbox"
                     checked={followUpEnabled}
                     onChange={(e) => setFollowUpEnabled(e.target.checked)}
-                    className="w-4 h-4 text-amber-700 rounded-md focus:ring-amber-500 cursor-pointer"
+                    className="w-4 h-4 text-sky-700 rounded-md focus:ring-sky-500 cursor-pointer"
                   />
-                  <span className="text-xs font-bold text-amber-900">پیگیری این مصوبه فعال باشد</span>
+                  <span className="text-xs font-bold text-slate-800">پیگیری این مصوبه فعال باشد</span>
                 </label>
               </div>
 
@@ -489,7 +502,7 @@ export const CreateResolutionModal: React.FC<CreateResolutionModalProps> = ({
                     <select
                       value={followUpType}
                       onChange={(e) => setFollowUpType(e.target.value as ResolutionFollowUpType)}
-                      className="w-full text-xs p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-amber-900"
+                      className="w-full text-xs p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-800"
                     >
                       <option value="WEEKLY">گزارش هفتگی</option>
                       <option value="MONTHLY">گزارش ماهانه</option>
