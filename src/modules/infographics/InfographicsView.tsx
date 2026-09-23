@@ -64,20 +64,18 @@ export const InfographicsView: React.FC = () => {
 
   return (
     <div className="space-y-5">
-      {/* سربرگ اینفوگراف */}
-      <section className="dash-hero">
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <span className="dash-hero-badge"><Workflow className="h-3.5 w-3.5" />اینفوگراف سامانه</span>
-            <h2 className="mt-3 text-xl font-black text-white">مسیر یک پیشنهاد تا مصوبه مختومه</h2>
-            <p className="mt-1 max-w-2xl text-[12.5px] leading-7 text-blue-50/90">۹ مرحله، از ثبت پیشنهاد تا صحه‌گذاری. روی هر مرحله بزنید تا نقش مسئول، اقدام و خروجی آن را ببینید.</p>
-          </div>
-          <ul className="flex flex-wrap gap-2">
-            {Object.entries(PHASES).map(([key, phase]) => (
-              <li key={key} className="flex items-center gap-1.5 rounded-full bg-white/12 px-3 py-1 text-[11px] font-bold text-white ring-1 ring-white/20"><span className={`h-2 w-2 rounded-full bg-gradient-to-br ${phase.tone} ring-1 ring-white/60`} />{phase.label}</li>
-            ))}
-          </ul>
+      {/* سربرگ جمع‌وجور اینفوگراف */}
+      <section className="info-band">
+        <span className="info-band-icon"><Workflow className="h-5 w-5" /></span>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[15px] font-black text-white">مسیر پیشنهاد تا مصوبه مختومه</h2>
+          <p className="text-[11.5px] text-blue-100">۹ مرحله · روی هر مرحله بزنید تا جزئیات آن را ببینید</p>
         </div>
+        <ul className="hidden sm:flex flex-wrap gap-1.5">
+          {Object.entries(PHASES).map(([key, phase]) => (
+            <li key={key} className="flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[10.5px] font-bold text-white ring-1 ring-white/25"><span className={`h-2 w-2 rounded-full bg-gradient-to-br ${phase.tone} ring-1 ring-white/70`} />{phase.label}</li>
+          ))}
+        </ul>
       </section>
 
       <div className="grid gap-5 2xl:grid-cols-[1fr_22rem]">
@@ -91,7 +89,7 @@ export const InfographicsView: React.FC = () => {
                 <button
                   onClick={() => setActiveId(stage.id)}
                   aria-pressed={isActive}
-                  className={`infographic-card group ${isActive ? 'infographic-card-active' : ''}`}
+                  className={`infographic-card infographic-${stage.phase} group ${isActive ? 'infographic-card-active' : ''}`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <span className={`infographic-icon bg-gradient-to-br ${PHASES[stage.phase].tone}`}><Icon className="h-5 w-5" /></span>
@@ -119,30 +117,23 @@ export const InfographicsView: React.FC = () => {
         </ol>
 
         {/* جزئیات مرحله انتخاب‌شده */}
-        <aside className="dash-card h-fit order-first 2xl:order-none 2xl:sticky 2xl:top-4">
-          <div className="flex items-center gap-3">
+        {/* جزئیات مرحله انتخاب‌شده — نوار جمع‌وجور */}
+        <aside className="info-detail order-first 2xl:order-none 2xl:sticky 2xl:top-4 h-fit">
+          <div className="flex min-w-0 items-center gap-3">
             <span className={`infographic-icon bg-gradient-to-br ${PHASES[active.phase].tone}`}><ActiveIcon className="h-5 w-5" /></span>
-            <div>
-              <p className="text-[11px] font-bold text-slate-500">مرحله {toPersianDigits(active.id)} از {toPersianDigits(STAGES.length)} · {PHASES[active.phase].label}</p>
-              <h3 className="text-base font-black text-slate-900">{active.title}</h3>
+            <div className="min-w-0">
+              <p className="text-[10.5px] font-bold text-slate-500">مرحله {toPersianDigits(active.id)} از {toPersianDigits(STAGES.length)} · {PHASES[active.phase].label}</p>
+              <h3 className="text-[15px] font-black text-slate-900">{active.title}</h3>
             </div>
           </div>
-          <div className="mt-4 space-y-3 text-[12px] leading-6">
-            <div className="grid gap-3 sm:grid-cols-3 2xl:grid-cols-1">
-            <div className="rounded-xl bg-blue-50/70 p-3"><p className="text-[11px] font-extrabold text-[var(--app-primary)]">چه کسی؟</p><p className="font-bold text-slate-800">{active.role}</p></div>
-            <div className="rounded-xl bg-slate-50 p-3"><p className="text-[11px] font-extrabold text-[var(--app-primary)]">چه کاری؟</p><p className="text-slate-700">{active.action}</p></div>
-            <div className="rounded-xl bg-slate-50 p-3"><p className="text-[11px] font-extrabold text-[var(--app-primary)]">نتیجه</p><p className="font-bold text-slate-800">{active.output}</p></div>
-            </div>
-            <ul className="space-y-1.5">
-              {active.details.map((d) => <li key={d} className="flex gap-2 text-slate-600"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--app-primary)]" />{d}</li>)}
-            </ul>
-            <p className="rounded-xl border border-dashed border-blue-200 px-3 py-2 text-[11px] text-slate-600"><span className="font-extrabold text-slate-800">منوی مرتبط: </span>{active.menu}</p>
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button onClick={() => navigateTo(active.route)} className="app-btn-primary flex-1 justify-center sm:flex-none 2xl:flex-1">رفتن به این بخش<ArrowLeft className="h-4 w-4" /></button>
+          <ul className="min-w-0 flex-1 space-y-1 text-[11.5px] leading-6 text-slate-600">
+            {active.details.map((d) => <li key={d} className="flex gap-2"><span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--app-primary)]" />{d}</li>)}
+            <li className="text-[11px] text-slate-500"><span className="font-extrabold text-slate-700">منو: </span>{active.menu}</li>
+          </ul>
+          <div className="flex shrink-0 gap-2">
             <button onClick={() => setActiveId(active.id < STAGES.length ? active.id + 1 : 1)} className="app-btn-secondary" title="مرحله بعد">{active.id < STAGES.length ? 'مرحله بعد' : <><RotateCcw className="h-4 w-4" />شروع</>}</button>
+            <button onClick={() => navigateTo(active.route)} className="app-btn-primary">رفتن به بخش<ArrowLeft className="h-4 w-4" /></button>
           </div>
-          <p className="mt-3 text-[10.5px] leading-5 text-slate-400">دسترسی به هر بخش به نقش کاربر فعلی بستگی دارد.</p>
         </aside>
       </div>
 

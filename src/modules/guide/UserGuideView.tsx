@@ -50,23 +50,23 @@ export const UserGuideView: React.FC = () => {
 
   return (
     <div className="space-y-5">
-      <section className="dash-hero">
-        <div className="relative z-10">
-          <span className="dash-hero-badge"><BookOpen className="h-3.5 w-3.5" />راهنمای کاربری</span>
-          <h2 className="mt-3 text-xl font-black text-white">هر کار، در چند گام کوتاه</h2>
-          <p className="mt-1 max-w-2xl text-[12.5px] leading-7 text-blue-50/90">موضوع را جستجو کنید یا نقش خود را انتخاب کنید. برای هر کار، مراحل، منوی مرتبط و دکمه ورود مستقیم آمده است.</p>
-          <div className="relative mt-4 max-w-xl">
-            <Search className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="مثلاً: ابلاغ، امضا، گزارش پیشرفت، جانشین…"
-              aria-label="جستجو در راهنما"
-              className="w-full rounded-2xl border-0 bg-white py-3 pr-10 pl-10 text-[13px] text-slate-800 shadow-lg outline-none ring-2 ring-white/40 focus:ring-4 focus:ring-sky-300/60"
-            />
-            {query && <button onClick={() => setQuery('')} className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100" aria-label="پاک کردن جستجو"><X className="h-4 w-4" /></button>}
-          </div>
+      <section className="info-band flex-wrap">
+        <span className="info-band-icon"><BookOpen className="h-5 w-5" /></span>
+        <div className="min-w-0">
+          <h2 className="text-[15px] font-black text-white">راهنمای کاربری</h2>
+          <p className="text-[11.5px] text-blue-100">هر کار در چند گام کوتاه، با منو و دکمه ورود مستقیم</p>
+        </div>
+        <div className="relative w-full sm:mr-auto sm:w-80">
+          <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="جستجو: ابلاغ، امضا، گزارش پیشرفت…"
+            aria-label="جستجو در راهنما"
+            className="w-full rounded-xl border-0 bg-white py-2.5 pr-9 pl-9 text-[12.5px] text-slate-800 shadow-md outline-none focus:ring-4 focus:ring-sky-300/60"
+          />
+          {query && <button onClick={() => setQuery('')} className="absolute left-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100" aria-label="پاک کردن جستجو"><X className="h-4 w-4" /></button>}
         </div>
       </section>
 
@@ -106,9 +106,9 @@ export const UserGuideView: React.FC = () => {
               <h3 className="flex items-center gap-2 text-[13px] font-black text-slate-800"><span className="h-4 w-1.5 rounded-full bg-gradient-to-b from-sky-400 to-blue-700" />{section}<span className="text-[11px] font-bold text-slate-400">({toPersianDigits(items.length)})</span></h3>
               <div className="grid gap-3 xl:grid-cols-2">
                 {items.map((t) => (
-                  <article key={t.id} id={`guide-${t.id}`} className="dash-card scroll-mt-4 flex flex-col">
+                  <article key={t.id} id={`guide-${t.id}`} className="guide-card scroll-mt-4 flex flex-col">
                     <div className="flex items-start justify-between gap-2">
-                      <h4 className="text-[14px] font-black text-slate-900">{t.title}</h4>
+                      <h4 className="flex items-center gap-2 text-[14px] font-black text-slate-900"><span className="guide-card-mark" />{t.title}</h4>
                       <div className="flex flex-wrap justify-end gap-1">{t.roles.filter((r) => r !== 'ALL').map((r) => <span key={r} className="dash-chip dash-chip-primary">{GUIDE_ROLES.find((x) => x.id === r)?.label}</span>)}</div>
                     </div>
                     <p className="mt-1.5 text-[12px] leading-7 text-slate-600">{t.summary}</p>

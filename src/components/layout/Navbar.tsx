@@ -25,7 +25,7 @@ import { useApp, AppRoute } from '../../context/AppContext';
 import { toPersianDigits } from '../../utils/formatters';
 import { meetingService, resolutionService, taskService } from '../../services';
 import { Meeting, Resolution, Task } from '../../types';
-import { useOrganizationProfile } from '../../services/organizationProfile';
+import { DEFAULT_ORGANIZATION_PROFILE, useOrganizationProfile } from '../../services/organizationProfile';
 import { hasDemoData } from '../../services/demoDataService';
 
 export const Navbar: React.FC = () => {
@@ -176,8 +176,8 @@ export const Navbar: React.FC = () => {
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button 
             onClick={toggleSidebar}
-            className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-100 transition-colors cursor-pointer"
-            title="تغییر وضعیت منو"
+            className="md:hidden p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-100 transition-colors cursor-pointer"
+            title="منو"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -191,11 +191,15 @@ export const Navbar: React.FC = () => {
             {/* لوگو روی کاشی سفید با حاشیه روشن قرار می‌گیرد تا روی هر زمینه‌ای
                 (آبی شیشه‌ای، سازمانی یا تیره) دیده شود. نام و لوگو از
                 «اطلاعات سازمان» در تنظیمات خوانده می‌شوند. */}
-            <img
-              src={organization.logoUrl}
-              alt={`نشان ${organization.name || organization.systemTitle}`}
-              className="app-logo h-12 w-12 sm:h-[60px] sm:w-[60px] shrink-0 object-contain"
-            />
+            {/* لوگو روی پلاک روشن با هاله آبی؛ اگر فایل ذخیره‌شده خراب باشد، نشان پیش‌فرض نمایش داده می‌شود. */}
+            <span className="app-logo-plate">
+              <img
+                src={organization.logoUrl || DEFAULT_ORGANIZATION_PROFILE.logoUrl}
+                onError={(e) => { if (!e.currentTarget.src.endsWith(DEFAULT_ORGANIZATION_PROFILE.logoUrl)) e.currentTarget.src = DEFAULT_ORGANIZATION_PROFILE.logoUrl; }}
+                alt={`نشان ${organization.name || organization.systemTitle}`}
+                className="app-logo"
+              />
+            </span>
             <span className="hidden sm:block h-9 w-px bg-gradient-to-b from-transparent via-slate-300 to-transparent" aria-hidden="true" />
             <span className="flex min-w-0 flex-col leading-tight">
               <span className="truncate text-[13px] sm:text-[15px] font-black text-slate-900 dark:text-slate-100 tracking-tight">{organization.systemTitle}</span>
