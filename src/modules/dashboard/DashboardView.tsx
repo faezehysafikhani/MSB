@@ -95,10 +95,23 @@ export const DashboardView: React.FC = () => {
     { label: 'جلسات پیش‌رو', value: model.upcomingMeetings.length, icon: CalendarDays, onClick: () => navigateTo('calendar'), tone: 'sky' },
     { label: 'مصوبات در حال اجرا', value: model.counts.activeResolutions, icon: TrendingUp, onClick: () => navigateTo('resolutions'), tone: 'indigo' },
     { label: 'مصوبات معوق', value: model.counts.overdue, icon: AlertTriangle, onClick: () => navigateTo('resolutions'), tone: model.counts.overdue ? 'red' : 'slate' },
-  ];
+  ].filter((tile) => tile.value > 0);
 
-  const isManager = ['EXECUTIVE', 'ADMIN', 'AUDITOR'].includes(model.persona);
+  // تحلیل واحدها فقط برای ادمین است؛ سایر نقش‌ها فقط اقدام‌ها و پرونده‌های
+  // مرتبط با خودشان را روی داشبورد می‌بینند.
+  const isManager = model.persona === 'ADMIN';
   const isOffice = ['OFFICE', 'SECRETARY'].includes(model.persona);
+  const officeItems = [
+    { label: 'پیشنهاد در انتظار تصمیم', value: model.proposalPipeline[0]?.value || 0, route: 'proposals' as const, icon: Lightbulb },
+    { label: 'مصوبه در گردش امضا', value: model.counts.awaitingSignature, route: 'resolutions' as const, icon: PenLine },
+    { label: 'در مرحله ابلاغ', value: model.counts.awaitingNotice, route: 'notification-inbox' as const, icon: Send },
+    { label: 'در انتظار صحه‌گذاری', value: model.counts.pendingVerification, route: 'resolutions' as const, icon: ShieldCheck },
+  ].filter((item) => item.value > 0);
+  const showRoleCard = (isManager && model.units.length > 0)
+    || (model.persona === 'ASSIGNEE' && model.myTasks.length > 0)
+    || (isOffice && officeItems.length > 0)
+    || (!isManager && !isOffice && model.persona !== 'ASSIGNEE' && model.activity.length > 0);
+  const showSidebar = model.upcomingMeetings.length > 0 || showRoleCard;
 
   return (
     <div className="space-y-4 pb-10">
@@ -111,8 +124,8 @@ export const DashboardView: React.FC = () => {
         {primaryAction}
       </section>
 
-      {/* ——— چهار عدد مهم ——— */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* فقط شاخص‌های دارای اقدام یا داده نمایش داده می‌شوند. */}
+      {tiles.length > 0 && <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {tiles.map(({ label, value, icon: Icon, onClick, tone }) => (
           <button key={label} onClick={onClick} className={`db-tile db-tile-${tone}`}>
             <span className="db-tile-icon"><Icon className="h-5 w-5" /></span>
@@ -122,11 +135,11 @@ export const DashboardView: React.FC = () => {
             </span>
           </button>
         ))}
-      </div>
+      </div>}
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* ——— کارهای من ——— */}
-        <section id="dash-todo" className="db-card lg:col-span-2">
+        <section id="dash-todo" className={`db-card ${showSidebar ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
           <header className="db-card-head"><h2>کارهای من</h2><span className="db-count">{toPersianDigits(model.actionItems.length)}</span></header>
           {model.actionItems.length === 0 ? (
             <div className="db-empty"><CheckCircle2 className="h-8 w-8 text-emerald-500" /><p>کاری منتظر شما نیست.</p></div>
@@ -150,12 +163,9 @@ export const DashboardView: React.FC = () => {
         </section>
 
         {/* ——— جلسات پیش‌رو ——— */}
-        <section className="db-card">
+        {model.upcomingMeetings.length > 0 && <section className="db-card">
           <header className="db-card-head"><h2>جلسات پیش‌رو</h2><button onClick={() => navigateTo('calendar')} className="db-link">تقویم</button></header>
-          {model.upcomingMeetings.length === 0 ? (
-            <div className="db-empty"><CalendarClock className="h-8 w-8 text-slate-300" /><p>جلسه‌ای برنامه‌ریزی نشده است.</p></div>
-          ) : (
-            <ul className="space-y-2">
+          <ul className="space-y-2">
               {model.upcomingMeetings.slice(0, 4).map((m) => {
                 const { day, month } = splitDate(m.dateJalali);
                 const status = getMeetingStatusMeta(m.status);
@@ -174,8 +184,7 @@ export const DashboardView: React.FC = () => {
                 );
               })}
             </ul>
-          )}
-        </section>
+        </section>}
 
         {/* ——— مصوبات ——— */}
         {(model.overdue.length > 0 || model.inExecution.length > 0) && (
@@ -217,7 +226,7 @@ export const DashboardView: React.FC = () => {
         )}
 
         {/* ——— ستون مخصوص نقش ——— */}
-        <section className="db-card">
+        {showRoleCard && <section className="db-card">
           {isManager && model.units.length > 0 ? (
             <>
               <header className="db-card-head"><h2><Building2 className="ml-1 inline h-4 w-4 text-blue-600" />وضعیت واحدها</h2></header>
@@ -249,12 +258,7 @@ export const DashboardView: React.FC = () => {
             <>
               <header className="db-card-head"><h2><Send className="ml-1 inline h-4 w-4 text-blue-600" />کارهای دفتر</h2></header>
               <ul className="space-y-2">
-                {[
-                  { label: 'پیشنهاد در انتظار تصمیم', value: model.proposalPipeline[0]?.value || 0, route: 'proposals' as const, icon: Lightbulb },
-                  { label: 'مصوبه در گردش امضا', value: model.counts.awaitingSignature, route: 'resolutions' as const, icon: PenLine },
-                  { label: 'در مرحله ابلاغ', value: model.counts.awaitingNotice, route: 'notification-inbox' as const, icon: Send },
-                  { label: 'در انتظار صحه‌گذاری', value: model.counts.pendingVerification, route: 'resolutions' as const, icon: ShieldCheck },
-                ].map(({ label, value, route, icon: Icon }) => (
+                {officeItems.map(({ label, value, route, icon: Icon }) => (
                   <li key={label}>
                     <button onClick={() => navigateTo(route)} className="flex w-full items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2.5 hover:bg-blue-50">
                       <span className="flex items-center gap-2 text-[12px] font-bold text-slate-700"><Icon className="h-4 w-4 text-blue-600" />{label}</span>
@@ -272,11 +276,11 @@ export const DashboardView: React.FC = () => {
               )}
             </>
           )}
-        </section>
+        </section>}
       </div>
 
       {/* ——— آخرین اتفاقات ——— */}
-      {(isManager || isOffice || model.persona === 'ASSIGNEE') && model.activity.length > 0 && (
+      {(model.persona === 'ADMIN' || isOffice || model.persona === 'ASSIGNEE') && model.activity.length > 0 && (
         <section className="db-card">
           <header className="db-card-head"><h2>آخرین اتفاقات</h2></header>
           <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">

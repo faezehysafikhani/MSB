@@ -19,8 +19,6 @@ import {
   Tooltip,
   Legend
 } from 'recharts';
-import { Chart as ChartJS, ArcElement, Tooltip as ChartJsTooltip, Legend as ChartJsLegend } from 'chart.js';
-import { Doughnut } from 'react-chartjs-2';
 import { reportService, SemiAnnualReport, ResolutionStatusDistribution, NotificationLetterReportRow } from '../../services/reportService';
 import { resolutionService } from '../../services/resolutionService';
 import { proposalService } from '../../services/proposalService';
@@ -28,8 +26,6 @@ import { mockDepartments } from '../../mock/data';
 import { DepartmentPerformance, DashboardKPIs, Resolution, ProposalStatus } from '../../types';
 import { toPersianDigits, getResolutionExecutionMeta } from '../../utils/formatters';
 import { useApp } from '../../context/AppContext';
-
-ChartJS.register(ArcElement, ChartJsTooltip, ChartJsLegend);
 
 // Kept local and separate from ProposalsView's own STATUS_META so this
 // purely-additive reporting screen never depends on (or risks perturbing)
@@ -50,7 +46,7 @@ const PROPOSAL_STATUS_CHART_META: Partial<Record<ProposalStatus, { label: string
 interface ProposalStatusCount { status: ProposalStatus; label: string; color: string; count: number }
 
 export const ReportsView: React.FC = () => {
-  const { showToast, navigateTo } = useApp();
+  const { showToast, navigateTo, currentUser } = useApp();
   const [departments, setDepartments] = useState<DepartmentPerformance[]>([]);
   const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
   const [monthlyTrends, setMonthlyTrends] = useState<any[]>([]);
@@ -148,6 +144,16 @@ export const ReportsView: React.FC = () => {
       setDetailLoading(false);
     }
   };
+
+  if (currentUser.role !== 'ADMIN') {
+    return (
+      <section className="db-card db-empty">
+        <BarChart3 className="h-8 w-8 text-slate-300" />
+        <h1 className="text-base font-black text-slate-800">گزارش تجمیعی در دسترس نیست</h1>
+        <p>گزارش عملکرد سازمانی فقط برای مدیر سامانه نمایش داده می‌شود.</p>
+      </section>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-12">
@@ -260,7 +266,7 @@ export const ReportsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Infographic: proposal & resolution status breakdown (doughnut charts, Chart.js) */}
+      {/* وضعیت‌های واقعی؛ ردیف‌های خوانا به‌جای نمودارهای تزئینی */}
       <div className="bg-white rounded-2xl p-6 shadow-xs border border-slate-100 space-y-5">
         <h3 className="text-xs font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
           <PieChart className="w-4 h-4 text-blue-600" />
@@ -273,29 +279,15 @@ export const ReportsView: React.FC = () => {
             {proposalStatusCounts.length === 0 ? (
               <div className="text-center text-xs text-slate-400 py-10">داده‌ای برای نمایش وجود ندارد.</div>
             ) : (
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-full max-w-[220px] h-[220px]">
-                  <Doughnut
-                    data={{
-                      labels: proposalStatusCounts.map((s) => s.label),
-                      datasets: [{
-                        data: proposalStatusCounts.map((s) => s.count),
-                        backgroundColor: proposalStatusCounts.map((s) => s.color),
-                        borderWidth: 2,
-                        borderColor: '#ffffff',
-                      }],
-                    }}
-                    options={{ plugins: { legend: { display: false } }, cutout: '65%', maintainAspectRatio: false }}
-                  />
-                </div>
-                <div className="w-full space-y-1.5">
+              <div className="space-y-2">
                   {proposalStatusCounts.map((s) => (
-                    <div key={s.status} className="flex items-center justify-between text-[11px]">
-                      <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }}></span>{s.label}</span>
-                      <span className="font-bold text-slate-700">{toPersianDigits(s.count)}</span>
+                    <div key={s.status} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }}></span>{s.label}</span>
+                        <span className="font-black text-slate-700">{toPersianDigits(s.count)}</span>
+                      </div>
                     </div>
                   ))}
-                </div>
               </div>
             )}
           </div>
@@ -305,29 +297,15 @@ export const ReportsView: React.FC = () => {
             {resolutionStatusDist.length === 0 ? (
               <div className="text-center text-xs text-slate-400 py-10">داده‌ای برای نمایش وجود ندارد.</div>
             ) : (
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-full max-w-[220px] h-[220px]">
-                  <Doughnut
-                    data={{
-                      labels: resolutionStatusDist.map((s) => s.statusLabel),
-                      datasets: [{
-                        data: resolutionStatusDist.map((s) => s.count),
-                        backgroundColor: resolutionStatusDist.map((s) => s.color),
-                        borderWidth: 2,
-                        borderColor: '#ffffff',
-                      }],
-                    }}
-                    options={{ plugins: { legend: { display: false } }, cutout: '65%', maintainAspectRatio: false }}
-                  />
-                </div>
-                <div className="w-full space-y-1.5">
+              <div className="space-y-2">
                   {resolutionStatusDist.map((s) => (
-                    <div key={s.statusKey} className="flex items-center justify-between text-[11px]">
-                      <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }}></span>{s.statusLabel}</span>
-                      <span className="font-bold text-slate-700">{toPersianDigits(s.count)} ({toPersianDigits(s.percentage)}٪)</span>
+                    <div key={s.statusKey} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }}></span>{s.statusLabel}</span>
+                        <span className="font-black text-slate-700">{toPersianDigits(s.count)} <span className="font-medium text-slate-500">({toPersianDigits(s.percentage)}٪)</span></span>
+                      </div>
                     </div>
                   ))}
-                </div>
               </div>
             )}
           </div>

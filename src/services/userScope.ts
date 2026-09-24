@@ -1,13 +1,10 @@
 import { AgendaItem, Meeting, Resolution, User, UserRole } from '../types';
 
-// Roles with organization-wide meeting visibility: ADMIN (system-wide), CEO
-// (chairs/approves every meeting's agenda) and SECRETARY (مسئول دفتر — runs
-// the meeting/proposal secretariat on the CEO's behalf, so their view must
-// cover every meeting, not just ones they're personally listed on). Every
-// other role only sees meetings they organize, secretary, or are a member of
-// (see the participantUserId filter in meetingService.getMeetings).
-export const hasOrgWideMeetingAccess = (role: UserRole): boolean =>
-  role === 'ADMIN' || role === 'CEO' || role === 'SECRETARY';
+// فقط مدیر سامانه دید فراگیر دارد. مدیرعامل، دبیر و مسئول دفتر همچنان
+// گردش‌های خود را می‌بینند، اما فهرست و تقویم فقط جلسه‌هایی را نشان می‌دهد
+// که واقعاً در آن نقش دارند.
+/** فقط ادمین می‌تواند فهرست سراسری جلسات را ببیند؛ سایر نقش‌ها به مشارکت خود محدودند. */
+export const hasOrgWideMeetingAccess = (role: UserRole): boolean => role === 'ADMIN';
 
 const normalizeName = (value?: string) => (value || '')
   .replace(/\b(جناب|سرکار|خانم|آقای|دکتر|مهندس)\b/g, '')
@@ -22,13 +19,10 @@ export const isMeetingRelatedToUser = (meeting: Meeting, userId: string): boolea
   meeting.members.some((member) => member.userId === userId);
 
 /**
- * دید سازمانی روی «بانک مصوبات» — همتای hasOrgWideMeetingAccess برای مصوبات.
- * دارنده مجوز VIEW_RESOLUTIONS (مثل دبیر جلسه و مسئول دفتر) باید فهرست
- * مصوبات را ببیند، نه فقط مصوباتی که شخصاً در آنها نقش دارد. ADMIN طبق
- * روال سایر بخش‌های سامانه دسترسی کامل دارد.
+ * فقط ادمین سامانه می‌تواند مصوبات همه افراد را ببیند. سایر نقش‌ها به
+ * پرونده‌هایی که در آن مسئولیت یا مشارکت دارند محدود می‌مانند.
  */
-export const hasOrgWideResolutionAccess = (user: User): boolean =>
-  user.role === 'ADMIN' || (user.permissions || []).includes('VIEW_RESOLUTIONS');
+export const hasOrgWideResolutionAccess = (user: User): boolean => user.role === 'ADMIN';
 
 export const isResolutionRelatedToUser = (resolution: Resolution, user: User): boolean => {
   const userName = normalizeName(user.fullName);

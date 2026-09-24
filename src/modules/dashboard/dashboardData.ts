@@ -103,7 +103,7 @@ export const buildDashboardModel = (user: User): DashboardModel => {
 
   // همان قواعد دسترسی سرویس‌ها: دید سازمانی یا فقط موارد مرتبط.
   const meetings = hasOrgWideMeetingAccess(user.role) ? allMeetings : allMeetings.filter((m) => isMeetingRelatedToUser(m, user.id));
-  const resolutions = hasOrgWideResolutionAccess(user) || user.role === 'CEO' || user.role === 'AUDITOR'
+  const resolutions = hasOrgWideResolutionAccess(user)
     ? allResolutions
     : allResolutions.filter((r) => isResolutionRelatedToUser(r, user));
 

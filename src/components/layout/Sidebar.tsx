@@ -184,7 +184,7 @@ export const Sidebar: React.FC = () => {
       id: 'reports_system',
       title: 'گزارش و راهنما',
       items: [
-        ...(hasPermission('VIEW_REPORTS') || currentUser.role === 'ADMIN' || currentUser.role === 'CEO' ? [{
+        ...(currentUser.role === 'ADMIN' ? [{
           route: 'reports' as AppRoute,
           title: 'گزارش عملکرد',
           icon: FileSpreadsheet,

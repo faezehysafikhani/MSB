@@ -1240,8 +1240,8 @@ button:hover > .app-logo { transform: scale(1.04); }
 .app-logo-plate {
   position: relative;
   display: inline-flex;
-  width: 3.4rem;
-  height: 3.4rem;
+  width: 4rem;
+  height: 4rem;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
@@ -1249,8 +1249,8 @@ button:hover > .app-logo { transform: scale(1.04); }
   background: radial-gradient(circle at 30% 25%, #ffffff 0%, #f3f7ff 55%, #e3edfc 100%);
   box-shadow: 0 0 0 1px rgba(148, 178, 222, 0.55), 0 10px 22px -12px rgba(16, 52, 116, 0.55), 0 1px 0 #fff inset;
 }
-.app-logo-plate .app-logo { width: 88%; height: 88%; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(80, 20, 70, 0.25)); }
-@media (max-width: 639px) { .app-logo-plate { width: 2.8rem; height: 2.8rem; border-radius: 0.9rem; } }
+.app-logo-plate .app-logo { width: 94%; height: 94%; object-fit: contain; filter: drop-shadow(0 3px 5px rgba(80, 20, 70, 0.3)); }
+@media (max-width: 639px) { .app-logo-plate { width: 3.2rem; height: 3.2rem; border-radius: 0.9rem; } }
 
 /* زمینه صفحه: آبی آسمانی ملایم، نه پررنگ */
 .theme-glass .app-shell.bg-white,
@@ -1605,11 +1605,20 @@ button:hover > .app-logo { transform: scale(1.04); }
 .hc-chip { display: inline-flex; max-width: 100%; align-items: center; gap: 0.35rem; border-radius: 0.7rem; padding: 0.3rem 0.6rem; font-size: 0.7rem; font-weight: 700; color: #1e3a6b; background: #eef4fd; }
 .hc-chip-tip { color: #0f5132; background: #e6fbf4; }
 .hc-chip-note { color: #7c4a03; background: #fff7e6; }
+/* راهنما: محتوای آموزشی باید خواندنی باشد، نه یک دیوار کارت و رنگ. */
+.hc { max-width: 76rem; margin: 0 auto; }
+.hc-nav { background: #fff; border: 1px solid #e2e8f0; box-shadow: none; }
+.hc-role { border: 1px solid transparent; }
+.hc-role[aria-pressed="true"] { background: #0f4c81; box-shadow: none; }
+.hc-topic { border-right-color: #0f4c81; box-shadow: none; border: 1px solid #e2e8f0; border-right: 4px solid #0f4c81; }
+.hc-flow-step { background: #f8fafc; box-shadow: none; }
+.hc-hero { background: #0f4c81; box-shadow: none; }
+@media (max-width: 767px) { .hc-roles { grid-template-columns: 1fr; } .hc-topic { padding: 0.9rem; } .hc-flow { gap: 0.45rem; } }
 /* مسیر اینفوگراف همیشه در ارتفاع صفحه جا شود (بدون اسکرول در لپ‌تاپ) */
-.igs-stage { width: min(100%, calc((100vh - 23rem) * 1000 / 580)); max-width: none; min-width: 42rem; }
+.igs { padding: 1rem; overflow: hidden; }
+/* اینفوگراف نباید با ارتفاع پنجره یا حداقل عرض اجباری بریده شود. */
+.igs-stage { width: 100%; max-width: 62rem; min-width: 0; margin: 1.5rem auto 0; aspect-ratio: 1000 / 580; }
 .igs-title { font-size: 1.35rem; }
-.igs { padding-top: 0.8rem; padding-bottom: 0.4rem; }
-.igs-stage { width: min(100%, calc((100vh - 26rem) * 1000 / 580)); }
 .igs-icon { left: -1.9rem; top: -4.1rem; width: 3.8rem; height: 3.8rem; border-radius: 1.05rem; }
 .igs-icon svg { width: 1.9rem; height: 1.9rem; }
 .igs-num { left: -4.9rem; top: -3rem; width: 2.2rem; height: 2.2rem; font-size: 0.95rem; }
