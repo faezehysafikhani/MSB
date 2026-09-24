@@ -1613,6 +1613,11 @@ button:hover > .app-logo { transform: scale(1.04); }
 .hc-topic { border-right-color: #0f4c81; box-shadow: none; border: 1px solid #e2e8f0; border-right: 4px solid #0f4c81; }
 .hc-flow-step { background: #f8fafc; box-shadow: none; }
 .hc-hero { background: #0f4c81; box-shadow: none; }
+.hc-section-label { margin: .15rem .15rem -.15rem; color: #64748b; font-size: .75rem; font-weight: 800; }
+.hc-more, .hc-reference { border: 1px solid #dbe5ef; border-radius: .9rem; padding: .8rem 1rem; background: #fff; }
+.hc-more summary b, .hc-reference summary b { color: #123a67; font-size: .84rem; }
+.hc-more summary small { display: block; margin-top: .15rem; color: #64748b; font-size: .7rem; }
+.hc-reference { background: #f8fafc; }
 @media (max-width: 767px) { .hc-roles { grid-template-columns: 1fr; } .hc-topic { padding: 0.9rem; } .hc-flow { gap: 0.45rem; } }
 /* اینفوگراف: یک نقشهٔ فرآیند رسمی، با جهت آشکار و بدون تزئینات مزاحم. */
 .igs { padding: 1.4rem 1.25rem 1rem; overflow: hidden; background: linear-gradient(145deg, #f8fbff, #edf5ff); box-shadow: 0 0 0 1px #d9e7f8, 0 12px 28px -24px rgba(15,76,129,.45); }

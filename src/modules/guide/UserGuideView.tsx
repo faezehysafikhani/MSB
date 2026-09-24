@@ -83,6 +83,10 @@ export const UserGuideView: React.FC = () => {
     if (role === 'GENERAL') return GUIDE_TOPICS.filter((t) => t.roles.includes('ALL'));
     return GUIDE_TOPICS.filter((t) => t.roles.includes(role as GuideRole));
   }, [q, role]);
+  // راهنما ابتدا مسیرهای پرتکرار نقش را نشان می‌دهد؛ جزئیات کامل همچنان
+  // در دسترس است، اما صفحه در بدو ورود به فهرست بلند تبدیل نمی‌شود.
+  const quickTopics = q ? topics : topics.slice(0, 3);
+  const moreTopics = q ? [] : topics.slice(3);
 
   return (
     <div className="hc">
@@ -127,14 +131,27 @@ export const UserGuideView: React.FC = () => {
         {topics.length === 0 ? (
           <div className="db-card db-empty"><CircleHelp className="h-8 w-8 text-slate-300" /><p>آموزشی پیدا نشد؛ واژه دیگری امتحان کنید.</p></div>
         ) : (
-          <div className="space-y-3">{topics.map((t) => <TopicCard key={t.id} topic={t} onGo={navigateTo} />)}</div>
+          <>
+            {!q && <p className="hc-section-label">شروع سریع · سه کار پرتکرار این نقش</p>}
+            <div className="space-y-2">{quickTopics.map((t) => <TopicCard key={t.id} topic={t} onGo={navigateTo} />)}</div>
+            {moreTopics.length > 0 && (
+              <details className="hc-more group">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                  <span><b>راهنمای کامل این نقش</b><small>{toPersianDigits(moreTopics.length)} موضوع تکمیلی</small></span>
+                  <ChevronDown className="h-5 w-5 text-slate-400 transition group-open:rotate-180" />
+                </summary>
+                <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">{moreTopics.map((t) => <TopicCard key={t.id} topic={t} onGo={navigateTo} />)}</div>
+              </details>
+            )}
+          </>
         )}
 
         {/* وضعیت‌ها و سؤالات رایج */}
         {!q && (
-          <div className="grid gap-4 xl:grid-cols-2">
-            <section className="db-card">
-              <header className="db-card-head"><h2>معنی وضعیت‌ها</h2></header>
+          <div className="grid gap-3 xl:grid-cols-2">
+            <details className="hc-reference group">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2"><b>معنی وضعیت‌ها</b><ChevronDown className="h-4 w-4 text-slate-400 transition group-open:rotate-180" /></summary>
+              <div className="mt-3 border-t border-slate-100 pt-3">
               {STATUS_GLOSSARY.map((g) => (
                 <div key={g.group} className="mb-3 last:mb-0">
                   <p className="mb-1.5 text-[11px] font-extrabold text-slate-500">{g.group}</p>
@@ -143,10 +160,11 @@ export const UserGuideView: React.FC = () => {
                   </ul>
                 </div>
               ))}
-            </section>
-            <section className="db-card">
-              <header className="db-card-head"><h2>سؤالات و مشکلات رایج</h2></header>
-              <div className="space-y-2">
+              </div>
+            </details>
+            <details className="hc-reference group">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2"><b>پرسش‌های رایج</b><ChevronDown className="h-4 w-4 text-slate-400 transition group-open:rotate-180" /></summary>
+              <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
                 {COMMON_ERRORS.map((e) => (
                   <details key={e.problem} className="group rounded-xl bg-slate-50 px-3 py-2 open:bg-blue-50">
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[12.5px] font-bold text-slate-800">{e.problem}<ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition group-open:rotate-180" /></summary>
@@ -154,7 +172,7 @@ export const UserGuideView: React.FC = () => {
                   </details>
                 ))}
               </div>
-            </section>
+            </details>
           </div>
         )}
       </div>
