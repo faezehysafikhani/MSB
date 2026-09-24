@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "msb-dev",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "4179", "--host", "127.0.0.1"],
+      "port": 4179
+    }
+  ]
+}
