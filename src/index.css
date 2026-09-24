@@ -1618,6 +1618,26 @@ button:hover > .app-logo { transform: scale(1.04); }
 .hc-more summary b, .hc-reference summary b { color: #123a67; font-size: .84rem; }
 .hc-more summary small { display: block; margin-top: .15rem; color: #64748b; font-size: .7rem; }
 .hc-reference { background: #f8fafc; }
+.hc-overview { border: 1px solid #cfe0f2; border-radius: 1rem; background: #fff; overflow: hidden; }
+.hc-overview header { display: flex; align-items: flex-start; gap: .7rem; padding: .95rem 1rem; background: #f1f7fc; }
+.hc-overview-icon { display: inline-flex; width: 2.15rem; height: 2.15rem; flex: 0 0 auto; align-items: center; justify-content: center; border-radius: .7rem; color: #fff; background: #0f4c81; }
+.hc-overview h2 { color: #123a67; font-size: .92rem; font-weight: 900; }
+.hc-overview header p { margin-top: .15rem; color: #526577; font-size: .73rem; line-height: 1.7; }
+.hc-workflow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; }
+.hc-workflow li { display: flex; gap: .55rem; padding: .75rem 1rem; border-bottom: 1px solid #edf2f7; }
+.hc-workflow li:nth-child(odd) { border-left: 1px solid #edf2f7; }
+.hc-workflow li svg { flex: 0 0 auto; margin-top: .12rem; color: #0f766e; }
+.hc-workflow b { display: block; color: #173f69; font-size: .78rem; }
+.hc-workflow p { margin-top: .18rem; color: #526577; font-size: .69rem; line-height: 1.7; }
+.hc-workflow small { display: block; margin-top: .3rem; color: #64748b; font-size: .64rem; line-height: 1.6; }
+.hc-workflow strong { color: #365d7c; font-weight: 800; }
+.hc-workflow small span { padding: 0 .18rem; color: #94a3b8; }
+.hc-modules { padding: .75rem 1rem; background: #f8fafc; }
+.hc-modules summary { display: flex; cursor: pointer; list-style: none; align-items: center; justify-content: space-between; color: #173f69; font-size: .78rem; font-weight: 900; }
+.hc-modules ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem .8rem; margin-top: .65rem; }
+.hc-modules li { font-size: .69rem; line-height: 1.65; color: #526577; }
+.hc-modules b { margin-left: .3rem; color: #173f69; }
+@media (max-width: 767px) { .hc-workflow, .hc-modules ul { grid-template-columns: 1fr; } .hc-workflow li:nth-child(odd) { border-left: 0; } }
 @media (max-width: 767px) { .hc-roles { grid-template-columns: 1fr; } .hc-topic { padding: 0.9rem; } .hc-flow { gap: 0.45rem; } }
 /* اینفوگراف: یک نقشهٔ فرآیند رسمی، با جهت آشکار و بدون تزئینات مزاحم. */
 .igs { padding: 1.4rem 1.25rem 1rem; overflow: hidden; background: linear-gradient(145deg, #f8fbff, #edf5ff); box-shadow: 0 0 0 1px #d9e7f8, 0 12px 28px -24px rgba(15,76,129,.45); }

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertCircle, ArrowLeft, ChevronDown, ChevronLeft, CircleHelp, ClipboardCheck, Compass, Crown, GraduationCap, Info, Lightbulb, Search, Settings, ShieldCheck, UserCog, Users, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, CircleHelp, ClipboardCheck, Compass, Crown, FileCheck2, GraduationCap, Info, Lightbulb, Search, Send, Settings, ShieldCheck, UserCog, Users, X } from 'lucide-react';
 import { useApp, AppRoute } from '../../context/AppContext';
 import { toPersianDigits } from '../../utils/formatters';
 import { COMMON_ERRORS, GUIDE_TOPICS, GuideRole, GuideTopic, STATUS_GLOSSARY } from './guideContent';
@@ -35,6 +35,41 @@ const roleForUser = (role: string, permissions: string[] = []): RoleId => {
   if (role === 'EXPERT_ASSIGNEE') return 'ASSIGNEE';
   return 'STAFF';
 };
+
+const WORKFLOW = [
+  { icon: Lightbulb, title: '۱. ثبت درخواست / پیشنهاد', who: 'کاربر عادی و سایر کاربران', where: 'مصوبات پیشنهادی ← ثبت پیشنهاد', text: 'برای مطرح‌کردن یک نیاز، مسئله یا پیشنهاد در جلسه. درخواست‌کننده عنوان، شرح، دلیل و پیوست را ثبت می‌کند؛ او فقط پیشنهادهای خودش را پیگیری می‌کند.' },
+  { icon: ClipboardCheck, title: '۲. بررسی و تصمیم', who: 'مدیرعامل؛ سپس مسئول دفتر و دبیر جلسه', where: 'مصوبات پیشنهادی ← کارتابل نقش مربوط', text: 'مدیرعامل پیشنهاد را تأیید، رد یا برای اصلاح برمی‌گرداند. پیشنهاد تأییدشده توسط مسئول دفتر و دبیر جلسه برای قرارگرفتن در دستور جلسه آماده می‌شود.' },
+  { icon: CalendarDays, title: '۳. جلسه و دستور جلسه', who: 'مسئول دفتر یا دبیر جلسه', where: 'مدیریت جلسات / تقویم هوشمند', text: 'زمان، مکان، اعضا و بندهای دستور جلسه ثبت می‌شوند. مدیرعامل دستور جلسه را تأیید می‌کند؛ سپس دبیرخانه دعوتنامه و صورت‌جلسه را مدیریت می‌کند.' },
+  { icon: FileCheck2, title: '۴. ثبت مصوبه و امضا', who: 'دبیر جلسه و امضاکنندگان تعریف‌شده', where: 'جزئیات جلسه ← ثبت مصوبه / بانک مصوبات', text: 'برای هر بند مصوب، متن، مسئول اجرا، مهلت و صحه‌گذار تعیین می‌شود. سپس مصوبه در ترتیب امضای تعریف‌شده گردش می‌کند.' },
+  { icon: Send, title: '۵. ابلاغ و ایجاد تکلیف', who: 'مسئول دفتر و دبیر جلسه', where: 'کارتابل ابلاغ', text: 'پس از تکمیل امضاها، مسئول دفتر ابلاغ را ثبت و دبیر آن را امضا می‌کند. فقط بعد از این مرحله، تکلیف در کارتابل مجری ساخته می‌شود.' },
+  { icon: UserCog, title: '۶. اجرا و گزارش پیشرفت', who: 'مجری مصوبه', where: 'وظایف ارجاعی من', text: 'مجری اقدام‌ها، درصد پیشرفت، موانع و مستندات را ثبت می‌کند. با اعلام اتمام، پرونده برای صحه‌گذاری می‌رود.' },
+  { icon: ClipboardCheck, title: '۷. پیگیری مهلت‌ها', who: 'مسئول دفتر / دبیرخانه', where: 'پیگیری', text: 'برای یادآوری، ثبت پیگیری و کنترل موعدها استفاده می‌شود. پیگیری، گزارش دوره‌ای است و جای گزارش اجرای مجری را نمی‌گیرد.' },
+  { icon: ShieldCheck, title: '۸. صحه‌گذاری و خاتمه', who: 'صحه‌گذار تعیین‌شده', where: 'کارتابل صحه‌گذاری', text: 'صحه‌گذار نتیجه و مستندات را تأیید می‌کند یا با ذکر دلیل برای اصلاح به مجری برمی‌گرداند. تأیید نهایی، مصوبه را مختومه می‌کند.' },
+];
+
+const MODULES = [
+  ['داشبورد', 'اقدام بعدی و کارهای شخصی شما؛ نقطه شروع روزانه.'],
+  ['مصوبات پیشنهادی', 'ثبت، اصلاح و تصمیم درباره درخواست پیش از جلسه.'],
+  ['مدیریت جلسات و تقویم', 'برنامه‌ریزی، دعوت، دستور جلسه و صورت‌جلسه.'],
+  ['بانک مصوبات', 'جزئیات، امضا، مسئول، مهلت و وضعیت اجرای هر مصوبه.'],
+  ['کارتابل‌ها', 'ابلاغ، وظایف مجری، پیگیری و صحه‌گذاری؛ هر نقش فقط کارهای خود را می‌بیند.'],
+  ['بایگانی', 'نگهداری قابل جست‌وجوی پرونده‌ها؛ بایگانی حذف فیزیکی نیست.'],
+];
+
+const WorkflowOverview: React.FC = () => (
+  <section className="hc-overview">
+    <header><span className="hc-overview-icon"><Compass className="h-5 w-5" /></span><div><h2>از درخواست تا خاتمه؛ از کجا شروع کنم؟</h2><p>این مسیر فقط برای نقش‌های مسئول هر مرحله فعال است؛ کاربر عادی نمی‌تواند جلسه یا مصوبه ایجاد کند.</p></div></header>
+    <ol className="hc-workflow">
+      {WORKFLOW.map(({ icon: Icon, title, who, where, text }) => <li key={title}>
+        <Icon className="h-4 w-4" /><div><b>{title}</b><p>{text}</p><small><strong>چه کسی:</strong> {who} <span>·</span> <strong>کجا:</strong> {where}</small></div>
+      </li>)}
+    </ol>
+    <details className="hc-modules">
+      <summary>اجزای سامانه در یک نگاه<ChevronDown className="h-4 w-4" /></summary>
+      <ul>{MODULES.map(([name, text]) => <li key={name}><b>{name}</b><span>{text}</span></li>)}</ul>
+    </details>
+  </section>
+);
 
 /** جزئیات هر راهنما فقط با انتخاب کاربر باز می‌شود تا صفحه خوانا بماند. */
 const TopicCard: React.FC<{ topic: GuideTopic; onGo: (route: AppRoute) => void }> = ({ topic, onGo }) => (
@@ -127,6 +162,8 @@ export const UserGuideView: React.FC = () => {
         ) : (
           <section className="hc-hero"><span className="hc-hero-icon"><Search className="h-7 w-7" /></span><div><h2>نتایج «{query}»</h2><p>{toPersianDigits(topics.length)} آموزش پیدا شد</p></div></section>
         )}
+
+        {!q && <WorkflowOverview />}
 
         {topics.length === 0 ? (
           <div className="db-card db-empty"><CircleHelp className="h-8 w-8 text-slate-300" /><p>آموزشی پیدا نشد؛ واژه دیگری امتحان کنید.</p></div>
