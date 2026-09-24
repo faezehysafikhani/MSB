@@ -17,26 +17,24 @@ const ICONS: Record<InfographicStage['icon'], { icon: React.ElementType; tone: s
   verify: { icon: ShieldCheck, tone: 'igs-navy' },
 };
 
-// چیدمان مطابق مرجع: سه ردیف و مسیر مارپیچ (مختصات در viewBox 1000×500).
+// مسیر پیوسته و خوانا: شماره‌ها دقیقاً با جهت فلش‌ها حرکت می‌کنند.
 const VIEW_W = 1000;
 const VIEW_H = 580;
 const ROWS = [128, 318, 508];
 const SLOTS: { x: number; y: number }[] = [
   { x: 820, y: ROWS[0] }, { x: 520, y: ROWS[0] }, { x: 220, y: ROWS[0] },
-  { x: 820, y: ROWS[1] }, { x: 520, y: ROWS[1] }, { x: 220, y: ROWS[1] },
-  { x: 220, y: ROWS[2] }, { x: 520, y: ROWS[2] }, { x: 820, y: ROWS[2] },
+  { x: 220, y: ROWS[1] }, { x: 520, y: ROWS[1] }, { x: 820, y: ROWS[1] },
+  { x: 820, y: ROWS[2] }, { x: 520, y: ROWS[2] }, { x: 220, y: ROWS[2] },
 ];
-const PATH = `M 0 ${ROWS[0]} L 890 ${ROWS[0]} C 985 ${ROWS[0]} 985 ${ROWS[1]} 890 ${ROWS[1]} L 110 ${ROWS[1]} C 15 ${ROWS[1]} 15 ${ROWS[2]} 110 ${ROWS[2]} L ${VIEW_W} ${ROWS[2]}`;
+const PATH = `M 820 ${ROWS[0]} L 220 ${ROWS[0]} C 120 ${ROWS[0]} 120 ${ROWS[1]} 220 ${ROWS[1]} L 820 ${ROWS[1]} C 920 ${ROWS[1]} 920 ${ROWS[2]} 820 ${ROWS[2]} L 220 ${ROWS[2]}`;
 const CHEVRONS = [
   { x: 670, y: ROWS[0], dir: -1 }, { x: 370, y: ROWS[0], dir: -1 },
-  { x: 670, y: ROWS[1], dir: -1 }, { x: 370, y: ROWS[1], dir: -1 },
-  { x: 370, y: ROWS[2], dir: 1 }, { x: 670, y: ROWS[2], dir: 1 },
+  { x: 370, y: ROWS[1], dir: 1 }, { x: 670, y: ROWS[1], dir: 1 },
+  { x: 670, y: ROWS[2], dir: -1 }, { x: 370, y: ROWS[2], dir: -1 },
 ];
-const BEADS = [{ x: 400, y: ROWS[0] - 12 }, { x: 700, y: ROWS[1] + 10 }, { x: 60, y: 350 }, { x: 960, y: 190 }];
 
 /**
- * اینفوگراف «مسیر مصوبه از پیشنهاد تا خاتمه» — بازسازی React/CSS از تصویر
- * مرجع: مسیر مارپیچ آبی، پایه‌های شیشه‌ای، آیکون‌های برجسته و شماره هر مرحله.
+ * اینفوگراف «مسیر مصوبه از پیشنهاد تا خاتمه» با جهت واقعی گردش کار.
  * داده (شماره، عنوان، توضیح، آیکون، ترتیب) از آرایه مستقل infographicStages می‌آید.
  */
 export const InfographicsView: React.FC = () => {
@@ -74,7 +72,6 @@ export const InfographicsView: React.FC = () => {
               <path d="M 3 -7 L 11 0 L 3 7" fill="none" stroke="#ffffff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
             </g>
           ))}
-          {BEADS.map((b) => <circle key={`${b.x}-${b.y}`} cx={b.x} cy={b.y} r="13" fill="url(#igs-bead)" stroke="#ffffff" strokeWidth="1.5" />)}
         </svg>
 
         {stages.slice(0, SLOTS.length).map((stage, i) => {
