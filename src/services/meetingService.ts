@@ -112,12 +112,13 @@ class MockMeetingService implements IMeetingService {
     if (params?.participantUserId) {
       const scopedUser = loadLocalCollection('users', mockUsers).find((user) => user.id === params.participantUserId);
       // مسئول دفتر مدیرعامل، صاحب فرایند زمان‌بندی/ابلاغ است. او فقط جلسه‌های
-      // فعال را می‌بیند (نه آرشیو و جلسات برگزارشدهٔ نامرتبط) تا بتواند
-      // جلسه‌ای را که برای گردش مدیرعامل آماده شده پیگیری کند.
+      // فعال و برگزارشده را می‌بیند تا هم جلسه‌ای را که برای گردش مدیرعامل
+      // آماده شده پیگیری کند و هم پس از برگزاری، مصوبات آن را ثبت نماید.
+      // جلسهٔ لغوشده و آرشیو نامرتبط همچنان خارج از Scope او می‌ماند.
       const canCoordinateActiveMeetings = Boolean(scopedUser?.permissions?.includes('NOTIFY_RESOLUTION'));
       const activeCoordinationStatuses: MeetingStatus[] = [
         'AGENDA_PREPARATION', 'WAITING_FOR_CEO_APPROVAL', 'AGENDA_RETURNED',
-        'READY_FOR_INVITATION', 'INVITATION_SENT', 'SCHEDULED', 'IN_PROGRESS',
+        'READY_FOR_INVITATION', 'INVITATION_SENT', 'SCHEDULED', 'IN_PROGRESS', 'HELD',
       ];
       filtered = filtered.filter((meeting) =>
         meeting.organizerId === params.participantUserId ||
