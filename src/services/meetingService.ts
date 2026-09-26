@@ -66,6 +66,18 @@ class MockMeetingService implements IMeetingService {
       .map((user) => user.id);
     let changed = false;
     meetings.forEach((meeting) => {
+      // نسخه‌های قدیمی فیلدِ سازنده نداشتند. نخستین رویداد ایجاد/ارسال
+      // دستورکار نزدیک‌ترین دادهٔ قابل اتکا برای حفظ دسترسی همان کاربر است.
+      if (!meeting.createdByUserId) {
+        const creatorEvent = (meeting.history || []).find((entry) =>
+          entry.action.includes('تهیه دستورکار') || entry.action.includes('ایجاد جلسه')
+        );
+        if (creatorEvent?.actorUserId) {
+          meeting.createdByUserId = creatorEvent.actorUserId;
+          meeting.createdByName = creatorEvent.actorName;
+          changed = true;
+        }
+      }
       if (meeting.status === 'WAITING_FOR_CEO_APPROVAL' && !Array.isArray(meeting.agendaApproverUserIds)) {
         meeting.agendaApproverUserIds = ceoIds;
         changed = true;
@@ -98,12 +110,22 @@ class MockMeetingService implements IMeetingService {
     const resolutions = loadLocalCollection('resolutions', mockResolutions);
 
     if (params?.participantUserId) {
+      const scopedUser = loadLocalCollection('users', mockUsers).find((user) => user.id === params.participantUserId);
+      // مسئول دفتر مدیرعامل، صاحب فرایند زمان‌بندی/ابلاغ است. او فقط جلسه‌های
+      // فعال را می‌بیند (نه آرشیو و جلسات برگزارشدهٔ نامرتبط) تا بتواند
+      // جلسه‌ای را که برای گردش مدیرعامل آماده شده پیگیری کند.
+      const canCoordinateActiveMeetings = Boolean(scopedUser?.permissions?.includes('NOTIFY_RESOLUTION'));
+      const activeCoordinationStatuses: MeetingStatus[] = [
+        'AGENDA_PREPARATION', 'WAITING_FOR_CEO_APPROVAL', 'AGENDA_RETURNED',
+        'READY_FOR_INVITATION', 'INVITATION_SENT', 'SCHEDULED', 'IN_PROGRESS',
+      ];
       filtered = filtered.filter((meeting) =>
         meeting.organizerId === params.participantUserId ||
         meeting.secretaryId === params.participantUserId ||
         meeting.createdByUserId === params.participantUserId ||
         meeting.agendaApproverUserIds?.includes(params.participantUserId) ||
-        meeting.members.some((member) => member.userId === params.participantUserId)
+        meeting.members.some((member) => member.userId === params.participantUserId) ||
+        (canCoordinateActiveMeetings && activeCoordinationStatuses.includes(meeting.status))
       );
     }
 
@@ -206,9 +228,9 @@ class MockMeetingService implements IMeetingService {
     newMeeting.history = [{
       id: `meeting-history-${Date.now()}`,
       action: 'تهیه دستورکار و ارسال برای تأیید مدیرعامل',
-      actorUserId: dto.secretaryId,
-      actorName: newMeeting.secretaryName,
-      actorRole: 'دبیر جلسه',
+      actorUserId: dto.createdByUserId,
+      actorName: dto.createdByName,
+      actorRole: 'سازندهٔ جلسه',
       toStatus: 'WAITING_FOR_CEO_APPROVAL',
       dateJalali: newMeeting.dateJalali,
       timeString: newMeeting.startTime,
