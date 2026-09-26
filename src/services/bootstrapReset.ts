@@ -15,7 +15,7 @@ try {
   // جبران نسخه‌ای که به اشتباه فقط سه پروفایل را نگه داشته بود. این بازگردانی
   // فقط فهرست پایه کاربران را برمی‌گرداند و داده‌های عملیاتی پاک‌شده را جعل
   // یا بازسازی نمی‌کند.
-  if (window.localStorage.getItem(`${PREFIX}rosterRestoreVersion`) !== '2') {
+  if (window.localStorage.getItem(`${PREFIX}rosterRestoreVersion`) !== '3') {
     window.localStorage.setItem(`${PREFIX}users`, JSON.stringify(mockUsers));
     window.localStorage.setItem(`${PREFIX}currentUserId`, JSON.stringify('user-admin'));
     // امضاکنندگان را به افراد مشخص وصل می‌کنیم؛ بنابراین حتی اگر یک نقش دیگر
@@ -26,7 +26,10 @@ try {
       RESOLUTION_STEP_3: { mode: 'USER', userId: 'user-admin' },
       RESOLUTION_NOTICE: { mode: 'MEETING_SECRETARY' },
     } }));
-    window.localStorage.setItem(`${PREFIX}rosterRestoreVersion`, '2');
+    // فقط رکوردهای نمایشی را اضافه می‌کند؛ رکوردهای دستی کاربر دست‌نخورده
+    // می‌مانند. نمونه‌ها از فهرست کاربران عملیاتی جدید استفاده می‌کنند.
+    loadDemoData();
+    window.localStorage.setItem(`${PREFIX}rosterRestoreVersion`, '3');
   }
   const markerSaved = window.localStorage.getItem(`${PREFIX}demoDataVersion`) !== null;
   const info = getDemoDataInfo();
