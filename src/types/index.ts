@@ -78,6 +78,10 @@ export type PermissionKey =
   // from SIGN_RESOLUTION (one of the three main signers) and from
   // APPROVE_MEETING_CONFIRMATION (دبیر جلسه's own permission).
   | 'NOTIFY_RESOLUTION'
+  // Viewing the notification-letter draft is intentionally independent from
+  // signing it: a meeting secretary may sign an assigned notice without
+  // automatically receiving access to its generated draft.
+  | 'VIEW_NOTIFICATION_DRAFT'
   // «پیگیری مصوبات» — a parallel monitoring workflow that never touches
   // execution, validation, signatures or ابلاغ. Split in two levels so a
   // user can be given read-only visibility of the cartable without the

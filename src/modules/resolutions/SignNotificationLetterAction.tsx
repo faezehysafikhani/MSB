@@ -20,8 +20,9 @@ interface SignNotificationLetterActionProps {
  * روی خود ابلاغیه ثبت می‌گردد — نه به‌عنوان امضای چهارمِ سه امضای اصلی.
  */
 export const SignNotificationLetterAction: React.FC<SignNotificationLetterActionProps> = ({ resolution, onSigned }) => {
-  const { currentUser, showToast } = useApp();
+  const { currentUser, showToast, hasPermission } = useApp();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const canViewNotificationDraft = hasPermission('VIEW_NOTIFICATION_DRAFT');
   // اگر این درخواست به امضاکننده دیگری تخصیص یافته و کاربر جاری جانشین
   // فعال اوست، در کارتابل صریحاً نشان داده می‌شود.
   const [delegation, setDelegation] = useState<{ ownerName: string } | null>(null);
@@ -43,6 +44,10 @@ export const SignNotificationLetterAction: React.FC<SignNotificationLetterAction
   }, [resolution.id, currentUser.id]);
 
   const handlePreview = async () => {
+    if (!canViewNotificationDraft) {
+      showToast('دسترسی غیرمجاز', 'شما مجوز مشاهده پیش‌نویس ابلاغیه را ندارید.', 'error');
+      return;
+    }
     const [meetingRes, noticesRes] = await Promise.all([
       meetingService.getMeetingById(resolution.meetingId, currentUser),
       boardSecretariatService.getNotices(undefined, resolution.id),
@@ -87,14 +92,16 @@ export const SignNotificationLetterAction: React.FC<SignNotificationLetterAction
           امضا به جانشینی از {delegation.ownerName}
         </span>
       )}
-      <button
-        type="button"
-        onClick={handlePreview}
-        className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[11px] font-bold py-2 px-3 rounded-xl cursor-pointer"
-      >
-        <FileDown className="w-3.5 h-3.5" />
-        <span>مشاهده پیش‌نویس ابلاغیه</span>
-      </button>
+      {canViewNotificationDraft && (
+        <button
+          type="button"
+          onClick={handlePreview}
+          className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[11px] font-bold py-2 px-3 rounded-xl cursor-pointer"
+        >
+          <FileDown className="w-3.5 h-3.5" />
+          <span>مشاهده پیش‌نویس ابلاغیه</span>
+        </button>
+      )}
       <button
         type="button"
         onClick={handleSign}
