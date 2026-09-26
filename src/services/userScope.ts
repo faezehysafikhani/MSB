@@ -45,15 +45,17 @@ export const isResolutionRelatedToUser = (resolution: Resolution, user: User): b
 
 /**
  * دید کامل روی همه بندهای دستور جلسه («تایید جلسه»‌های یک جلسه).
- * نقش‌های مدیریتی موجود (ADMIN / CEO / مسئول دفتر)، برگزارکننده و دبیرِ
- * خودِ همان جلسه، و دارنده مجوز تأیید نهایی تایید جلسه (دبیر جلسه) —
+ * نقش‌های مدیریتی موجود (ADMIN / CEO)، برگزارکننده و دبیرِ
+ * خودِ همان جلسه، و دارنده مجوز تأیید نهایی تایید جلسه یا ثبت مصوبه
+ * (از جمله مسئول دفتر) —
  * همگی Scope فعلی‌شان حفظ می‌شود و محدود نمی‌شوند.
  */
 export const canSeeAllAgendaItems = (meeting: Meeting, user: User): boolean =>
   hasOrgWideMeetingAccess(user.role) ||
   meeting.organizerId === user.id ||
   meeting.secretaryId === user.id ||
-  (user.permissions || []).includes('APPROVE_MEETING_CONFIRMATION');
+  (user.permissions || []).includes('APPROVE_MEETING_CONFIRMATION') ||
+  (user.permissions || []).includes('CREATE_RESOLUTION');
 
 /**
  * یک بند دستور جلسه برای کاربر عادی قابل مشاهده است اگر:
