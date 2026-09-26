@@ -31,6 +31,21 @@ try {
     loadDemoData();
     window.localStorage.setItem(`${PREFIX}rosterRestoreVersion`, '4');
   }
+  // مجوز جدید مشاهده پیش‌نویس ابلاغیه برای دبیر فعلی جلسات: این مهاجرت
+  // فقط همان مجوز را اضافه می‌کند و برخلاف بازنشانی roster، هیچ کاربر یا
+  // داده‌ای را جایگزین/حذف نمی‌کند. در نتیجه داده‌های قبلی مرورگر نیز
+  // بی‌نیاز از ریست، با نقش عملیاتی مهندس جواد صادقی سازگار می‌شوند.
+  if (window.localStorage.getItem(`${PREFIX}notificationDraftPermissionVersion`) !== '1') {
+    const savedUsers = window.localStorage.getItem(`${PREFIX}users`);
+    const users = savedUsers ? JSON.parse(savedUsers) : mockUsers;
+    const updatedUsers = users.map((user: typeof mockUsers[number]) => (
+      user.id === 'user-8' && !(user.permissions || []).includes('VIEW_NOTIFICATION_DRAFT')
+        ? { ...user, permissions: [...(user.permissions || []), 'VIEW_NOTIFICATION_DRAFT'] }
+        : user
+    ));
+    window.localStorage.setItem(`${PREFIX}users`, JSON.stringify(updatedUsers));
+    window.localStorage.setItem(`${PREFIX}notificationDraftPermissionVersion`, '1');
+  }
   const markerSaved = window.localStorage.getItem(`${PREFIX}demoDataVersion`) !== null;
   const info = getDemoDataInfo();
   if (!markerSaved || (info && info.version < DEMO_DATA_VERSION)) loadDemoData();
