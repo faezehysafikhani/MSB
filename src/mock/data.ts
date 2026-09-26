@@ -15,22 +15,13 @@ import {
 
 export const mockOrganizations: Organization[] = [
   { id: 'org-1', name: 'سازمان مرکزی فناوری و اطلاعات', type: 'INTERNAL' },
-  { id: 'org-2', name: 'شرکت صنایع داده‌پردازی پایا (پیمانکار)', type: 'EXTERNAL_CONTRACTOR', contactPerson: 'مهندس رضایی', phone: '021-88776655' },
-  { id: 'org-3', name: 'پژوهشگاه تحول دیجیتال و هوش مصنوعی', type: 'SUBSIDIARY', contactPerson: 'دکتر علوی', phone: '021-22334455' },
-  { id: 'org-4', name: 'مرکز توسعه مدیریت و بهره‌وری دولتی', type: 'MINISTRY', contactPerson: 'مهندس فرهمند', phone: '021-66554433' },
 ];
 
 export const mockDepartments: Department[] = [
-  { id: 'dept-1', name: 'اداره کل فناوری اطلاعات و ارتباطات', code: 'IT-100', managerId: 'user-2', managerName: 'مهندس حسینی', organizationId: 'org-1', memberCount: 18 },
-  { id: 'dept-2', name: 'معاونت برنامه‌ریزی و تحول سازمانی', code: 'PLN-200', managerId: 'user-3', managerName: 'دکتر احمدی', organizationId: 'org-1', memberCount: 12 },
-  { id: 'dept-3', name: 'مدیریت منابع انسانی و آموزش', code: 'HR-300', managerId: 'user-4', managerName: 'خانم مهندس مرادی', organizationId: 'org-1', memberCount: 14 },
-  { id: 'dept-4', name: 'اداره کل امور مالی و ذی‌حسابی', code: 'FIN-400', managerId: 'user-5', managerName: 'آقای شریفی', organizationId: 'org-1', memberCount: 10 },
-  { id: 'dept-5', name: 'اداره حقوقی و امور قراردادها', code: 'LGL-500', managerId: 'user-6', managerName: 'دکتر کاظمی', organizationId: 'org-1', memberCount: 8 },
-  { id: 'dept-6', name: 'مرکز امنیت اطلاعات و حراست', code: 'SEC-600', managerId: 'user-7', managerName: 'مهندس تقوی', organizationId: 'org-1', memberCount: 9 },
-  { id: 'dept-7', name: 'مدیریت طرح و پشتیبانی پروژه‌ها', code: 'PMO-700', managerId: 'user-8', managerName: 'مهندس صادقی', organizationId: 'org-1', memberCount: 11 },
+  { id: 'dept-1', name: 'دبیرخانه جلسات و پیگیری مصوبات', code: 'MSB-100', managerId: 'user-8', managerName: 'مهندس جواد صادقی', organizationId: 'org-1', memberCount: 3 },
 ];
 
-export const mockUsers: User[] = [
+const legacyMockUsers: User[] = [
   {
     id: 'user-admin',
     nationalCode: '0000000000',
@@ -395,6 +386,28 @@ export const mockUsers: User[] = [
       'MANAGE_RESOLUTION_FOLLOWUP',
     ],
   }
+];
+
+/** فهرست عملیاتی سامانه: فقط سه نقش مورد استفاده در گردش مصوبات. */
+export const mockUsers: User[] = [
+  {
+    id: 'user-8', nationalCode: '0089012345', username: 'sadeghi', fullName: 'مهندس جواد صادقی',
+    title: 'دبیر جلسه و مسئول دفتر', email: 'j.sadeghi@org.gov.ir', phone: '09128888888', role: 'SECRETARY',
+    departmentId: 'dept-1', departmentName: 'دبیرخانه جلسات و پیگیری مصوبات', organizationId: 'org-1', organizationName: 'سازمان مرکزی فناوری و اطلاعات', isActive: true,
+    permissions: ['VIEW_DASHBOARD', 'VIEW_MEETINGS', 'CREATE_MEETING', 'EDIT_MEETING', 'CREATE_RESOLUTION', 'VIEW_RESOLUTIONS', 'EDIT_RESOLUTION', 'VIEW_TASKS', 'SIGN_RESOLUTION', 'APPEND_MEETING_CONTENT', 'APPROVE_MEETING_CONFIRMATION', 'NOTIFY_RESOLUTION', 'VIEW_RESOLUTION_FOLLOWUP', 'MANAGE_RESOLUTION_FOLLOWUP'],
+  },
+  {
+    id: 'user-9', nationalCode: '0090123456', username: 'niknam', fullName: 'مهندس سارا نیک‌نام',
+    title: 'مدیرعامل', email: 's.niknam@org.gov.ir', phone: '09129999999', role: 'CEO',
+    departmentId: 'dept-1', departmentName: 'دبیرخانه جلسات و پیگیری مصوبات', organizationId: 'org-1', organizationName: 'سازمان مرکزی فناوری و اطلاعات', isActive: true,
+    permissions: ['VIEW_DASHBOARD', 'VIEW_MEETINGS', 'VIEW_RESOLUTIONS', 'VIEW_APPROVALS', 'APPROVE_RESOLUTION', 'REJECT_RESOLUTION', 'SIGN_RESOLUTION'],
+  },
+  {
+    id: 'user-14', nationalCode: '0145678901', username: 'soleimani', fullName: 'دکتر وحید سلیمانی',
+    title: 'مدیر سامانه و صحه‌گذار', email: 'v.soleimani@org.gov.ir', phone: '09120000005', role: 'ADMIN',
+    departmentId: 'dept-1', departmentName: 'دبیرخانه جلسات و پیگیری مصوبات', organizationId: 'org-1', organizationName: 'سازمان مرکزی فناوری و اطلاعات', isActive: true,
+    permissions: ['*'],
+  },
 ];
 
 // جلسات — داده عملیاتی است و عمداً خالی است تا سامانه از صفر شروع شود.

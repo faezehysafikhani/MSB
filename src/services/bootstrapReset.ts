@@ -6,14 +6,29 @@
 // - اگر نسخه قدیمی‌تری از آن قبلاً بارگذاری شده باشد.
 // بارگذاری فقط رکوردهای «demo-» را جایگزین می‌کند و داده دستی را پاک نمی‌کند.
 // اگر مدیر داده نمونه را بازنشانی کرده باشد، دیگر خودکار برنمی‌گردد.
-import { DEMO_DATA_VERSION, getDemoDataInfo, loadDemoData } from './demoDataService';
+import { mockUsers } from '../mock/data';
 
 const PREFIX = 'postbank-mosavabat-v1:';
 
 try {
-  const markerSaved = window.localStorage.getItem(`${PREFIX}demoDataVersion`) !== null;
-  const info = getDemoDataInfo();
-  if (!markerSaved || (info && info.version < DEMO_DATA_VERSION)) loadDemoData();
+  // کاربر درخواست کرده است فقط سه فرد عملیاتی بمانند. این مهاجرت یک‌بار
+  // فهرست افراد و تمام پرونده‌های وابستهٔ قبلی را پاک می‌کند تا نام یا ارجاع
+  // پنهانی از افراد حذف‌شده در جلسه‌ها و کارتابل‌ها باقی نماند.
+  const rosterVersionKey = `${PREFIX}rosterVersion`;
+  if (window.localStorage.getItem(rosterVersionKey) !== '1') {
+    window.localStorage.setItem(`${PREFIX}users`, JSON.stringify(mockUsers));
+    ['meetings', 'resolutions', 'tasks', 'approvals', 'activityLogs', 'notifications', 'boardMinutes', 'resolutionNotices', 'resolutionFollowUps', 'governanceAudit', 'outcomeLetters', 'archiveFolders', 'archiveItems', 'proposals'].forEach((key) => window.localStorage.setItem(`${PREFIX}${key}`, '[]'));
+    window.localStorage.setItem(`${PREFIX}currentUserId`, JSON.stringify('user-14'));
+    window.localStorage.setItem(`${PREFIX}signatureWorkflowSettings`, JSON.stringify({ stages: {
+      RESOLUTION_STEP_1: { mode: 'USER', userId: 'user-8' },
+      RESOLUTION_STEP_2: { mode: 'USER', userId: 'user-9' },
+      RESOLUTION_STEP_3: { mode: 'USER', userId: 'user-14' },
+      RESOLUTION_NOTICE: { mode: 'MEETING_SECRETARY' },
+    } }));
+    // داده نمونهٔ قدیمی افراد حذف‌شده را بازنگرداند.
+    window.localStorage.setItem(`${PREFIX}demoDataVersion`, JSON.stringify({ version: 999, loadedAt: new Date().toISOString() }));
+    window.localStorage.setItem(rosterVersionKey, '1');
+  }
 } catch {
-  // دسترسی به localStorage ممکن نیست؛ سامانه بدون داده نمونه اجرا می‌شود.
+  // دسترسی به localStorage ممکن نیست؛ سامانه با داده پایه اجرا می‌شود.
 }
