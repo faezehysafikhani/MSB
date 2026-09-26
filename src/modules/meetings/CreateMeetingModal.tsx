@@ -53,6 +53,7 @@ export const CreateMeetingModal: React.FC = () => {
       setAgendas([]);
       setNewAgendaTitle('');
       setNewAgendaPresenterId('');
+      setNewAgendaRelatedUserIds([]);
       setConsumedProposalIds([]);
       setSelectedProposalId('');
       setProposalRelatedUserIds([]);
@@ -94,6 +95,7 @@ export const CreateMeetingModal: React.FC = () => {
 
   const [newAgendaTitle, setNewAgendaTitle] = useState('');
   const [newAgendaPresenterId, setNewAgendaPresenterId] = useState('');
+  const [newAgendaRelatedUserIds, setNewAgendaRelatedUserIds] = useState<string[]>([]);
   const [newAgendaStartTime, setNewAgendaStartTime] = useState('09:00');
   const [newAgendaEndTime, setNewAgendaEndTime] = useState('09:30');
   const [newAgendaAttachments, setNewAgendaAttachments] = useState<Attachment[]>([]);
@@ -141,11 +143,15 @@ export const CreateMeetingModal: React.FC = () => {
       allocatedMinutes: minutes,
       isDiscussed: false,
       status: 'PENDING',
+      relatedUsers: availableUsers
+        .filter((user) => Array.from(new Set([...newAgendaRelatedUserIds, newAgendaPresenterId])).includes(user.id))
+        .map((user) => ({ userId: user.id, fullName: user.fullName, phone: user.phone })),
       attachments: newAgendaAttachments,
     };
     setAgendas([...agendas, newAg]);
     setNewAgendaTitle('');
     setNewAgendaPresenterId('');
+    setNewAgendaRelatedUserIds([]);
     setNewAgendaStartTime('09:00');
     setNewAgendaEndTime('09:30');
     setNewAgendaAttachments([]);
@@ -573,10 +579,17 @@ export const CreateMeetingModal: React.FC = () => {
                 </div>
 
                 <div className="sm:col-span-4">
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">ارائه‌دهنده</label>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">ارائه‌دهندهٔ پیش‌فرض</label>
                   <select
                     value={newAgendaPresenterId}
-                    onChange={(e) => setNewAgendaPresenterId(e.target.value)}
+                    onChange={(e) => {
+                      const presenterId = e.target.value;
+                      setNewAgendaPresenterId(presenterId);
+                      // ارائه‌دهنده همیشه یکی از افراد مرتبط همان موضوع است.
+                      setNewAgendaRelatedUserIds((currentIds) => presenterId && !currentIds.includes(presenterId)
+                        ? [...currentIds, presenterId]
+                        : currentIds);
+                    }}
                     className="w-full text-xs p-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none font-medium"
                   >
                     <option value="">انتخاب ارائه‌دهنده از فهرست کاربران...</option>
@@ -592,6 +605,21 @@ export const CreateMeetingModal: React.FC = () => {
                   <PersianTimePicker label="از ساعت" value={newAgendaStartTime} onChange={setNewAgendaStartTime} />
                   <PersianTimePicker label="تا ساعت" value={newAgendaEndTime} onChange={setNewAgendaEndTime} />
                 </div>
+              </div>
+
+              <div className="p-3 bg-white/80 border border-teal-100 rounded-xl">
+                <SearchableUserMultiSelect
+                  users={availableUsers}
+                  selectedIds={newAgendaRelatedUserIds}
+                  onChange={(ids) => {
+                    setNewAgendaRelatedUserIds(ids);
+                    // اولین فرد مرتبط، بدون نیاز به انتخاب دوباره، ارائه‌دهندهٔ
+                    // پیش‌فرض می‌شود. کاربر همچنان می‌تواند او را تغییر دهد.
+                    setNewAgendaPresenterId((currentId) => ids.includes(currentId) ? currentId : (ids[0] || ''));
+                  }}
+                  label="افراد مرتبط با این موضوع"
+                />
+                <p className="mt-2 text-[10px] text-slate-500">اولین فرد انتخاب‌شده به‌صورت پیش‌فرض ارائه‌دهنده است؛ افراد بیشتری را می‌توانید اضافه کنید و سپس ارائه‌دهنده را از همین فهرست تغییر دهید.</p>
               </div>
 
               <div>
