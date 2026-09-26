@@ -56,6 +56,7 @@ export const CreateMeetingModal: React.FC = () => {
       setConsumedProposalIds([]);
       setSelectedProposalId('');
       setProposalRelatedUserIds([]);
+      setProposalPresenterId('');
       setMeetingAttachments([]);
       setNewAgendaAttachments([]);
       setProposalAgendaAttachments([]);
@@ -72,6 +73,9 @@ export const CreateMeetingModal: React.FC = () => {
   const [proposalStartTime, setProposalStartTime] = useState('09:00');
   const [proposalEndTime, setProposalEndTime] = useState('09:30');
   const [proposalRelatedUserIds, setProposalRelatedUserIds] = useState<string[]>([]);
+  // ارائه‌دهندهٔ بندِ ساخته‌شده از پیشنهاد، یکی از افراد مرتبط است. با انتخاب
+  // پیشنهاد، پیشنهاددهنده/ارائه‌دهندهٔ تأییدشده به‌صورت پیش‌فرض انتخاب می‌شود.
+  const [proposalPresenterId, setProposalPresenterId] = useState('');
   // Files attached to this specific agenda item — kept separate per add-flow
   // (confirmed-proposal vs brand-new) and moved onto the AgendaItem itself
   // once added, never onto the meeting's own top-level attachments.
@@ -159,9 +163,10 @@ export const CreateMeetingModal: React.FC = () => {
     setAgendaError(null);
 
     const minutes = getMinutesDiff(proposalStartTime, proposalEndTime);
-    const presenterName = proposal.confirmedPresenterName || proposal.proposerName;
+    const selectedPresenter = availableUsers.find((user) => user.id === proposalPresenterId);
+    const presenterName = selectedPresenter?.fullName || proposal.confirmedPresenterName || proposal.proposerName;
     const relatedUsers = availableUsers
-      .filter((user) => proposalRelatedUserIds.includes(user.id))
+      .filter((user) => Array.from(new Set([...proposalRelatedUserIds, proposalPresenterId])).includes(user.id))
       .map((user) => ({ userId: user.id, fullName: user.fullName, phone: user.phone }));
 
     const newAg: AgendaItem = {
@@ -189,6 +194,7 @@ export const CreateMeetingModal: React.FC = () => {
     setProposalStartTime('09:00');
     setProposalEndTime('09:30');
     setProposalRelatedUserIds([]);
+    setProposalPresenterId('');
     setProposalAgendaAttachments([]);
   };
 
@@ -476,7 +482,17 @@ export const CreateMeetingModal: React.FC = () => {
                   <div className="sm:col-span-6">
                     <select
                       value={selectedProposalId}
-                      onChange={(e) => { setSelectedProposalId(e.target.value); setProposalRelatedUserIds([]); setProposalAgendaAttachments([]); }}
+                      onChange={(e) => {
+                        const proposalId = e.target.value;
+                        const proposal = confirmedProposals.find((item) => item.id === proposalId);
+                        const defaultPresenterId = proposal?.confirmedPresenterId || proposal?.presenterUserId || proposal?.proposerUserId || '';
+                        setSelectedProposalId(proposalId);
+                        // فرد مرتبط با خودِ پیشنهاد، هم عضو مرتبط و هم
+                        // ارائه‌دهندهٔ پیش‌فرض است؛ دبیر می‌تواند آن را تغییر دهد.
+                        setProposalRelatedUserIds(defaultPresenterId ? [defaultPresenterId] : []);
+                        setProposalPresenterId(defaultPresenterId);
+                        setProposalAgendaAttachments([]);
+                      }}
                       className="w-full text-xs p-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium"
                     >
                       <option value="">انتخاب تایید جلسه...</option>
@@ -509,6 +525,20 @@ export const CreateMeetingModal: React.FC = () => {
                       onChange={setProposalRelatedUserIds}
                       label="افراد مرتبط با این موضوع"
                     />
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">ارائه‌دهندهٔ پیش‌فرض این موضوع</label>
+                      <select
+                        value={proposalPresenterId}
+                        onChange={(e) => setProposalPresenterId(e.target.value)}
+                        className="w-full text-xs p-2.5 bg-white border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium"
+                      >
+                        <option value="">انتخاب ارائه‌دهنده...</option>
+                        {availableUsers.filter((user) => proposalRelatedUserIds.includes(user.id) || user.id === proposalPresenterId).map((user) => (
+                          <option key={user.id} value={user.id}>{user.fullName} ({user.title})</option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-[10px] text-slate-500">پیشنهاددهنده یا ارائه‌دهندهٔ تأییدشده به‌صورت خودکار انتخاب شده است؛ با افزودن فرد دیگر در فهرست بالا، او هم قابل انتخاب می‌شود.</p>
+                    </div>
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">پیوست‌های این دستور کار</label>
                       <AttachmentList
