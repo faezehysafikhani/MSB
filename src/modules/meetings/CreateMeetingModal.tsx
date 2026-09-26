@@ -20,6 +20,7 @@ export const CreateMeetingModal: React.FC = () => {
     setIsCreateMeetingOpen,
     createMeetingInitialDate,
     availableUsers,
+    currentUser,
     showToast,
     triggerRefresh,
     hasPermission
@@ -244,6 +245,8 @@ export const CreateMeetingModal: React.FC = () => {
         location,
         organizerId,
         secretaryId,
+        createdByUserId: currentUser.id,
+        createdByName: currentUser.fullName,
         departmentId,
         description,
         members,

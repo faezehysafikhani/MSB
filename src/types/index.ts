@@ -424,6 +424,11 @@ export interface Meeting {
   organizerName: string;
   secretaryId: string;
   secretaryName: string;
+  // افرادِ مسئول بررسی دستورکار، لزوماً عضو یا مدعو جلسه نیستند.
+  // این فیلد برای جدا نگه‌داشتن «دسترسی تأیید» از «حضور در جلسه» است.
+  agendaApproverUserIds?: string[];
+  createdByUserId?: string;
+  createdByName?: string;
   departmentId: string;
   departmentName: string;
   status: MeetingStatus;

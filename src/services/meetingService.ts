@@ -15,6 +15,8 @@ export interface CreateMeetingDto {
   location: string;
   organizerId: string;
   secretaryId: string;
+  createdByUserId: string;
+  createdByName: string;
   departmentId: string;
   description?: string;
   members: Meeting['members'];
@@ -54,7 +56,24 @@ export interface IMeetingService {
 }
 
 class MockMeetingService implements IMeetingService {
-  private getMeetingsData = () => loadLocalCollection('meetings', mockMeetings);
+  private getMeetingsData = () => {
+    const meetings = loadLocalCollection('meetings', mockMeetings);
+    // رکوردهای پیش از افزوده‌شدن «تأییدکنندهٔ دستورکار» نیز باید برای
+    // مدیرعامل قابل مشاهده بمانند. این مهاجرت محلی فقط این نسبت دسترسی را
+    // اضافه می‌کند و اعضا، دستورکار و تاریخچهٔ جلسه را تغییر نمی‌دهد.
+    const ceoIds = loadLocalCollection('users', mockUsers)
+      .filter((user) => user.role === 'CEO' && user.isActive)
+      .map((user) => user.id);
+    let changed = false;
+    meetings.forEach((meeting) => {
+      if (meeting.status === 'WAITING_FOR_CEO_APPROVAL' && !Array.isArray(meeting.agendaApproverUserIds)) {
+        meeting.agendaApproverUserIds = ceoIds;
+        changed = true;
+      }
+    });
+    if (changed) saveLocalCollection('meetings', meetings);
+    return meetings;
+  };
   private saveMeetingsData = (meetings: Meeting[]) => saveLocalCollection('meetings', meetings);
 
   private addHistory(meeting: Meeting, actor: User, action: string, fromStatus: string, notes?: string) {
@@ -82,6 +101,8 @@ class MockMeetingService implements IMeetingService {
       filtered = filtered.filter((meeting) =>
         meeting.organizerId === params.participantUserId ||
         meeting.secretaryId === params.participantUserId ||
+        meeting.createdByUserId === params.participantUserId ||
+        meeting.agendaApproverUserIds?.includes(params.participantUserId) ||
         meeting.members.some((member) => member.userId === params.participantUserId)
       );
     }
@@ -145,6 +166,12 @@ class MockMeetingService implements IMeetingService {
   public async createMeeting(dto: CreateMeetingDto): Promise<ApiResponse<Meeting>> {
     const meetings = this.getMeetingsData();
     const nextNumber = meetings.length + 142;
+    // مدیرعامل «تأییدکنندهٔ دستورکار» است، نه لزوماً عضو حاضر در جلسه.
+    // بنابراین جدا از فهرست اعضا ذخیره می‌شود تا هم جلسه را ببیند و هم
+    // اطلاعات حضور و دعوت‌شدگان دستکاری نشود.
+    const agendaApproverUserIds = loadLocalCollection('users', mockUsers)
+      .filter((user) => user.role === 'CEO' && user.isActive)
+      .map((user) => user.id);
     const newMeeting: Meeting = {
       id: `meet-${Date.now()}`,
       meetingNumber: `جلسه-۱۴۰۳-${nextNumber}`,
@@ -158,6 +185,9 @@ class MockMeetingService implements IMeetingService {
       organizerName: dto.members.find((m) => m.userId === dto.organizerId)?.fullName || 'برگزارکننده',
       secretaryId: dto.secretaryId,
       secretaryName: dto.members.find((m) => m.userId === dto.secretaryId)?.fullName || 'دبیر جلسه',
+      createdByUserId: dto.createdByUserId,
+      createdByName: dto.createdByName,
+      agendaApproverUserIds,
       departmentId: dto.departmentId,
       departmentName: mockDepartments.find((department) => department.id === dto.departmentId)?.name || 'واحد برگزارکننده',
       status: 'WAITING_FOR_CEO_APPROVAL',

@@ -16,6 +16,8 @@ const normalizeName = (value?: string) => (value || '')
 export const isMeetingRelatedToUser = (meeting: Meeting, userId: string): boolean =>
   meeting.organizerId === userId ||
   meeting.secretaryId === userId ||
+  meeting.createdByUserId === userId ||
+  meeting.agendaApproverUserIds?.includes(userId) ||
   meeting.members.some((member) => member.userId === userId);
 
 /**
