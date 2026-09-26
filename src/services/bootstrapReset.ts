@@ -35,7 +35,7 @@ try {
   // فقط همان مجوز را اضافه می‌کند و برخلاف بازنشانی roster، هیچ کاربر یا
   // داده‌ای را جایگزین/حذف نمی‌کند. در نتیجه داده‌های قبلی مرورگر نیز
   // بی‌نیاز از ریست، با نقش عملیاتی مهندس جواد صادقی سازگار می‌شوند.
-  if (window.localStorage.getItem(`${PREFIX}notificationDraftPermissionVersion`) !== '1') {
+  if (window.localStorage.getItem(`${PREFIX}notificationDraftPermissionVersion`) !== '2') {
     const savedUsers = window.localStorage.getItem(`${PREFIX}users`);
     const users = savedUsers ? JSON.parse(savedUsers) : mockUsers;
     const updatedUsers = users.map((user: typeof mockUsers[number]) => (
@@ -44,7 +44,7 @@ try {
         : user
     ));
     window.localStorage.setItem(`${PREFIX}users`, JSON.stringify(updatedUsers));
-    window.localStorage.setItem(`${PREFIX}notificationDraftPermissionVersion`, '1');
+    window.localStorage.setItem(`${PREFIX}notificationDraftPermissionVersion`, '2');
   }
   const markerSaved = window.localStorage.getItem(`${PREFIX}demoDataVersion`) !== null;
   const info = getDemoDataInfo();

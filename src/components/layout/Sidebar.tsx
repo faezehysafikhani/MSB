@@ -151,7 +151,7 @@ export const Sidebar: React.FC = () => {
           : []),
         // کارتابل ابلاغ برای مسئول دفتر (ثبت ابلاغ) و برای دبیر جلسه‌ای که
         // ابلاغیه‌ای در انتظار امضای اوست، باز می‌شود.
-        ...(hasPermission('NOTIFY_RESOLUTION') || counts.noticeSignaturePending > 0
+        ...(hasPermission('NOTIFY_RESOLUTION') || hasPermission('VIEW_NOTIFICATION_DRAFT') || counts.noticeSignaturePending > 0
           ? [
               {
                 route: 'notification-inbox' as AppRoute,
