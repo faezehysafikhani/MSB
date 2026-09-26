@@ -7,10 +7,19 @@
 // بارگذاری فقط رکوردهای «demo-» را جایگزین می‌کند و داده دستی را پاک نمی‌کند.
 // اگر مدیر داده نمونه را بازنشانی کرده باشد، دیگر خودکار برنمی‌گردد.
 import { DEMO_DATA_VERSION, getDemoDataInfo, loadDemoData } from './demoDataService';
+import { mockUsers } from '../mock/data';
 
 const PREFIX = 'postbank-mosavabat-v1:';
 
 try {
+  // جبران نسخه‌ای که به اشتباه فقط سه پروفایل را نگه داشته بود. این بازگردانی
+  // فقط فهرست پایه کاربران را برمی‌گرداند و داده‌های عملیاتی پاک‌شده را جعل
+  // یا بازسازی نمی‌کند.
+  if (window.localStorage.getItem(`${PREFIX}rosterVersion`) === '1' && window.localStorage.getItem(`${PREFIX}rosterRestoreVersion`) !== '1') {
+    window.localStorage.setItem(`${PREFIX}users`, JSON.stringify(mockUsers));
+    window.localStorage.setItem(`${PREFIX}currentUserId`, JSON.stringify('user-admin'));
+    window.localStorage.setItem(`${PREFIX}rosterRestoreVersion`, '1');
+  }
   const markerSaved = window.localStorage.getItem(`${PREFIX}demoDataVersion`) !== null;
   const info = getDemoDataInfo();
   if (!markerSaved || (info && info.version < DEMO_DATA_VERSION)) loadDemoData();
