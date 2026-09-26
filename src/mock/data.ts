@@ -30,7 +30,7 @@ export const mockDepartments: Department[] = [
   { id: 'dept-7', name: 'مدیریت طرح و پشتیبانی پروژه‌ها', code: 'PMO-700', managerId: 'user-8', managerName: 'مهندس صادقی', organizationId: 'org-1', memberCount: 11 },
 ];
 
-export const mockUsers: User[] = [
+const allMockUsers: User[] = [
   {
     id: 'user-admin',
     nationalCode: '0000000000',
@@ -396,6 +396,10 @@ export const mockUsers: User[] = [
     ],
   }
 ];
+
+/** فهرست عملیاتی مورد تأیید: امضاکنندگان، دبیر جلسه و دو کاربر باقی‌مانده. */
+const OPERATIONAL_USER_IDS = new Set(['user-admin', 'user-16', 'user-17', 'user-8', 'user-9', 'user-14']);
+export const mockUsers: User[] = allMockUsers.filter((user) => OPERATIONAL_USER_IDS.has(user.id));
 
 // جلسات — داده عملیاتی است و عمداً خالی است تا سامانه از صفر شروع شود.
 export const mockMeetings: Meeting[] = [];
