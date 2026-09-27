@@ -1415,6 +1415,21 @@ button:hover > .app-logo { transform: scale(1.04); }
 .app-modal-header button:hover,
 .app-form-hero button:hover { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.14) !important; transform: translateY(-1px); }
 
+/* سربرگ ویژهٔ جزئیات مصوبه: عنوان و وضعیت‌ها مستقل از سربرگ‌های عمومی
+   چیده می‌شوند تا روی هم نیفتند. */
+.resolution-detail-header { min-height: 6.8rem; gap: 1rem; padding: 1rem 1.2rem !important; }
+.resolution-header-main { display: flex; min-width: 0; flex: 1; align-items: flex-start; gap: 0.8rem; }
+.resolution-header-icon { display: inline-flex; width: 3rem; height: 3rem; flex: 0 0 auto; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.26); border-radius: 1rem; color: #e0f2fe; background: rgba(255,255,255,0.14); box-shadow: inset 0 1px 0 rgba(255,255,255,0.24), 0 8px 16px -11px rgba(2,18,53,0.9); }
+.resolution-header-copy { min-width: 0; padding-top: 0.08rem; }
+.resolution-detail-header .resolution-header-copy h3 { overflow: hidden; max-width: 100%; margin: 0; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem !important; font-weight: 900 !important; color: #fff; }
+.resolution-header-meta { display: flex; flex-wrap: wrap; gap: 0.38rem; margin-top: 0.5rem; }
+.resolution-header-number,
+.resolution-header-status { display: inline-flex; min-height: 1.55rem; align-items: center; border-radius: 999px; padding: 0.18rem 0.65rem; font-size: 0.65rem; font-weight: 900; line-height: 1; white-space: nowrap; }
+.resolution-header-number { color: #dbeafe; border: 1px solid rgba(191,219,254,0.32); background: rgba(7,31,78,0.3); }
+.resolution-header-status { box-shadow: inset 0 1px 0 rgba(255,255,255,0.16); }
+.resolution-header-close { display: inline-flex; width: 2.2rem; height: 2.2rem; flex: 0 0 auto; align-items: center; justify-content: center; border-radius: 0.8rem; color: #e0f2fe; background: rgba(255,255,255,0.1); }
+@media (max-width: 560px) { .resolution-detail-header { min-height: 7.5rem; padding: 0.85rem !important; } .resolution-header-main { gap: 0.55rem; } .resolution-header-icon { width: 2.55rem; height: 2.55rem; border-radius: 0.8rem; } .resolution-detail-header .resolution-header-copy h3 { white-space: normal; line-height: 1.55; } .resolution-header-meta { margin-top: 0.35rem; } }
+
 /* بدنهٔ فرم از سربرگ جدا و در هر تم خواناتر است. */
 .fixed.inset-0 form { background: linear-gradient(180deg, rgba(248,251,255,0.98), rgba(238,245,253,0.96)); }
 .dark .fixed.inset-0 form { background: linear-gradient(180deg, #111c31, #0c1628); }

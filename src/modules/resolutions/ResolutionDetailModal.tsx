@@ -276,30 +276,28 @@ export const ResolutionDetailModal: React.FC<ResolutionDetailModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-in fade-in">
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="app-modal-header text-white p-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-teal-800 text-teal-200">
+        <div className="app-modal-header resolution-detail-header text-white flex items-start justify-between">
+          <div className="resolution-header-main">
+            <div className="resolution-header-icon">
               <FileCheck2 className="w-6 h-6" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-teal-200 bg-teal-800/80 px-2.5 py-0.5 rounded-lg border border-teal-600/40">
+            <div className="resolution-header-copy">
+              <h3>{resolution.topicTitle}</h3>
+              <div className="resolution-header-meta">
+                <span className="resolution-header-number">
                   {resolution.resolutionNumber}
                 </span>
-                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${appMeta.bg}`}>
+                <span className={`resolution-header-status ${appMeta.bg}`}>
                   {appMeta.label}
                 </span>
-                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${execMeta.bg}`}>
+                <span className={`resolution-header-status ${execMeta.bg}`}>
                   {execMeta.label}
                 </span>
               </div>
-              <h3 className="text-sm sm:text-base font-extrabold text-white mt-1">
-                {resolution.topicTitle}
-              </h3>
             </div>
           </div>
 
-          <button onClick={onClose} className="text-teal-200 hover:text-white p-1 rounded-lg hover:bg-teal-800">
+          <button onClick={onClose} aria-label="بستن جزئیات مصوبه" className="resolution-header-close">
             <X className="w-5 h-5" />
           </button>
         </div>
