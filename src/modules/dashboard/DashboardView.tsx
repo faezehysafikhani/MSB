@@ -128,19 +128,6 @@ export const DashboardView: React.FC = () => {
         {primaryAction}
       </section>
 
-      {/* فقط شاخص‌های دارای اقدام یا داده نمایش داده می‌شوند. */}
-      {tiles.length > 0 && <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {tiles.map(({ label, value, icon: Icon, onClick, tone }) => (
-          <button key={label} onClick={onClick} className={`db-tile db-tile-${tone}`}>
-            <span className="db-tile-icon"><Icon className="h-5 w-5" /></span>
-            <span className="text-right">
-              <span className="block text-[26px] font-black leading-none">{toPersianDigits(value)}</span>
-              <span className="mt-1 block text-[12px] font-bold opacity-80">{label}</span>
-            </span>
-          </button>
-        ))}
-      </div>}
-
       {/* این نمودار فقط از مصوبات قابل مشاهده همین کاربر ساخته می‌شود؛ هیچ
           شمارنده نمونه یا داده خارج از Scope نقش در آن وارد نمی‌شود. */}
       {model.statusBreakdown.length > 0 && (
@@ -153,9 +140,22 @@ export const DashboardView: React.FC = () => {
             </div>
             <div className="db-insight-kpi"><span>نرخ خاتمه</span><b>{toPersianDigits(completionRate)}٪</b></div>
           </header>
+          {tiles.length > 0 && (
+            <div className="db-insight-tiles" aria-label="شاخص‌های کلیدی">
+              {tiles.map(({ label, value, icon: Icon, onClick, tone }) => (
+                <button key={label} onClick={onClick} className={`db-insight-tile db-insight-tile-${tone}`}>
+                  <span className="db-insight-tile-icon"><Icon className="h-4 w-4" /></span>
+                  <span className="min-w-0 text-right">
+                    <b>{toPersianDigits(value)}</b>
+                    <span>{label}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
           <div className="grid items-center gap-5 md:grid-cols-[14rem_1fr]">
             <div className="db-orbit-wrap" aria-label="نمودار وضعیت مصوبات">
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={190}>
                 <PieChart>
                   <Pie data={model.statusBreakdown} dataKey="value" nameKey="label" cx="50%" cy="50%" innerRadius={63} outerRadius={91} paddingAngle={4} cornerRadius={7} startAngle={90} endAngle={-270} stroke="none">
                     {model.statusBreakdown.map((item) => <Cell key={item.key} fill={item.color} />)}
@@ -165,7 +165,7 @@ export const DashboardView: React.FC = () => {
               </ResponsiveContainer>
               <div className="db-orbit-center"><b>{toPersianDigits(totalStatusItems)}</b><span>مصوبه قابل مشاهده</span></div>
             </div>
-            <ul className="space-y-2.5">
+            <ul className="grid gap-2 sm:grid-cols-2">
               {model.statusBreakdown.map((item) => (
                 <li key={item.key} className="db-status-row">
                   <div className="flex items-center gap-2 text-[11px]">
@@ -181,6 +181,17 @@ export const DashboardView: React.FC = () => {
           </div>
         </section>
       )}
+
+      {/* اگر هنوز هیچ مصوبه‌ای برای نمودار وجود ندارد، شاخص‌های عملیاتی
+          قابل‌کلیک حذف نمی‌شوند و به‌تنهایی نمایش داده می‌شوند. */}
+      {model.statusBreakdown.length === 0 && tiles.length > 0 && <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {tiles.map(({ label, value, icon: Icon, onClick, tone }) => (
+          <button key={label} onClick={onClick} className={`db-tile db-tile-${tone}`}>
+            <span className="db-tile-icon"><Icon className="h-5 w-5" /></span>
+            <span className="text-right"><span className="block text-[26px] font-black leading-none">{toPersianDigits(value)}</span><span className="mt-1 block text-[12px] font-bold opacity-80">{label}</span></span>
+          </button>
+        ))}
+      </div>}
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* ——— کارهای من ——— */}
