@@ -18,6 +18,7 @@ import {
   Sparkles,
   TrendingUp,
 } from 'lucide-react';
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { useApp } from '../../context/AppContext';
 import { getMeetingStatusMeta, toPersianDigits } from '../../utils/formatters';
 import { buildDashboardModel, daysFromToday, DashboardActionItem } from './dashboardData';
@@ -112,6 +113,7 @@ export const DashboardView: React.FC = () => {
     || (isOffice && officeItems.length > 0)
     || (!isManager && !isOffice && model.persona !== 'ASSIGNEE' && model.activity.length > 0);
   const showSidebar = model.upcomingMeetings.length > 0 || showRoleCard;
+  const totalStatusItems = model.statusBreakdown.reduce((sum, item) => sum + item.value, 0);
 
   return (
     <div className="space-y-4 pb-10">
@@ -136,6 +138,42 @@ export const DashboardView: React.FC = () => {
           </button>
         ))}
       </div>}
+
+      {/* این نمودار فقط از مصوبات قابل مشاهده همین کاربر ساخته می‌شود؛ هیچ
+          شمارنده نمونه یا داده خارج از Scope نقش در آن وارد نمی‌شود. */}
+      {model.statusBreakdown.length > 0 && (
+        <section className="db-card db-chart-card">
+          <header className="db-card-head">
+            <div>
+              <h2>نمای وضعیت مصوبات من</h2>
+              <p className="mt-0.5 text-[10.5px] font-medium text-slate-500">بر پایهٔ پرونده‌هایی که به آن‌ها دسترسی دارید</p>
+            </div>
+            <span className="db-count">{toPersianDigits(totalStatusItems)}</span>
+          </header>
+          <div className="grid items-center gap-4 sm:grid-cols-[12rem_1fr]">
+            <div className="db-donut-wrap" aria-label="نمودار وضعیت مصوبات">
+              <ResponsiveContainer width="100%" height={190}>
+                <PieChart>
+                  <Pie data={model.statusBreakdown} dataKey="value" nameKey="label" cx="50%" cy="50%" innerRadius={52} outerRadius={76} paddingAngle={3} stroke="none">
+                    {model.statusBreakdown.map((item) => <Cell key={item.key} fill={item.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`${toPersianDigits(Number(value))} مورد`, 'تعداد']} contentStyle={{ borderRadius: '12px', border: '1px solid #dbe7f8', fontSize: '11px', direction: 'rtl' }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="db-donut-center"><b>{toPersianDigits(totalStatusItems)}</b><span>مصوبه</span></div>
+            </div>
+            <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {model.statusBreakdown.map((item) => (
+                <li key={item.key} className="db-chart-legend">
+                  <span className="db-chart-dot" style={{ backgroundColor: item.color }} />
+                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                  <b>{toPersianDigits(item.value)}</b>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* ——— کارهای من ——— */}
