@@ -114,6 +114,8 @@ export const DashboardView: React.FC = () => {
     || (!isManager && !isOffice && model.persona !== 'ASSIGNEE' && model.activity.length > 0);
   const showSidebar = model.upcomingMeetings.length > 0 || showRoleCard;
   const totalStatusItems = model.statusBreakdown.reduce((sum, item) => sum + item.value, 0);
+  const completedCount = model.statusBreakdown.find((item) => item.key === 'closed')?.value || 0;
+  const completionRate = totalStatusItems ? Math.round((completedCount / totalStatusItems) * 100) : 0;
 
   return (
     <div className="space-y-4 pb-10">
@@ -142,32 +144,37 @@ export const DashboardView: React.FC = () => {
       {/* این نمودار فقط از مصوبات قابل مشاهده همین کاربر ساخته می‌شود؛ هیچ
           شمارنده نمونه یا داده خارج از Scope نقش در آن وارد نمی‌شود. */}
       {model.statusBreakdown.length > 0 && (
-        <section className="db-card db-chart-card">
-          <header className="db-card-head">
+        <section className="db-insight-card">
+          <header className="db-insight-head">
             <div>
-              <h2>نمای وضعیت مصوبات من</h2>
-              <p className="mt-0.5 text-[10.5px] font-medium text-slate-500">بر پایهٔ پرونده‌هایی که به آن‌ها دسترسی دارید</p>
+              <span className="db-insight-eyebrow">نمای مدیریتی لحظه‌ای</span>
+              <h2>نبض مصوبات</h2>
+              <p>بر پایهٔ پرونده‌هایی که به آن‌ها دسترسی دارید</p>
             </div>
-            <span className="db-count">{toPersianDigits(totalStatusItems)}</span>
+            <div className="db-insight-kpi"><span>نرخ خاتمه</span><b>{toPersianDigits(completionRate)}٪</b></div>
           </header>
-          <div className="grid items-center gap-4 sm:grid-cols-[12rem_1fr]">
-            <div className="db-donut-wrap" aria-label="نمودار وضعیت مصوبات">
-              <ResponsiveContainer width="100%" height={190}>
+          <div className="grid items-center gap-5 md:grid-cols-[14rem_1fr]">
+            <div className="db-orbit-wrap" aria-label="نمودار وضعیت مصوبات">
+              <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie data={model.statusBreakdown} dataKey="value" nameKey="label" cx="50%" cy="50%" innerRadius={52} outerRadius={76} paddingAngle={3} stroke="none">
+                  <Pie data={model.statusBreakdown} dataKey="value" nameKey="label" cx="50%" cy="50%" innerRadius={63} outerRadius={91} paddingAngle={4} cornerRadius={7} startAngle={90} endAngle={-270} stroke="none">
                     {model.statusBreakdown.map((item) => <Cell key={item.key} fill={item.color} />)}
                   </Pie>
-                  <Tooltip formatter={(value) => [`${toPersianDigits(Number(value))} مورد`, 'تعداد']} contentStyle={{ borderRadius: '12px', border: '1px solid #dbe7f8', fontSize: '11px', direction: 'rtl' }} />
+                  <Tooltip formatter={(value) => [`${toPersianDigits(Number(value))} مورد`, 'تعداد']} contentStyle={{ borderRadius: '14px', border: '1px solid rgba(255,255,255,.22)', background: '#102c61', color: '#fff', boxShadow: '0 14px 30px -18px rgba(2, 18, 53, .9)', fontSize: '11px', direction: 'rtl' }} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="db-donut-center"><b>{toPersianDigits(totalStatusItems)}</b><span>مصوبه</span></div>
+              <div className="db-orbit-center"><b>{toPersianDigits(totalStatusItems)}</b><span>مصوبه قابل مشاهده</span></div>
             </div>
-            <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="space-y-2.5">
               {model.statusBreakdown.map((item) => (
-                <li key={item.key} className="db-chart-legend">
-                  <span className="db-chart-dot" style={{ backgroundColor: item.color }} />
-                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                  <b>{toPersianDigits(item.value)}</b>
+                <li key={item.key} className="db-status-row">
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <span className="db-status-dot" style={{ backgroundColor: item.color }} />
+                    <span className="min-w-0 flex-1 font-bold text-slate-700">{item.label}</span>
+                    <b className="text-slate-900">{toPersianDigits(item.value)}</b>
+                    <span className="w-9 text-left font-bold text-slate-400">{toPersianDigits(Math.round((item.value / totalStatusItems) * 100))}٪</span>
+                  </div>
+                  <span className="db-status-track"><i style={{ width: `${(item.value / totalStatusItems) * 100}%`, backgroundColor: item.color }} /></span>
                 </li>
               ))}
             </ul>
