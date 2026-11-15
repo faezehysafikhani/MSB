@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, ChevronDown, LayoutGrid, RotateCcw } from 'lucide-react';
 import { loadLocalValue, saveLocalValue } from '../../services/localStore';
 
@@ -51,34 +51,50 @@ export const useDashboardLayout = (userId: string) => {
   };
 };
 
-export const DashboardCustomizer: React.FC<{ api: ReturnType<typeof useDashboardLayout> }> = ({ api }) => (
-  <details className="relative z-20" onKeyDown={(event) => {
-    if (event.key === 'Escape') {
-      event.currentTarget.open = false;
-      event.currentTarget.querySelector('summary')?.focus();
-    }
-  }}>
-    <summary aria-label="چیدمان" className="dashboard-layout-trigger cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-      <LayoutGrid className="h-4 w-4" /><span className="sr-only sm:not-sr-only">چیدمان</span><ChevronDown className="hidden h-3.5 w-3.5 sm:block" />
-    </summary>
-    <div className="dashboard-layout-panel absolute left-0 top-full mt-3 w-72 max-w-[calc(100vw-2rem)] max-h-[65vh] overflow-auto space-y-2 p-3">
-      <ul className="space-y-1.5">
-        {api.layout.order.map((id, index) => {
-          const section = DASHBOARD_SECTIONS.find((s) => s.id === id)!;
-          const visible = api.isVisible(id);
-          return (
-            <li key={id} className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${visible ? 'border-slate-200' : 'border-dashed border-slate-200 opacity-70'}`}>
-              <label className="flex flex-1 cursor-pointer items-center gap-2 text-[13px] font-bold text-slate-700 dark:text-slate-200">
-                <input type="checkbox" checked={visible} onChange={() => api.toggle(id)} className="h-4 w-4 accent-[var(--app-primary)]" />
-                {section.label}
-              </label>
-              <button onClick={() => api.move(id, -1)} disabled={index === 0} aria-label="بالا" className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ArrowUp className="w-3.5 h-3.5" /></button>
-              <button onClick={() => api.move(id, 1)} disabled={index === api.layout.order.length - 1} aria-label="پایین" className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ArrowDown className="w-3.5 h-3.5" /></button>
-            </li>
-          );
-        })}
-      </ul>
-      <button onClick={api.reset} className="flex items-center gap-1 text-[12px] font-bold text-slate-500 hover:text-slate-800"><RotateCcw className="w-3.5 h-3.5" />بازگشت به چیدمان پیش‌فرض</button>
-    </div>
-  </details>
-);
+export const DashboardCustomizer: React.FC<{ api: ReturnType<typeof useDashboardLayout> }> = ({ api }) => {
+  const dropdownRef = useRef<HTMLDetailsElement>(null);
+
+  useEffect(() => {
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      const dropdown = dropdownRef.current;
+      if (dropdown?.open && event.target instanceof Node && !dropdown.contains(event.target)) {
+        dropdown.open = false;
+      }
+    };
+    document.addEventListener('pointerdown', closeOnOutsideClick);
+    return () => document.removeEventListener('pointerdown', closeOnOutsideClick);
+  }, []);
+
+  return (
+    <details ref={dropdownRef} className="relative z-20" onKeyDown={(event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.currentTarget.open = false;
+        event.currentTarget.querySelector('summary')?.focus();
+      }
+    }}>
+      <summary aria-label="چیدمان" className="dashboard-layout-trigger cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+        <LayoutGrid className="h-4 w-4" /><span className="sr-only sm:not-sr-only">چیدمان</span><ChevronDown className="dashboard-layout-chevron hidden h-3.5 w-3.5 sm:block" />
+      </summary>
+      <div className="dashboard-layout-panel absolute left-0 top-full mt-3 w-72 max-w-[calc(100vw-2rem)] max-h-[65vh] overflow-auto space-y-2 p-3">
+        <ul className="space-y-1.5">
+          {api.layout.order.map((id, index) => {
+            const section = DASHBOARD_SECTIONS.find((s) => s.id === id)!;
+            const visible = api.isVisible(id);
+            return (
+              <li key={id} className={`dashboard-layout-row flex items-center gap-2 rounded-xl border px-3 py-2 ${visible ? 'border-slate-200' : 'border-dashed border-slate-200 opacity-70'}`}>
+                <label className="flex flex-1 cursor-pointer items-center gap-2 text-[13px] font-bold text-slate-700 dark:text-slate-200">
+                  <input type="checkbox" checked={visible} onChange={() => api.toggle(id)} className="h-4 w-4 accent-[var(--app-primary)]" />
+                  {section.label}
+                </label>
+                <button onClick={() => api.move(id, -1)} disabled={index === 0} aria-label="بالا" className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ArrowUp className="w-3.5 h-3.5" /></button>
+                <button onClick={() => api.move(id, 1)} disabled={index === api.layout.order.length - 1} aria-label="پایین" className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ArrowDown className="w-3.5 h-3.5" /></button>
+              </li>
+            );
+          })}
+        </ul>
+        <button onClick={api.reset} className="flex items-center gap-1 text-[12px] font-bold text-slate-500 hover:text-slate-800"><RotateCcw className="w-3.5 h-3.5" />بازگشت به چیدمان پیش‌فرض</button>
+      </div>
+    </details>
+  );
+};

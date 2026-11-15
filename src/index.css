@@ -2057,3 +2057,59 @@ details[open] > .dashboard-layout-trigger {
   color: #dbeafe;
   box-shadow: inset 0 1px 0 #ffffff26, 0 6px 16px -6px #000;
 }
+
+/* Dashboard and translucent navigation finish */
+.sidebar-glass {
+  border-radius: 1.65rem;
+  background: radial-gradient(ellipse at 90% 0, #b7d7ff91, transparent 55%),
+    linear-gradient(150deg, #ffffffae, #ecf4ffe0 50%, #cbdffba6);
+  box-shadow: inset 0 1px 1px #fff, inset 0 -5px 12px #799bd425, 0 14px 28px -18px #20498570;
+  backdrop-filter: blur(24px) saturate(145%);
+}
+.sidebar-item:not(.sidebar-item-active) {
+  border-radius: 1rem;
+  background: linear-gradient(155deg, #ffffff70, #f1f7ff23);
+  box-shadow: inset 0 1px 0 #ffffffad;
+}
+.sidebar-item:not(.sidebar-item-active):hover {
+  background: #ffffffb8;
+  box-shadow: inset 0 1px 0 #fff, 0 4px 9px -6px #31558c80;
+}
+.sidebar-profile,
+.sidebar-item.sidebar-item-active {
+  background: radial-gradient(ellipse at 80% 0, #96b6f778, transparent 72%),
+    linear-gradient(155deg, #416cbf, #284987 64%, #1e376e);
+  border-radius: 1.15rem;
+}
+.dashboard-view :is(.db-card, .stat-card) {
+  border-radius: 1rem;
+  border-color: #d7e3f3;
+  background: radial-gradient(ellipse at top right, #edf5ff99, transparent 57%),
+    linear-gradient(155deg, #fff 20%, #f8fbff);
+  box-shadow: inset 0 1px 0 #fff, 0 5px 12px -9px #2d4b7d8c;
+}
+.dashboard-view .stat-card:hover { border-color: #a8c2e7; }
+.dashboard-layout-chevron { transition: transform 160ms ease; }
+details[open] > .dashboard-layout-trigger .dashboard-layout-chevron { transform: rotate(180deg); }
+.dashboard-layout-row { background: #ffffff66; }
+.dashboard-layout-row:hover { background: #ffffffb0; }
+details[open] > .dashboard-layout-panel { animation: dashboard-dropdown-in 150ms ease-out; }
+@keyframes dashboard-dropdown-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  details[open] > .dashboard-layout-panel { animation: none; }
+  .dashboard-layout-chevron { transition: none; }
+}
+.dark .sidebar-item:not(.sidebar-item-active),
+.dark .dashboard-layout-row {
+  background: #ffffff0b;
+  box-shadow: inset 0 1px 0 #ffffff13;
+}
+.dark .dashboard-layout-row:hover { background: #ffffff17; }
+.dark .dashboard-view :is(.db-card, .stat-card) {
+  border-color: #293c59;
+  background: radial-gradient(ellipse at top right, #213a5a80, transparent 62%), #101c30;
+  box-shadow: inset 0 1px 0 #ffffff12, 0 5px 12px -9px #000;
+}

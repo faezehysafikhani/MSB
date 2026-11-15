@@ -104,7 +104,7 @@ export const DashboardView: React.FC<{ layout: ReturnType<typeof useDashboardLay
   const ord = (id: Parameters<typeof dash.orderOf>[0]) => ({ order: dash.orderOf(id) });
 
   return (
-    <div className="grid items-start gap-3 pb-10 lg:grid-cols-3">
+    <div className="dashboard-view grid items-start gap-3 pb-10 lg:grid-cols-3">
       <h1 className="sr-only">پیشخوان</h1>
       {!(dash.isVisible('meetings') && model.upcomingMeetings.length > 0) && (
         <div className="col-span-full flex justify-end" style={{ order: 0 }}>{primaryAction}</div>
