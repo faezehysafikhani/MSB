@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { User } from '../../types';
+import { useApp } from '../../context/AppContext';
+import { toPersianDigits } from '../../utils/formatters';
 import { useAiFeature } from '../../components/ai/AiKit';
 import { dashboardBrief, DailyBrief } from '../../services/ai/aiService';
 import type { AiResult } from '../../services/ai/aiClient';
@@ -19,7 +21,8 @@ interface CachedBrief { res: AiResult<DailyBrief>; sig: string; at: number }
  * «خلاصه امروز» — روزی یک بار برای هر کاربر تولید و در مرورگر Cache می‌شود؛
  * تغییرات کارتابل حداکثر هر ۲ ساعت یک درخواست جدید می‌سازند. دکمه تازه‌سازی همیشه فوری است.
  */
-export const AiDailyBrief: React.FC<{ user: User; model: DashboardModel; onOpenTodo: () => void }> = ({ user, model, onOpenTodo }) => {
+export const AiDailyBrief: React.FC<{ user: User; model: DashboardModel }> = ({ user, model }) => {
+  const { navigateTo } = useApp();
   const enabled = useAiFeature('dashboardBrief');
   const [result, setResult] = useState<AiResult<DailyBrief> | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,24 +54,38 @@ export const AiDailyBrief: React.FC<{ user: User; model: DashboardModel; onOpenT
 
   if (!enabled || !model.hasAnyData) return null;
   return (
-    <section className="db-card h-full">
+    <section className="db-card">
       <header className="db-card-head">
         <h2>خلاصه امروز</h2>
         <button onClick={() => generate(true)} disabled={loading} title="به‌روزرسانی خلاصه" aria-label="به‌روزرسانی خلاصه" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /></button>
       </header>
       {loading && !result ? <div className="h-4 w-2/3 animate-pulse rounded bg-slate-100" /> : <p className="text-sm font-bold leading-7 text-slate-800">{result?.data.headline}</p>}
-      {result && (
-        <>
-          <ul className="mt-2 space-y-1.5 text-[13px] leading-6 text-slate-600">
-            {result.data.bullets.map((bullet) => <li key={bullet} className="flex gap-2"><span className="mt-2.5 h-1 w-1 shrink-0 rounded-full bg-slate-400" />{bullet}</li>)}
-          </ul>
-          {result.data.focus && (
-            <button onClick={onOpenTodo} className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-bold text-[var(--app-primary)] hover:underline">
-              {result.data.focus}<ArrowLeft className="h-4 w-4 shrink-0" />
+      <ul className="mt-1 grid gap-1 text-[13px] leading-5 text-slate-700 dark:text-slate-200">
+        {model.actionItems.slice(0, 1).map((item) => (
+          <li key={item.id}>
+            <button className="db-brief-link" onClick={() => navigateTo(item.route, item.params)}>
+              <ArrowLeft aria-hidden="true" />{item.kind} · {item.title}
             </button>
-          )}
-        </>
-      )}
+          </li>
+        ))}
+        {model.upcomingMeetings.slice(0, 1).map((meeting) => (
+          <li key={meeting.id}>
+            <button className="db-brief-link" onClick={() => navigateTo('meeting-details', { meetingId: meeting.id })}>
+              <ArrowLeft aria-hidden="true" />جلسه بعدی · {meeting.title} · {toPersianDigits(meeting.startTime)}
+            </button>
+          </li>
+        ))}
+        {[
+          { label: 'مصوبه معوق', records: model.overdue },
+          { label: 'در گردش امضا', records: model.awaitingSignature },
+        ].flatMap(({ label, records }) => records.map((resolution) => (
+          <li key={resolution.id}>
+            <button className="db-brief-link" onClick={() => navigateTo('resolutions', { resolutionId: resolution.id })}>
+              <ArrowLeft aria-hidden="true" />{label} · {resolution.topicTitle}
+            </button>
+          </li>
+        )))}
+      </ul>
     </section>
   );
 };

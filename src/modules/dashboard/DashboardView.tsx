@@ -1,11 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import {
   Activity,
-  Settings2,
   AlertTriangle,
   ArrowLeft,
   Building2,
-  CalendarClock,
   CalendarDays,
   CheckCircle2,
   Clock3,
@@ -26,12 +24,6 @@ import { buildDashboardModel, daysFromToday, DashboardActionItem } from './dashb
 import { AiDailyBrief } from './AiDailyBrief';
 import { DashboardCustomizer, useDashboardLayout } from './dashboardLayout';
 
-
-const longToday = () => {
-  const now = new Date();
-  const part = (options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('fa-IR-u-ca-persian', options).format(now);
-  return `${part({ weekday: 'long' })} ${part({ day: 'numeric' })} ${part({ month: 'long' })} ${part({ year: 'numeric' })}`;
-};
 
 const relativeDay = (days: number | null) => {
   if (days === null) return '';
@@ -56,7 +48,6 @@ export const DashboardView: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const model = useMemo(() => buildDashboardModel(currentUser), [currentUser, refreshTrigger]);
   const dash = useDashboardLayout(currentUser.id);
-  const [customizerOpen, setCustomizerOpen] = useState(false);
   const canCreateMeeting = hasPermission('CREATE_MEETING');
   const [resTab, setResTab] = useState<ResTab | null>(null);
 
@@ -111,26 +102,24 @@ export const DashboardView: React.FC = () => {
   const completedCount = model.statusBreakdown.find((item) => item.key === 'closed')?.value || 0;
   const completionRate = totalStatusItems ? Math.round((completedCount / totalStatusItems) * 100) : 0;
 
-  const workOrder = Math.min(dash.orderOf('todo'), dash.orderOf('meetings'), dash.orderOf('resolutions'), dash.orderOf('role'));
   const ord = (id: Parameters<typeof dash.orderOf>[0]) => ({ order: dash.orderOf(id) });
 
   return (
-    <div className="flex flex-col gap-4 pb-10">
-      <button type="button" onClick={() => setCustomizerOpen(true)} className="layout-gear" title="چیدمان پیشخوان" aria-label="چیدمان"><Settings2 className="h-5 w-5" /></button>
-      {customizerOpen && <DashboardCustomizer api={dash} onClose={() => setCustomizerOpen(false)} />}
+    <div className="grid items-start gap-3 pb-10 lg:grid-cols-3">
       {/* ——— عنوان صفحه و اقدام اصلی ——— */}
-      <header className="page-head" style={{ order: 0 }}>
+      <header className="page-head col-span-full" style={{ order: 0 }}>
         <div className="min-w-0">
           <h1 className="page-head-title">پیشخوان</h1>
         </div>
         <div className="flex items-center gap-2">
           {!(dash.isVisible('meetings') && model.upcomingMeetings.length > 0) && primaryAction}
+          <DashboardCustomizer api={dash} />
         </div>
       </header>
 
       {/* ——— شاخص‌ها: چهار عدد اصلی، همیشه در یک ردیف ——— */}
       {dash.isVisible('pulse') && (
-        <section className="stat-grid" style={{ order: Math.min(dash.orderOf('brief'), dash.orderOf('pulse')) }} aria-label="شاخص‌های اصلی">
+        <section className="stat-grid col-span-full" style={{ order: 0 }} aria-label="شاخص‌های اصلی">
           {[
             { label: 'کارهای منتظر من', value: model.actionItems.length, icon: CheckCircle2, onClick: () => document.getElementById('dash-todo')?.scrollIntoView({ behavior: 'smooth' }), alert: false },
             { label: 'جلسات پیش‌رو', value: model.upcomingMeetings.length, icon: CalendarDays, onClick: () => navigateTo('calendar'), alert: false },
@@ -147,187 +136,184 @@ export const DashboardView: React.FC = () => {
       )}
 
       {/* ——— خلاصه امروز و وضعیت مصوبات، کنار هم ——— */}
-      {(dash.isVisible('brief') || (dash.isVisible('pulse') && model.statusBreakdown.length > 0)) && (
-        <div className="grid gap-4 lg:grid-cols-3" style={{ order: Math.min(dash.orderOf('brief'), dash.orderOf('pulse')) }}>
-          {dash.isVisible('brief') && <div className={model.statusBreakdown.length > 0 && dash.isVisible('pulse') ? 'lg:col-span-2' : 'lg:col-span-3'}><AiDailyBrief user={currentUser} model={model} onOpenTodo={() => { if (model.overdue[0]) navigateTo('resolutions', { resolutionId: model.overdue[0].id }); else if (model.actionItems[0]) navigateTo(model.actionItems[0].route, model.actionItems[0].params); else navigateTo('resolutions'); }} /></div>}
-          {dash.isVisible('pulse') && model.statusBreakdown.length > 0 && (
-            <section className={`db-card ${dash.isVisible('brief') ? '' : 'lg:col-span-3'}`}>
-              <header className="db-card-head">
-                <h2>وضعیت مصوبات</h2>
-                <span className="text-xs text-slate-500">{toPersianDigits(completionRate)}٪ خاتمه‌یافته</span>
-              </header>
-              <div className="flex items-center gap-4">
-                <div className="relative h-32 w-32 shrink-0" aria-label="نمودار وضعیت مصوبات">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={model.statusBreakdown} dataKey="value" nameKey="label" cx="50%" cy="50%" innerRadius={42} outerRadius={60} paddingAngle={2} startAngle={90} endAngle={-270} stroke="none" isAnimationActive={false}>
-                        {model.statusBreakdown.map((item) => <Cell key={item.key} fill={item.color} />)}
-                      </Pie>
-                      <Tooltip formatter={(value) => [`${toPersianDigits(Number(value))} مورد`, 'تعداد']} contentStyle={{ borderRadius: '8px', fontSize: '12px', direction: 'rtl' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><b className="text-lg text-slate-900">{toPersianDigits(totalStatusItems)}</b><span className="text-[12px] text-slate-500">مصوبه</span></div>
-                </div>
-                <ul className="min-w-0 flex-1 space-y-1.5">
-                  {model.statusBreakdown.map((item) => (
-                    <li key={item.key} className="flex items-center gap-2 text-xs">
-                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-                      <span className="min-w-0 flex-1 truncate text-slate-700">{item.label}</span>
-                      <b className="text-slate-900">{toPersianDigits(item.value)}</b>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </section>
-          )}
+      {dash.isVisible('brief') && (
+        <div className={model.statusBreakdown.length && dash.isVisible('pulse') ? 'lg:col-span-2' : 'col-span-full'} style={ord('brief')}>
+          <AiDailyBrief user={currentUser} model={model} />
         </div>
       )}
-
-      <div className="grid gap-4 lg:grid-cols-3" style={{ order: workOrder }}>
-        {/* ——— کارهای من ——— */}
-        {dash.isVisible('todo') && <section id="dash-todo" className={`db-card ${showSidebar ? 'lg:col-span-2' : 'lg:col-span-3'}`} style={ord('todo')}>
-          <header className="db-card-head"><h2>کارهای من</h2><span className="db-count">{toPersianDigits(model.actionItems.length)}</span></header>
-          {model.actionItems.length === 0 ? (
-            <div className="db-empty"><CheckCircle2 className="h-8 w-8 text-emerald-500" /><p>کاری منتظر شما نیست.</p></div>
-          ) : (
-            <ul className="space-y-2">
-              {model.actionItems.slice(0, 6).map((item, index) => (
-                <li key={item.id}>
-                  <button onClick={() => navigateTo(item.route, item.params)} className={`db-todo ${index === 0 ? 'db-todo-first' : ''}`}>
-                    <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TONE_DOT[item.tone]}`} />
-                    <span className="min-w-0 flex-1 text-right">
-                      {index === 0 && <span className="mb-0.5 block text-[12px] font-bold text-[var(--app-primary)]">اولویت اول</span>}
-                      <span className="block truncate text-[13px] font-bold text-slate-800">{item.title}</span>
-                      <span className="block truncate text-[12px] text-slate-500">{item.kind} · {item.subtitle}</span>
-                    </span>
-                    <span className="db-todo-cta">{item.cta}<ArrowLeft className="h-3.5 w-3.5" /></span>
-                  </button>
+      {dash.isVisible('pulse') && model.statusBreakdown.length > 0 && (
+        <section className={`db-card ${dash.isVisible('brief') ? '' : 'col-span-full'}`} style={ord('pulse')}>
+          <header className="db-card-head">
+            <h2>وضعیت مصوبات</h2>
+            <span className="text-xs text-slate-500">{toPersianDigits(completionRate)}٪ خاتمه‌یافته</span>
+          </header>
+          <div className="flex items-center gap-4">
+            <div className="relative h-27 w-27 shrink-0" aria-label="نمودار وضعیت مصوبات">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={model.statusBreakdown} dataKey="value" nameKey="label" cx="50%" cy="50%" innerRadius={35} outerRadius={50} paddingAngle={2} startAngle={90} endAngle={-270} stroke="none" isAnimationActive={false}>
+                    {model.statusBreakdown.map((item) => <Cell key={item.key} fill={item.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`${toPersianDigits(Number(value))} مورد`, 'تعداد']} contentStyle={{ borderRadius: '8px', fontSize: '12px', direction: 'rtl' }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><b className="text-lg text-slate-900">{toPersianDigits(totalStatusItems)}</b><span className="text-[12px] text-slate-500">مصوبه</span></div>
+            </div>
+            <ul className="min-w-0 flex-1 space-y-1.5">
+              {model.statusBreakdown.map((item) => (
+                <li key={item.key} className="flex items-center gap-2 text-xs">
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+                  <span className="min-w-0 flex-1 truncate text-slate-700">{item.label}</span>
+                  <b className="text-slate-900">{toPersianDigits(item.value)}</b>
                 </li>
               ))}
             </ul>
-          )}
-        </section>}
-
-        {/* ——— جلسات پیش‌رو ——— */}
-        {dash.isVisible('meetings') && model.upcomingMeetings.length > 0 && <section className="db-card" style={ord('meetings')}>
-          <header className="db-card-head"><h2>جلسات پیش‌رو</h2><div className="flex items-center gap-1">{canCreateMeeting && <button onClick={() => openCreateMeetingModal()} className="db-link flex items-center gap-1"><Plus className="h-3.5 w-3.5" />جلسه جدید</button>}<button onClick={() => navigateTo('calendar')} className="db-link">تقویم</button></div></header>
+          </div>
+        </section>
+      )}
+      {/* ——— کارهای من ——— */}
+      {dash.isVisible('todo') && <section id="dash-todo" className={`db-card ${showSidebar ? 'lg:col-span-2' : 'lg:col-span-3'}`} style={ord('todo')}>
+        <header className="db-card-head"><h2>کارهای من</h2><span className="db-count">{toPersianDigits(model.actionItems.length)}</span></header>
+        {model.actionItems.length === 0 ? (
+          <div className="db-empty"><CheckCircle2 className="h-8 w-8 text-emerald-500" /><p>کاری منتظر شما نیست.</p></div>
+        ) : (
           <ul className="space-y-2">
-              {model.upcomingMeetings.slice(0, 4).map((m) => {
-                const { day, month } = splitDate(m.dateJalali);
-                const status = getMeetingStatusMeta(m.status);
+            {model.actionItems.slice(0, 6).map((item, index) => (
+              <li key={item.id}>
+                <button onClick={() => navigateTo(item.route, item.params)} className={`db-todo ${index === 0 ? 'db-todo-first' : ''}`}>
+                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TONE_DOT[item.tone]}`} />
+                  <span className="min-w-0 flex-1 text-right">
+                    {index === 0 && <span className="mb-0.5 block text-[12px] font-bold text-[var(--app-primary)]">اولویت اول</span>}
+                    <span className="block truncate text-[13px] font-bold text-slate-800">{item.title}</span>
+                    <span className="block truncate text-[12px] text-slate-500">{item.kind} · {item.subtitle}</span>
+                  </span>
+                  <span className="db-todo-cta">{item.cta}<ArrowLeft className="h-3.5 w-3.5" /></span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>}
+
+      {/* ——— جلسات پیش‌رو ——— */}
+      {dash.isVisible('meetings') && model.upcomingMeetings.length > 0 && <section className="db-card" style={ord('meetings')}>
+        <header className="db-card-head"><h2>جلسات پیش‌رو</h2><div className="flex items-center gap-1">{canCreateMeeting && <button onClick={() => openCreateMeetingModal()} className="db-link flex items-center gap-1"><Plus className="h-3.5 w-3.5" />جلسه جدید</button>}<button onClick={() => navigateTo('calendar')} className="db-link">تقویم</button></div></header>
+        <ul className="space-y-2">
+            {model.upcomingMeetings.slice(0, 4).map((m) => {
+              const { day, month } = splitDate(m.dateJalali);
+              const status = getMeetingStatusMeta(m.status);
+              return (
+                <li key={m.id}>
+                  <button onClick={() => navigateTo('meeting-details', { meetingId: m.id })} className="db-meeting">
+                    <span className="db-date"><b>{day}</b><small>{month}</small></span>
+                    <span className="min-w-0 flex-1 text-right">
+                      <span className="block truncate text-[13px] font-bold text-slate-800">{m.title}</span>
+                      <span className="mt-0.5 flex items-center gap-1 text-[12px] text-slate-500"><Clock3 className="h-3 w-3" />{toPersianDigits(m.startTime)} · {relativeDay(daysFromToday(m.dateJalali))}</span>
+                      <span className="mt-0.5 flex items-center gap-1 truncate text-[12px] text-slate-500"><MapPin className="h-3 w-3 shrink-0" /><span className="truncate">{m.location}</span></span>
+                      <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold ${status.bg} ${status.text}`}>{status.label}</span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+      </section>}
+
+      {/* ——— مصوبات ——— */}
+      {dash.isVisible('resolutions') && (model.overdue.length > 0 || model.inExecution.length > 0) && (
+        <section className="db-card lg:col-span-2" style={ord('resolutions')}>
+          <header className="db-card-head">
+            <h2>مصوبات در جریان</h2>
+            <div className="db-seg">
+              {(['overdue', 'running'] as ResTab[]).map((key) => (
+                <button key={key} onClick={() => setResTab(key)} aria-pressed={activeTab === key}>
+                  {lists[key].label} <b className={key === 'overdue' && lists.overdue.items.length ? 'text-red-600' : ''}>{toPersianDigits(lists[key].items.length)}</b>
+                </button>
+              ))}
+            </div>
+          </header>
+          {shownRes.length === 0 ? <div className="db-empty"><CheckCircle2 className="h-8 w-8 text-emerald-500" /><p>موردی در این دسته نیست.</p></div> : (
+            <ul className="space-y-2">
+              {shownRes.map((r) => {
+                const late = activeTab === 'overdue';
+                const progress = Math.max(0, Math.min(100, r.progressPercent || 0));
                 return (
-                  <li key={m.id}>
-                    <button onClick={() => navigateTo('meeting-details', { meetingId: m.id })} className="db-meeting">
-                      <span className="db-date"><b>{day}</b><small>{month}</small></span>
+                  <li key={r.id}>
+                    <button onClick={() => navigateTo('resolutions', { resolutionId: r.id })} className={`db-res ${late ? 'db-res-late' : ''}`}>
                       <span className="min-w-0 flex-1 text-right">
-                        <span className="block truncate text-[13px] font-bold text-slate-800">{m.title}</span>
-                        <span className="mt-0.5 flex items-center gap-1 text-[12px] text-slate-500"><Clock3 className="h-3 w-3" />{toPersianDigits(m.startTime)} · {relativeDay(daysFromToday(m.dateJalali))}</span>
-                        <span className="mt-0.5 flex items-center gap-1 truncate text-[12px] text-slate-500"><MapPin className="h-3 w-3 shrink-0" /><span className="truncate">{m.location}</span></span>
-                        <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold ${status.bg} ${status.text}`}>{status.label}</span>
+                        <span className="block truncate text-[13px] font-bold text-slate-800">{r.topicTitle}</span>
+                        <span className="block truncate text-[12px] text-slate-500">{r.mainResponsibleName || '—'} · {r.responsibleDepartmentName || ''}</span>
                       </span>
+                      <span className="hidden w-32 sm:block">
+                        <span className="dash-progress block"><span style={{ width: `${progress}%` }} className={late ? 'bg-red-500' : ''} /></span>
+                        <span className="mt-1 block text-center text-[11px] font-bold text-slate-500">{toPersianDigits(progress)}٪</span>
+                      </span>
+                      <span className={`w-24 shrink-0 text-left text-[12px] font-bold ${late ? 'text-red-600' : 'text-slate-500'}`}>{relativeDay(daysFromToday(r.deadlineJalali))}</span>
                     </button>
                   </li>
                 );
               })}
             </ul>
-        </section>}
+          )}
+        </section>
+      )}
 
-        {/* ——— مصوبات ——— */}
-        {dash.isVisible('resolutions') && (model.overdue.length > 0 || model.inExecution.length > 0) && (
-          <section className="db-card lg:col-span-2" style={ord('resolutions')}>
-            <header className="db-card-head">
-              <h2>مصوبات در جریان</h2>
-              <div className="db-seg">
-                {(['overdue', 'running'] as ResTab[]).map((key) => (
-                  <button key={key} onClick={() => setResTab(key)} aria-pressed={activeTab === key}>
-                    {lists[key].label} <b className={key === 'overdue' && lists.overdue.items.length ? 'text-red-600' : ''}>{toPersianDigits(lists[key].items.length)}</b>
-                  </button>
-                ))}
-              </div>
-            </header>
-            {shownRes.length === 0 ? <div className="db-empty"><CheckCircle2 className="h-8 w-8 text-emerald-500" /><p>موردی در این دسته نیست.</p></div> : (
+      {/* ——— ستون مخصوص نقش ——— */}
+      {dash.isVisible('role') && showRoleCard && <section className="db-card" style={ord('role')}>
+        {isManager && model.units.length > 0 ? (
+          <>
+            <header className="db-card-head"><h2><Building2 className="ml-1 inline h-4 w-4 text-blue-600" />وضعیت واحدها</h2></header>
+            <ul className="space-y-3">
+              {model.units.slice(0, 5).map((u) => (
+                <li key={u.name}>
+                  <div className="flex items-center justify-between gap-2 text-[12px]"><span className="truncate font-bold text-slate-700">{u.name}</span><span className="shrink-0 font-bold text-slate-800">{toPersianDigits(u.avgProgress)}٪</span></div>
+                  <div className="dash-progress mt-1"><span style={{ width: `${u.avgProgress}%` }} /></div>
+                  {u.overdue > 0 && <p className="mt-0.5 text-[11px] font-bold text-red-600">{toPersianDigits(u.overdue)} مصوبه معوق</p>}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : model.persona === 'ASSIGNEE' ? (
+          <>
+            <header className="db-card-head"><h2><Hourglass className="ml-1 inline h-4 w-4 text-blue-600" />مهلت‌های من</h2></header>
+            {model.myTasks.length === 0 ? <div className="db-empty"><p>وظیفه‌ای ندارید.</p></div> : (
               <ul className="space-y-2">
-                {shownRes.map((r) => {
-                  const late = activeTab === 'overdue';
-                  const progress = Math.max(0, Math.min(100, r.progressPercent || 0));
-                  return (
-                    <li key={r.id}>
-                      <button onClick={() => navigateTo('resolutions', { resolutionId: r.id })} className={`db-res ${late ? 'db-res-late' : ''}`}>
-                        <span className="min-w-0 flex-1 text-right">
-                          <span className="block truncate text-[13px] font-bold text-slate-800">{r.topicTitle}</span>
-                          <span className="block truncate text-[12px] text-slate-500">{r.mainResponsibleName || '—'} · {r.responsibleDepartmentName || ''}</span>
-                        </span>
-                        <span className="hidden w-32 sm:block">
-                          <span className="dash-progress block"><span style={{ width: `${progress}%` }} className={late ? 'bg-red-500' : ''} /></span>
-                          <span className="mt-1 block text-center text-[11px] font-bold text-slate-500">{toPersianDigits(progress)}٪</span>
-                        </span>
-                        <span className={`w-24 shrink-0 text-left text-[12px] font-bold ${late ? 'text-red-600' : 'text-slate-500'}`}>{relativeDay(daysFromToday(r.deadlineJalali))}</span>
-                      </button>
-                    </li>
-                  );
-                })}
+                {model.myTasks.slice(0, 5).map((t) => (
+                  <li key={t.id} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2">
+                    <span className="truncate text-[13px] font-bold text-slate-700">{t.resolutionTitle}</span>
+                    <span className={`shrink-0 text-[12px] font-bold ${t.daysLeft !== null && t.daysLeft < 0 ? 'text-red-600' : 'text-slate-500'}`}>{relativeDay(t.daysLeft)}</span>
+                  </li>
+                ))}
               </ul>
             )}
-          </section>
+          </>
+        ) : isOffice ? (
+          <>
+            <header className="db-card-head"><h2><Send className="ml-1 inline h-4 w-4 text-blue-600" />کارهای دفتر</h2></header>
+            <ul className="space-y-2">
+              {officeItems.map(({ label, value, route, icon: Icon }) => (
+                <li key={label}>
+                  <button onClick={() => navigateTo(route)} className="flex w-full items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2.5 hover:bg-blue-50">
+                    <span className="flex items-center gap-2 text-[13px] font-bold text-slate-700"><Icon className="h-4 w-4 text-blue-600" />{label}</span>
+                    <b className="text-[15px] text-slate-900">{toPersianDigits(value)}</b>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <>
+            <header className="db-card-head"><h2><Activity className="ml-1 inline h-4 w-4 text-blue-600" />فعالیت‌های اخیر</h2></header>
+            {model.activity.length === 0 ? <div className="db-empty"><p>فعالیتی ثبت نشده است.</p></div> : (
+              <ul className="space-y-2">{model.activity.slice(0, 5).map((l) => <li key={l.id} className="text-[13px]"><b className="text-slate-800">{l.action}</b><span className="block text-[11px] text-slate-400">{toPersianDigits(l.timestampJalali)}</span></li>)}</ul>
+            )}
+          </>
         )}
-
-        {/* ——— ستون مخصوص نقش ——— */}
-        {dash.isVisible('role') && showRoleCard && <section className="db-card" style={ord('role')}>
-          {isManager && model.units.length > 0 ? (
-            <>
-              <header className="db-card-head"><h2><Building2 className="ml-1 inline h-4 w-4 text-blue-600" />وضعیت واحدها</h2></header>
-              <ul className="space-y-3">
-                {model.units.slice(0, 5).map((u) => (
-                  <li key={u.name}>
-                    <div className="flex items-center justify-between gap-2 text-[12px]"><span className="truncate font-bold text-slate-700">{u.name}</span><span className="shrink-0 font-bold text-slate-800">{toPersianDigits(u.avgProgress)}٪</span></div>
-                    <div className="dash-progress mt-1"><span style={{ width: `${u.avgProgress}%` }} /></div>
-                    {u.overdue > 0 && <p className="mt-0.5 text-[11px] font-bold text-red-600">{toPersianDigits(u.overdue)} مصوبه معوق</p>}
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : model.persona === 'ASSIGNEE' ? (
-            <>
-              <header className="db-card-head"><h2><Hourglass className="ml-1 inline h-4 w-4 text-blue-600" />مهلت‌های من</h2></header>
-              {model.myTasks.length === 0 ? <div className="db-empty"><p>وظیفه‌ای ندارید.</p></div> : (
-                <ul className="space-y-2">
-                  {model.myTasks.slice(0, 5).map((t) => (
-                    <li key={t.id} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2">
-                      <span className="truncate text-[13px] font-bold text-slate-700">{t.resolutionTitle}</span>
-                      <span className={`shrink-0 text-[12px] font-bold ${t.daysLeft !== null && t.daysLeft < 0 ? 'text-red-600' : 'text-slate-500'}`}>{relativeDay(t.daysLeft)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </>
-          ) : isOffice ? (
-            <>
-              <header className="db-card-head"><h2><Send className="ml-1 inline h-4 w-4 text-blue-600" />کارهای دفتر</h2></header>
-              <ul className="space-y-2">
-                {officeItems.map(({ label, value, route, icon: Icon }) => (
-                  <li key={label}>
-                    <button onClick={() => navigateTo(route)} className="flex w-full items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2.5 hover:bg-blue-50">
-                      <span className="flex items-center gap-2 text-[13px] font-bold text-slate-700"><Icon className="h-4 w-4 text-blue-600" />{label}</span>
-                      <b className="text-[15px] text-slate-900">{toPersianDigits(value)}</b>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <>
-              <header className="db-card-head"><h2><Activity className="ml-1 inline h-4 w-4 text-blue-600" />فعالیت‌های اخیر</h2></header>
-              {model.activity.length === 0 ? <div className="db-empty"><p>فعالیتی ثبت نشده است.</p></div> : (
-                <ul className="space-y-2">{model.activity.slice(0, 5).map((l) => <li key={l.id} className="text-[13px]"><b className="text-slate-800">{l.action}</b><span className="block text-[11px] text-slate-400">{toPersianDigits(l.timestampJalali)}</span></li>)}</ul>
-              )}
-            </>
-          )}
-        </section>}
-      </div>
+      </section>}
 
       {/* ——— آخرین اتفاقات ——— */}
       {dash.isVisible('activity') && (model.persona === 'ADMIN' || isOffice || model.persona === 'ASSIGNEE') && model.activity.length > 0 && (
-        <section className="db-card" style={ord('activity')}>
+        <section className="db-card col-span-full" style={ord('activity')}>
           <header className="db-card-head"><h2>آخرین فعالیت‌ها</h2></header>
           <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {model.activity.slice(0, 6).map((l) => (

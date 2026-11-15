@@ -1435,13 +1435,13 @@ button:hover > .app-logo { transform: scale(1.04); }
 .db-card-head h2 { font-size: 0.9rem; font-weight: 700; color: #0f1f3d; }
 .db-count { min-width: 1.6rem; border-radius: 999px; padding: 0.1rem 0.5rem; text-align: center; font-size: 0.75rem; font-weight: 700; color: #fff; background: #2563eb; }
 .db-link { border-radius: 999px; padding: 0.3rem 0.75rem; font-size: 0.72rem; font-weight: 700; color: #1d4ed8; background: #eaf1fd; }
-.db-empty { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; padding: 1.5rem 0.5rem; text-align: center; font-size: 0.78rem; color: #64748b; }
+.db-empty { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; padding: 0.65rem 0.5rem; text-align: center; font-size: 0.78rem; color: #64748b; }
 .db-todo { display: flex; width: 100%; align-items: center; gap: 0.75rem; border-radius: 0.95rem; padding: 0.75rem 0.85rem; background: #f7faff; box-shadow: 0 0 0 1px #e3ecf9 inset; transition: background 0.15s ease, box-shadow 0.15s ease; }
 .db-todo:hover { background: #eef5ff; box-shadow: 0 0 0 1px #bfd4f5 inset; }
 .db-todo-first { background: linear-gradient(90deg, #eaf2ff, #f7faff); box-shadow: 0 0 0 2px #93c5fd inset; }
 .db-todo-cta { display: inline-flex; flex-shrink: 0; align-items: center; gap: 0.3rem; border-radius: 0.7rem; padding: 0.45rem 0.8rem; font-size: 0.72rem; font-weight: 700; color: #fff; background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
 @media (max-width: 639px) { .db-todo-cta { padding: 0.45rem; font-size: 0; gap: 0; } .db-todo-cta svg { width: 1rem; height: 1rem; } }
-.db-meeting { display: flex; width: 100%; gap: 0.7rem; border-radius: 0.95rem; padding: 0.6rem; background: #f7faff; box-shadow: 0 0 0 1px #e3ecf9 inset; }
+.db-meeting { display: flex; width: 100%; gap: 0.7rem; border-radius: 0.95rem; padding: 0.38rem 0.5rem; background: #f7faff; box-shadow: 0 0 0 1px #e3ecf9 inset; }
 .db-meeting:hover { background: #eef5ff; }
 .db-date { display: flex; width: 3.1rem; height: 3.3rem; flex-shrink: 0; flex-direction: column; align-items: center; justify-content: center; border-radius: 0.85rem; color: #fff; background: linear-gradient(160deg, #3b82f6, #1848b8); }
 .db-date b { font-size: 1.1rem; line-height: 1; }
@@ -1904,7 +1904,7 @@ button:hover > .header-logo { transform: scale(1.06) rotate(-2deg); }
 /* ——————————————————— شاخص‌ها ——————————————————— */
 .stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
 @media (min-width: 1024px) { .stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.stat-card { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; padding: 0.9rem 1rem; text-align: right; border-radius: 12px; background: #fff; border: 1px solid var(--app-border); box-shadow: var(--app-shadow); transition: border-color 0.15s ease; }
+.stat-card { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; padding: 0.55rem 0.8rem; text-align: right; border-radius: 12px; background: #fff; border: 1px solid var(--app-border); box-shadow: var(--app-shadow); transition: border-color 0.15s ease; }
 .stat-card:hover { border-color: #b8c4de; }
 .stat-card-label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 600; color: #475569; }
 .stat-card-label svg { color: var(--app-primary); }
@@ -1914,8 +1914,8 @@ button:hover > .header-logo { transform: scale(1.06) rotate(-2deg); }
 .dark .stat-card-value, .dark .page-head-title { color: #f1f5f9; }
 
 /* ——————————————————— کارت‌های پیشخوان: ساده و یکدست ——————————————————— */
-.db-card { border-radius: 12px; padding: 1rem 1.1rem; background: #fff; border: 1px solid var(--app-border); box-shadow: var(--app-shadow); }
-.db-card-head { margin-bottom: 0.8rem; }
+.db-card { border-radius: 12px; padding: 0.65rem 0.85rem; background: #fff; border: 1px solid var(--app-border); box-shadow: var(--app-shadow); }
+.db-card-head { margin-bottom: 0.4rem; }
 .db-card-head h2 { font-size: 0.95rem; font-weight: 700; color: var(--app-ink); }
 .db-count { background: var(--app-primary-soft); color: var(--app-primary); font-weight: 700; }
 .db-link { background: transparent; color: var(--app-primary); font-weight: 600; padding: 0.2rem 0.4rem; }
@@ -1962,11 +1962,22 @@ html .app-page-header::before { display: none !important; }
 html .infographic-card::before, html .guide-card::before { background: var(--app-primary) !important; }
 .dark .app-modal-header, .dark .app-form-hero { background: #1e293b !important; }
 
-/* ——— نسخه آرام‌تر: ساعت ساده، شاخص‌های فشرده، چرخ‌دنده چیدمان ——— */
-.hdr-clock { display: flex; align-items: center; gap: 0.6rem; padding: 0; background: none !important; border: 0 !important; box-shadow: none !important; font-size: 13px; font-weight: 600; color: #475569; white-space: nowrap; }
-.hdr-clock-dot { width: 4px; height: 4px; border-radius: 999px; background: #cbd5e1; }
-.hdr-clock-time { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--app-ink); letter-spacing: 0.02em; }
-.dark .hdr-clock { color: #94a3b8; } .dark .hdr-clock-time { color: #e2e8f0; }
+.db-brief-link { display: flex; align-items: center; gap: 0.4rem; width: 100%; border-radius: 0.4rem; padding: 0.16rem 0.25rem; text-align: start; }
+.db-brief-link svg { width: 0.8rem; height: 0.8rem; flex-shrink: 0; color: var(--app-primary); }
+.db-brief-link:hover { background: var(--app-primary-soft); color: var(--app-primary); }
+.dark .db-brief-link:hover { background: #1e293b; color: #bfdbfe; }
+
+.hdr-clock {
+  background: linear-gradient(155deg, #fff 18%, #eef4ff 76%, #dce8fa);
+  border-color: #c5d6ef;
+  box-shadow: 0 3px 0 #cbdaf0, 0 8px 14px -7px #496899, inset 0 1px 0 #fff;
+}
+.hdr-clock-time {
+  background: linear-gradient(155deg, #3864ba, #234890 48%, #142e64);
+  box-shadow: inset 0 1px 0 #ffffff50, inset 0 -2px 4px #10224a, 0 3px 5px #25468155;
+}
+.hdr-clock-colon { animation: none; }
+.dark .hdr-clock { box-shadow: 0 3px 0 #0b1222, 0 6px 12px #02061780; }
 
 .stat-grid { gap: 0.5rem; }
 .stat-card { flex-direction: row; align-items: center; gap: 0.5rem; padding: 0.55rem 0.85rem; border-radius: 10px; }
@@ -1974,12 +1985,3 @@ html .infographic-card::before, html .guide-card::before { background: var(--app
 .stat-card-label { flex: 1; font-size: 12.5px; }
 .stat-card-value { font-size: 1.15rem; }
 .stat-card-alert .stat-card-icon { color: #dc2626; }
-
-.layout-gear { position: fixed; right: 0; top: 50%; z-index: 41; width: 46px; height: 46px; transform: translate(50%, -50%); display: flex; align-items: center; justify-content: flex-start; padding-left: 6px; border-radius: 999px; color: #fff; background: var(--app-primary); box-shadow: 0 4px 12px -4px rgba(20,30,61,.45); transition: transform .25s ease; }
-.layout-gear:hover { transform: translate(35%, -50%); }
-.layout-gear svg { transition: transform .5s ease; }
-.layout-gear:hover svg { transform: rotate(90deg); }
-.layout-drawer { animation: drawer-in .25s ease-out; }
-@keyframes drawer-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
-@media (prefers-reduced-motion: reduce) { .layout-drawer { animation: none; } }
-.hdr-clock .hdr-clock-time { background: none !important; box-shadow: none !important; padding: 0 !important; border-radius: 0; color: var(--app-ink) !important; font-size: 13px; }

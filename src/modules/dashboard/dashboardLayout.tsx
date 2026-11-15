@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowDown, ArrowUp, Eye, EyeOff, LayoutGrid, RotateCcw, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, LayoutGrid, RotateCcw } from 'lucide-react';
 import { loadLocalValue, saveLocalValue } from '../../services/localStore';
 
 /** بخش‌های قابل شخصی‌سازی داشبورد. */
@@ -51,22 +51,27 @@ export const useDashboardLayout = (userId: string) => {
   };
 };
 
-export const DashboardCustomizer: React.FC<{ api: ReturnType<typeof useDashboardLayout>; onClose: () => void }> = ({ api, onClose }) => (
-  <div className="fixed inset-0 z-50 bg-slate-950/30" onMouseDown={onClose} dir="rtl">
-    <div className="layout-drawer absolute right-0 top-0 h-full w-full max-w-sm bg-white shadow-2xl border-l border-slate-200 p-4 space-y-3 overflow-y-auto" onMouseDown={(e) => e.stopPropagation()} role="dialog" aria-label="شخصی‌سازی داشبورد">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5"><LayoutGrid className="w-4 h-4 text-indigo-600" />چیدمان پیشخوان</h3>
-        <button onClick={onClose} aria-label="بستن" className="p-1 rounded-lg text-slate-400 hover:bg-slate-100"><X className="w-4 h-4" /></button>
-      </div>
-      <p className="text-[12px] text-slate-500">بخش‌ها را نمایش دهید یا پنهان کنید و ترتیبشان را تغییر دهید. چیدمان فقط برای شما ذخیره می‌شود.</p>
+export const DashboardCustomizer: React.FC<{ api: ReturnType<typeof useDashboardLayout> }> = ({ api }) => (
+  <details className="relative z-20" onKeyDown={(event) => {
+    if (event.key === 'Escape') {
+      event.currentTarget.open = false;
+      event.currentTarget.querySelector('summary')?.focus();
+    }
+  }}>
+    <summary className="app-btn-secondary cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+      <LayoutGrid className="h-4 w-4" />چیدمان<ChevronDown className="h-4 w-4" />
+    </summary>
+    <div className="absolute left-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] max-h-[65vh] overflow-auto space-y-2 rounded-xl border border-slate-200 p-3 shadow-xl bg-white dark:bg-slate-900 dark:border-slate-700">
       <ul className="space-y-1.5">
         {api.layout.order.map((id, index) => {
           const section = DASHBOARD_SECTIONS.find((s) => s.id === id)!;
           const visible = api.isVisible(id);
           return (
-            <li key={id} className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${visible ? 'border-slate-200 bg-white' : 'border-dashed border-slate-200 bg-slate-50 opacity-60'}`}>
-              <button onClick={() => api.toggle(id)} aria-label={visible ? 'پنهان کردن' : 'نمایش'} className={`p-1 rounded-lg ${visible ? 'text-indigo-600 hover:bg-indigo-50' : 'text-slate-400 hover:bg-slate-100'}`}>{visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}</button>
-              <span className="flex-1 text-[13px] font-bold text-slate-700">{section.label}</span>
+            <li key={id} className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${visible ? 'border-slate-200' : 'border-dashed border-slate-200 opacity-70'}`}>
+              <label className="flex flex-1 cursor-pointer items-center gap-2 text-[13px] font-bold text-slate-700 dark:text-slate-200">
+                <input type="checkbox" checked={visible} onChange={() => api.toggle(id)} className="h-4 w-4 accent-[var(--app-primary)]" />
+                {section.label}
+              </label>
               <button onClick={() => api.move(id, -1)} disabled={index === 0} aria-label="بالا" className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ArrowUp className="w-3.5 h-3.5" /></button>
               <button onClick={() => api.move(id, 1)} disabled={index === api.layout.order.length - 1} aria-label="پایین" className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ArrowDown className="w-3.5 h-3.5" /></button>
             </li>
@@ -75,5 +80,5 @@ export const DashboardCustomizer: React.FC<{ api: ReturnType<typeof useDashboard
       </ul>
       <button onClick={api.reset} className="flex items-center gap-1 text-[12px] font-bold text-slate-500 hover:text-slate-800"><RotateCcw className="w-3.5 h-3.5" />بازگشت به چیدمان پیش‌فرض</button>
     </div>
-  </div>
+  </details>
 );

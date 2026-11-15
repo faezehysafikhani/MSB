@@ -38,6 +38,7 @@ export interface DashboardModel {
   actionItems: DashboardActionItem[];
   inExecution: Resolution[];
   overdue: Resolution[];
+  awaitingSignature: Resolution[];
   myTasks: (Task & { daysLeft: number | null })[];
   activity: ActivityLog[];
   units: UnitSummaryRow[];
@@ -210,6 +211,7 @@ export const buildDashboardModel = (user: User): DashboardModel => {
     { label: 'برگشتی برای اصلاح', value: countP(['RETURNED_FOR_REVISION']), route: 'proposals' as AppRoute },
   ];
 
+  const awaitingSignature = approved.filter((r) => SIGNATURE_STATES.includes(r.executionStatus));
   const monthPrefix = today.slice(0, 7);
   return {
     hasAnyData,
@@ -219,6 +221,7 @@ export const buildDashboardModel = (user: User): DashboardModel => {
     actionItems,
     inExecution,
     overdue,
+    awaitingSignature,
     myTasks,
     activity,
     units,
@@ -228,7 +231,7 @@ export const buildDashboardModel = (user: User): DashboardModel => {
     counts: {
       meetingsThisMonth: meetings.filter((m) => m.status !== 'CANCELLED' && (parseJalali(m.dateJalali) ? `${parseJalali(m.dateJalali)!.year}/${String(parseJalali(m.dateJalali)!.month).padStart(2, '0')}` : '') === monthPrefix).length,
       activeResolutions: inExecution.length,
-      awaitingSignature: approved.filter((r) => SIGNATURE_STATES.includes(r.executionStatus)).length,
+      awaitingSignature: awaitingSignature.length,
       awaitingNotice: approved.filter((r) => ['WAITING_NOTIFICATION', 'PENDING_SECRETARY_NOTICE_SIGNATURE'].includes(r.executionStatus)).length,
       pendingVerification: approved.filter((r) => r.executionStatus === 'PENDING_APPROVAL').length,
       overdue: overdue.length,
