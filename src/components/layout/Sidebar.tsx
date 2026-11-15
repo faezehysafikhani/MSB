@@ -223,8 +223,8 @@ export const Sidebar: React.FC = () => {
     <>
     {isMobile && <div className="no-print fixed inset-0 top-[72px] z-40 bg-slate-950/40 backdrop-blur-[2px]" onClick={toggleSidebar} aria-hidden="true" />}
     <aside
-      className={`no-print app-surface bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-l border-slate-200 dark:border-slate-800 transition-[width] duration-300 ease-in-out flex flex-col justify-start shrink-0 select-none ${
-        isMobile ? 'fixed right-0 top-[72px] bottom-0 z-50 w-72 shadow-2xl' : `z-30 h-full sticky top-0 shadow-xs relative ${isSidebarCollapsed ? 'w-16' : 'w-64'}`
+      className={`no-print sidebar-glass text-slate-700 dark:text-slate-200 transition-[width] duration-300 ease-in-out flex flex-col justify-start shrink-0 select-none ${
+        isMobile ? 'fixed right-2 top-[80px] bottom-2 z-50 w-72' : `z-30 my-2 mr-2 relative ${isSidebarCollapsed ? 'w-16' : 'w-64'}`
       }`}
     >
       {/* Floating drawer handle — the primary, always-reachable way to
@@ -242,11 +242,10 @@ export const Sidebar: React.FC = () => {
         )}
       </button>
 
-      {/* User Info Box - Placed at the very TOP, above "پیشخوان" (Dashboard) */}
-      <div className="p-2.5 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-slate-50 dark:from-slate-800/40">
+      <div className="p-2.5 shrink-0">
         {showLabels ? (
-          <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/60 flex items-center gap-2.5 shadow-2xs">
-            <div className="w-8 h-8 rounded-lg bg-[var(--app-primary)] text-white flex items-center justify-center text-[11px] font-bold shrink-0 overflow-hidden shadow-xs ring-2 ring-white dark:ring-slate-800">
+          <div className="sidebar-profile flex items-center gap-2.5 p-2.5">
+            <div className="sidebar-profile-avatar w-9 h-9 rounded-xl text-white flex items-center justify-center text-[11px] font-bold shrink-0 overflow-hidden">
               {currentUser.avatarUrl ? (
                 <img src={currentUser.avatarUrl} alt={currentUser.fullName} className="w-full h-full object-cover" />
               ) : (
@@ -254,8 +253,8 @@ export const Sidebar: React.FC = () => {
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-bold text-slate-800 dark:text-slate-100 truncate">{currentUser.fullName}</p>
-              <p className="text-[11px] text-teal-700 dark:text-teal-400 font-semibold truncate">{currentUser.title}</p>
+              <p className="text-[12px] font-bold text-white truncate">{currentUser.fullName}</p>
+              <p className="text-[11px] text-blue-100 font-semibold truncate">{currentUser.title}</p>
             </div>
           </div>
         ) : (
@@ -276,15 +275,16 @@ export const Sidebar: React.FC = () => {
       {/* Navigation List — scrolls independently within the sidebar itself
           (never clipped, never tied to the page's own scroll) so every item
           stays reachable no matter how tall the menu grows. */}
-      <div className="flex-1 py-2 px-2 space-y-2.5 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 pb-3 px-2.5 space-y-2.5 overflow-y-auto overflow-x-hidden">
         {navGroups.map((group) => (
           <div key={group.id} className="space-y-0.5">
             {/* Group Header */}
-            {showLabels ? (
+            {showLabels && group.id !== 'dashboards' && (
               <div className="px-2 pt-1 pb-1 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                 {group.title}
               </div>
-            ) : (
+            )}
+            {!showLabels && group.id !== 'dashboards' && (
               <div className="h-2 flex items-center justify-center">
                 <div className="w-4 h-px bg-slate-200 dark:bg-slate-700" />
               </div>
@@ -308,10 +308,11 @@ export const Sidebar: React.FC = () => {
                       }
                     }}
                     title={item.title}
-                    className={`group relative w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs transition-all duration-150 cursor-pointer ${
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`sidebar-item group relative w-full flex items-center justify-between px-2.5 py-1.5 rounded-2xl text-xs transition-all duration-150 cursor-pointer ${
                       isActive
-                        ? 'app-nav-active text-white font-bold shadow-xs'
-                        : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white font-bold hover:translate-x-[-2px]'
+                        ? 'sidebar-item-active text-white font-bold'
+                        : 'text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white font-bold'
                     } ${!showLabels ? 'justify-center px-1 py-2' : ''}`}
                   >
                     {/* Active-item accent bar */}

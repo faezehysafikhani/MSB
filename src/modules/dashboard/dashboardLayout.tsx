@@ -58,10 +58,10 @@ export const DashboardCustomizer: React.FC<{ api: ReturnType<typeof useDashboard
       event.currentTarget.querySelector('summary')?.focus();
     }
   }}>
-    <summary className="app-btn-secondary cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-      <LayoutGrid className="h-4 w-4" />چیدمان<ChevronDown className="h-4 w-4" />
+    <summary aria-label="چیدمان" className="dashboard-layout-trigger cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+      <LayoutGrid className="h-4 w-4" /><span className="sr-only sm:not-sr-only">چیدمان</span><ChevronDown className="hidden h-3.5 w-3.5 sm:block" />
     </summary>
-    <div className="absolute left-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] max-h-[65vh] overflow-auto space-y-2 rounded-xl border border-slate-200 p-3 shadow-xl bg-white dark:bg-slate-900 dark:border-slate-700">
+    <div className="dashboard-layout-panel absolute left-0 top-full mt-3 w-72 max-w-[calc(100vw-2rem)] max-h-[65vh] overflow-auto space-y-2 p-3">
       <ul className="space-y-1.5">
         {api.layout.order.map((id, index) => {
           const section = DASHBOARD_SECTIONS.find((s) => s.id === id)!;

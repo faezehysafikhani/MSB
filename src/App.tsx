@@ -10,6 +10,7 @@ import { CreateResolutionModal } from './modules/resolutions/CreateResolutionMod
 
 // Views
 import { DashboardView } from './modules/dashboard/DashboardView';
+import { DashboardCustomizer, useDashboardLayout } from './modules/dashboard/dashboardLayout';
 import { ProposalsView } from './modules/proposals/ProposalsView';
 import { ArchiveView } from './modules/archive/ArchiveView';
 import { MeetingListView } from './modules/meetings/MeetingListView';
@@ -50,6 +51,7 @@ const AppContent: React.FC = () => {
     hasPermission
   } = useApp();
 
+  const dashboardLayout = useDashboardLayout(currentUser.id);
   const canManageUsers = currentUser.role === 'ADMIN' || hasPermission('MANAGE_USERS');
   const canViewApprovals = hasPermission('VIEW_APPROVALS') || currentUser.role === 'ADMIN' || currentUser.role === 'DEPT_MANAGER' || currentUser.role === 'CEO';
   const canNotifyResolutions = hasPermission('NOTIFY_RESOLUTION');
@@ -61,7 +63,7 @@ const AppContent: React.FC = () => {
   const renderCurrentView = () => {
     switch (currentRoute) {
       case 'dashboard':
-        return <DashboardView />;
+        return <DashboardView layout={dashboardLayout} />;
       case 'proposals':
         return <ProposalsView />;
       case 'archive':
@@ -97,14 +99,14 @@ const AppContent: React.FC = () => {
         // برای همه باز است؛ تب‌های مدیریتی درون SettingsView خودش گیت می‌شوند.
         return <SettingsView />;
       default:
-        return <DashboardView />;
+        return <DashboardView layout={dashboardLayout} />;
     }
   };
 
   return (
     <div className="app-shell h-screen overflow-hidden bg-white dark:bg-slate-950 flex flex-col text-slate-800 dark:text-slate-100 font-sans antialiased selection:bg-[var(--app-primary)] selection:text-white" dir="rtl">
       {/* Top Navbar */}
-      <Navbar />
+      <Navbar leftControl={currentRoute === 'dashboard' ? <DashboardCustomizer api={dashboardLayout} /> : undefined} />
 
       {/* Body container: Sidebar + Main Content */}
       <div className="flex-1 flex overflow-hidden">

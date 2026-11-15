@@ -22,7 +22,7 @@ import { useApp } from '../../context/AppContext';
 import { getMeetingStatusMeta, toPersianDigits } from '../../utils/formatters';
 import { buildDashboardModel, daysFromToday, DashboardActionItem } from './dashboardData';
 import { AiDailyBrief } from './AiDailyBrief';
-import { DashboardCustomizer, useDashboardLayout } from './dashboardLayout';
+import type { useDashboardLayout } from './dashboardLayout';
 
 
 const relativeDay = (days: number | null) => {
@@ -43,11 +43,10 @@ const TONE_DOT: Record<DashboardActionItem['tone'], string> = { danger: 'bg-red-
 
 type ResTab = 'overdue' | 'running';
 
-export const DashboardView: React.FC = () => {
+export const DashboardView: React.FC<{ layout: ReturnType<typeof useDashboardLayout> }> = ({ layout: dash }) => {
   const { navigateTo, currentUser, refreshTrigger, hasPermission, openCreateMeetingModal } = useApp();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const model = useMemo(() => buildDashboardModel(currentUser), [currentUser, refreshTrigger]);
-  const dash = useDashboardLayout(currentUser.id);
   const canCreateMeeting = hasPermission('CREATE_MEETING');
   const [resTab, setResTab] = useState<ResTab | null>(null);
 
@@ -106,16 +105,10 @@ export const DashboardView: React.FC = () => {
 
   return (
     <div className="grid items-start gap-3 pb-10 lg:grid-cols-3">
-      {/* ——— عنوان صفحه و اقدام اصلی ——— */}
-      <header className="page-head col-span-full" style={{ order: 0 }}>
-        <div className="min-w-0">
-          <h1 className="page-head-title">پیشخوان</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          {!(dash.isVisible('meetings') && model.upcomingMeetings.length > 0) && primaryAction}
-          <DashboardCustomizer api={dash} />
-        </div>
-      </header>
+      <h1 className="sr-only">پیشخوان</h1>
+      {!(dash.isVisible('meetings') && model.upcomingMeetings.length > 0) && (
+        <div className="col-span-full flex justify-end" style={{ order: 0 }}>{primaryAction}</div>
+      )}
 
       {/* ——— شاخص‌ها: چهار عدد اصلی، همیشه در یک ردیف ——— */}
       {dash.isVisible('pulse') && (
