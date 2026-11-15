@@ -29,7 +29,7 @@ import { meetingService, resolutionService, taskService } from '../../services';
 import { Meeting, Resolution, Task } from '../../types';
 import { DEFAULT_ORGANIZATION_PROFILE, useOrganizationProfile } from '../../services/organizationProfile';
 
-export const Navbar: React.FC<{ leftControl?: React.ReactNode }> = ({ leftControl }) => {
+export const Navbar: React.FC = () => {
   const { 
     currentUser, 
     setCurrentUser, 
@@ -521,7 +521,6 @@ export const Navbar: React.FC<{ leftControl?: React.ReactNode }> = ({ leftContro
           >
             <LogOut className="w-4 h-4" />
           </button>
-          {leftControl && <div className="order-6 shrink-0">{leftControl}</div>}
         </div>
       </div>
     </header>

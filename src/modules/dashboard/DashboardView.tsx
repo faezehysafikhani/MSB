@@ -22,7 +22,7 @@ import { useApp } from '../../context/AppContext';
 import { getMeetingStatusMeta, toPersianDigits } from '../../utils/formatters';
 import { buildDashboardModel, daysFromToday, DashboardActionItem } from './dashboardData';
 import { AiDailyBrief } from './AiDailyBrief';
-import type { useDashboardLayout } from './dashboardLayout';
+import { DashboardCustomizer, useDashboardLayout } from './dashboardLayout';
 
 
 const relativeDay = (days: number | null) => {
@@ -43,10 +43,11 @@ const TONE_DOT: Record<DashboardActionItem['tone'], string> = { danger: 'bg-red-
 
 type ResTab = 'overdue' | 'running';
 
-export const DashboardView: React.FC<{ layout: ReturnType<typeof useDashboardLayout> }> = ({ layout: dash }) => {
+export const DashboardView: React.FC = () => {
   const { navigateTo, currentUser, refreshTrigger, hasPermission, openCreateMeetingModal } = useApp();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const model = useMemo(() => buildDashboardModel(currentUser), [currentUser, refreshTrigger]);
+  const dash = useDashboardLayout(currentUser.id);
   const canCreateMeeting = hasPermission('CREATE_MEETING');
   const [resTab, setResTab] = useState<ResTab | null>(null);
 
@@ -106,27 +107,28 @@ export const DashboardView: React.FC<{ layout: ReturnType<typeof useDashboardLay
   return (
     <div className="dashboard-view grid items-start gap-3 pb-10 lg:grid-cols-3">
       <h1 className="sr-only">پیشخوان</h1>
-      {!(dash.isVisible('meetings') && model.upcomingMeetings.length > 0) && (
-        <div className="col-span-full flex justify-end" style={{ order: 0 }}>{primaryAction}</div>
-      )}
-
-      {/* ——— شاخص‌ها: چهار عدد اصلی، همیشه در یک ردیف ——— */}
-      {dash.isVisible('pulse') && (
-        <section className="stat-grid col-span-full" style={{ order: 0 }} aria-label="شاخص‌های اصلی">
-          {[
-            { label: 'کارهای منتظر من', value: model.actionItems.length, icon: CheckCircle2, onClick: () => document.getElementById('dash-todo')?.scrollIntoView({ behavior: 'smooth' }), alert: false },
-            { label: 'جلسات پیش‌رو', value: model.upcomingMeetings.length, icon: CalendarDays, onClick: () => navigateTo('calendar'), alert: false },
-            { label: 'مصوبات در حال اجرا', value: model.counts.activeResolutions, icon: TrendingUp, onClick: () => navigateTo('resolutions'), alert: false },
-            { label: 'مصوبات معوق', value: model.counts.overdue, icon: AlertTriangle, onClick: () => navigateTo('resolutions'), alert: model.counts.overdue > 0 },
-          ].map(({ label, value, icon: Icon, onClick, alert }) => (
-            <button key={label} type="button" onClick={onClick} className={`stat-card ${alert ? 'stat-card-alert' : ''}`}>
-              <Icon className="h-4 w-4 stat-card-icon" />
-              <span className="stat-card-label">{label}</span>
-              <span className="stat-card-value">{toPersianDigits(value)}</span>
-            </button>
-          ))}
-        </section>
-      )}
+      <div className="col-span-full flex flex-col gap-2.5 xl:flex-row xl:items-center" style={{ order: 0 }}>
+        <div className="flex items-center justify-end gap-2.5 xl:order-last xl:mr-auto">
+          {!(dash.isVisible('meetings') && model.upcomingMeetings.length > 0) && primaryAction}
+          <DashboardCustomizer api={dash} />
+        </div>
+        {dash.isVisible('pulse') && (
+          <section className="stat-grid min-w-0 flex-1" aria-label="شاخص‌های اصلی">
+            {[
+              { label: 'کارهای منتظر من', value: model.actionItems.length, icon: CheckCircle2, onClick: () => document.getElementById('dash-todo')?.scrollIntoView({ behavior: 'smooth' }), alert: false },
+              { label: 'جلسات پیش‌رو', value: model.upcomingMeetings.length, icon: CalendarDays, onClick: () => navigateTo('calendar'), alert: false },
+              { label: 'مصوبات در حال اجرا', value: model.counts.activeResolutions, icon: TrendingUp, onClick: () => navigateTo('resolutions'), alert: false },
+              { label: 'مصوبات معوق', value: model.counts.overdue, icon: AlertTriangle, onClick: () => navigateTo('resolutions'), alert: model.counts.overdue > 0 },
+            ].map(({ label, value, icon: Icon, onClick, alert }) => (
+              <button key={label} type="button" onClick={onClick} className={`stat-card ${alert ? 'stat-card-alert' : ''}`}>
+                <Icon className="h-4 w-4 stat-card-icon" />
+                <span className="stat-card-label">{label}</span>
+                <span className="stat-card-value">{toPersianDigits(value)}</span>
+              </button>
+            ))}
+          </section>
+        )}
+      </div>
 
       {/* ——— خلاصه امروز و وضعیت مصوبات، کنار هم ——— */}
       {dash.isVisible('brief') && (
